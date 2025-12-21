@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  # 1. MySQL Database (Nơi lưu dữ liệu cho Auth Service)
+  mysql-db:
+    image: mysql:8.0
+    container_name: igcse_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: auth_db  # Tự động tạo DB tên auth_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - igcse-network
+
+  # 2. phpMyAdmin (Giao diện quản lý DB - Dùng cái này cho dễ nhìn hơn Workbench)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: igcse_phpmyadmin
+    restart: always
+    links:
+      - mysql-db
+    environment:
+      PMA_HOST: mysql-db
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"
+    networks:
+      - igcse-network
+
+# Định nghĩa mạng để các container nhìn thấy nhau
+networks:
+  igcse-network:
+    driver: bridge
+
+# Định nghĩa nơi lưu dữ liệu bền vững (tắt máy không mất data)
+volumes:
+  mysql_data:
