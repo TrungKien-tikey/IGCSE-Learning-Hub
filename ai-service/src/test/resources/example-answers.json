@@ -1,0 +1,42 @@
+{
+  "attemptId": 1,
+  "examId": 1,
+  "studentId": 1,
+  "answers": [
+    {
+      "type": "MULTIPLE_CHOICE",
+      "questionId": 1,
+      "selectedOption": "A",
+      "correctOption": "A"
+    },
+    {
+      "type": "MULTIPLE_CHOICE",
+      "questionId": 2,
+      "selectedOption": "B",
+      "correctOption": "C"
+    },
+    {
+      "type": "MULTIPLE_CHOICE",
+      "questionId": 3,
+      "selectedOption": "D",
+      "correctOption": "D"
+    },
+    {
+      "type": "ESSAY",
+      "questionId": 4,
+      "studentAnswer": "Photosynthesis is the process by which plants convert light energy into chemical energy. This process occurs in the chloroplasts of plant cells and involves the conversion of carbon dioxide and water into glucose and oxygen.",
+      "questionText": "Explain the process of photosynthesis.",
+      "referenceAnswer": "Photosynthesis is a process where plants use sunlight, water, and carbon dioxide to produce glucose and oxygen. It takes place in chloroplasts.",
+      "maxScore": 5.0
+    },
+    {
+      "type": "ESSAY",
+      "questionId": 5,
+      "studentAnswer": "The water cycle involves evaporation, condensation, and precipitation.",
+      "questionText": "Describe the water cycle.",
+      "referenceAnswer": "The water cycle consists of evaporation from bodies of water, condensation into clouds, and precipitation as rain or snow.",
+      "maxScore": 10.0
+    }
+  ]
+}
+
