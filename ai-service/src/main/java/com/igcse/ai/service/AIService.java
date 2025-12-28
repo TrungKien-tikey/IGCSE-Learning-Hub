@@ -90,11 +90,19 @@ public class AIService {
             }
         }
 
-        // Lưu kết quả với language và confidence
-        AIResult result = new AIResult(attemptId, score, feedback, lang, confidence);
+        // Lưu kết quả với language và confidence (upsert: update nếu đã có, insert nếu chưa có)
+        AIResult result = aiResultRepository.findByAttemptId(attemptId)
+                .orElse(new AIResult(attemptId, score, feedback, lang, confidence));
+
+        // Update các trường
+        result.setScore(score);
+        result.setFeedback(feedback);
+        result.setLanguage(lang);
+        result.setConfidence(confidence);
         result.setStudentId(attempt.getStudentId());
         result.setExamId(attempt.getExamId());
         result.setEvaluationMethod(overallMethod);
+        result.setGradedAt(new java.util.Date());
 
         try {
             com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
