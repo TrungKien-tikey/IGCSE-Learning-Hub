@@ -79,8 +79,8 @@ public class EssayGradingStrategy implements GradingStrategy {
         // Set evaluationMethod based on usedOpenAI flag
         String evaluationMethod = "LOCAL_RULE_BASED";
         if (usedOpenAI) {
-            if (confidenceCalculated) {
-                evaluationMethod = "AI_GPT4_LANGCHAIN";
+        if (confidenceCalculated) {
+            evaluationMethod = "AI_GPT4_LANGCHAIN";
             } else {
                 evaluationMethod = "AI_GPT4";
             }
