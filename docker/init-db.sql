@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE TABLE IF NOT EXISTS chat_messages (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     sender_id BIGINT NOT NULL,
-    receiver_id BIGINT, -- Null nếu là chat group/room
+    receiver_id BIGINT, -- Null nếu là chat group/room.
     room_id VARCHAR(100), -- Room ID để gom nhóm tin nhắn
     content TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
