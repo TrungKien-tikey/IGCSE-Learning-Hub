@@ -18,30 +18,50 @@ public class CourseService {
     @Autowired private LessonRepository lessonRepository;
     @Autowired private EnrollmentRepository enrollmentRepository;
 
-    // --- 1. CRUD Course ---
-    public List<Course> getAllCourses() {
-        return courseRepository.findAll();
-    }
+    // ==========================================
+    // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
+    // ==========================================
 
-    public Course getCourseById(Long courseId) {
-        return courseRepository.findById(courseId).orElse(null);
+    // Bỏ chữ "String keyword" trong ngoặc đi
+public List<Course> getAllCourses() {
+    return courseRepository.findAll();
+}
+
+    public Course getCourseById(Long id) {
+        return courseRepository.findById(id).orElse(null);
     }
 
     public Course createCourse(Course course) {
+        // Validate dữ liệu đầu vào
+        if (course.getTitle() == null || course.getTitle().trim().isEmpty()) {
+            throw new RuntimeException("Tên khóa học không được để trống!");
+        }
+        if (course.getPrice() != null && course.getPrice() < 0) {
+            throw new RuntimeException("Giá khóa học không được nhỏ hơn 0!");
+        }
+        
+        course.setActive(true);
         return courseRepository.save(course);
     }
 
-    public Course updateCourse(Long courseId, String title, String desc, Double price) {
-        Course course = getCourseById(courseId);
-        if (course != null) {
-            course.updateCourse(title, desc, price); // Gọi hàm của Entity
-            return courseRepository.save(course);
+    public Course updateCourse(Long id, Course req) {
+        Course existingCourse = getCourseById(id);
+        if (existingCourse == null) {
+            throw new RuntimeException("Không tìm thấy khóa học ID: " + id);
         }
-        return null;
+
+        // Validate khi update
+        if (req.getPrice() != null && req.getPrice() < 0) {
+            throw new RuntimeException("Giá tiền không hợp lệ!");
+        }
+
+        // Gọi hàm update của Entity
+        existingCourse.updateCourse(req.getTitle(), req.getDescription(), req.getPrice());
+        return courseRepository.save(existingCourse);
     }
 
-    public boolean deactivateCourse(Long courseId) {
-        Course course = getCourseById(courseId);
+    public boolean deactivateCourse(Long id) {
+        Course course = getCourseById(id);
         if (course != null) {
             course.deactivate(); // Soft delete
             courseRepository.save(course);
@@ -50,38 +70,22 @@ public class CourseService {
         return false;
     }
 
-    public boolean deleteCourse(Long courseId) {
-        if (courseRepository.existsById(courseId)) {
-            courseRepository.deleteById(courseId); // Hard delete
+    public boolean deleteCourse(Long id) {
+        if (courseRepository.existsById(id)) {
+            courseRepository.deleteById(id);
             return true;
         }
         return false;
     }
 
-    public List<Course> searchCourses(String keyword) {
-        if (keyword == null || keyword.trim().isEmpty()) {
-            return getAllCourses();
-        }
-        return courseRepository.findByTitleContainingIgnoreCase(keyword);
+    // ==========================================
+    // PHẦN 2: LESSON MANAGEMENT (Task 2 - Giữ nguyên chờ làm)
+    // ==========================================
+
+    public List<Lesson> getLessonsByCourse(Long courseId) {
+        return lessonRepository.findByCourseCourseIdOrderByOrderIndexAsc(courseId);
     }
 
-    // --- 2. Enrollment ---
-    public boolean enrollCourse(Long courseId, Long userId) {
-        if (enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId)) {
-            return false; // Đã đăng ký rồi
-        }
-        Course course = getCourseById(courseId);
-        if (course != null && course.isActive()) {
-            Enrollment enrollment = new Enrollment();
-            enrollment.setCourse(course);
-            enrollment.setUserId(userId);
-            enrollmentRepository.save(enrollment);
-            return true;
-        }
-        return false;
-    }
-
-    // --- 3. CRUD Lesson ---
     public boolean addLesson(Long courseId, Lesson lesson) {
         Course course = getCourseById(courseId);
         if (course != null) {
@@ -112,9 +116,30 @@ public class CourseService {
         }
         return false;
     }
+
+    // ==========================================
+    // PHẦN 3: ENROLLMENT (Task 3 - Giữ nguyên chờ làm)
+    // ==========================================
     
-    // Hàm phụ trợ để lấy list bài học cho Controller gọi nếu cần
-    public List<Lesson> getLessonsByCourse(Long courseId) {
-        return lessonRepository.findByCourseCourseIdOrderByOrderIndexAsc(courseId);
+    public List<Course> searchCourses(String keyword) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return courseRepository.findByTitleContainingIgnoreCase(keyword.trim());
+        }
+        return courseRepository.findAll();
+    }
+
+    public boolean enrollCourse(Long courseId, Long userId) {
+        if (enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId)) {
+            return false; // Đã đăng ký rồi
+        }
+        Course course = getCourseById(courseId);
+        if (course != null && course.isActive()) {
+            Enrollment enrollment = new Enrollment();
+            enrollment.setCourse(course);
+            enrollment.setUserId(userId);
+            enrollmentRepository.save(enrollment);
+            return true;
+        }
+        return false;
     }
 }
