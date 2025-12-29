@@ -33,7 +33,9 @@ build/
 .vscode/
 
 ### Environment Variables ###
+application.properties
 application-local.properties
+
 .env
 
 ### Temp/Test Markdown files ###

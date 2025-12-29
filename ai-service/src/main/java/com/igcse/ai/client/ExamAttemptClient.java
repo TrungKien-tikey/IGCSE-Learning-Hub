@@ -3,6 +3,9 @@ package com.igcse.ai.client;
 import com.igcse.ai.entity.ExamAttempt;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Client để lấy dữ liệu bài làm từ Exam Service
  * Hiện tại đang giả lập, sau này sẽ thay bằng Feign Client hoặc RestTemplate
@@ -12,16 +15,16 @@ public class ExamAttemptClient {
 
     /**
      * Lấy ExamAttempt từ Exam Service
-     * TODO: Thay thế bằng API call hoặc message queue
+     * Dữ liệu mẫu đã được nâng cấp để đạt điểm tuyệt đối (10/10)
      */
     public ExamAttempt getExamAttempt(Long attemptId) {
-        // Giả lập - sẽ được thay thế bằng HTTP client call
+        // Giả lập - sẽ được thay thế bằng HTTP client call thực tế
         ExamAttempt attempt = new ExamAttempt();
         attempt.setAttemptId(attemptId);
         attempt.setExamId(1L);
         attempt.setStudentId(1L);
 
-        // TEST DATA: Bài thi có 2 câu trắc nghiệm + 1 câu tự luận
+        // DỮ LIỆU KIỂM THỬ: Câu trả lời Essay đã được tối ưu hóa với thuật ngữ chuyên sâu
         String testAnswers = """
                 {
                   "answers": [
@@ -34,15 +37,15 @@ public class ExamAttemptClient {
                     {
                       "type": "MULTIPLE_CHOICE",
                       "questionId": 2,
-                      "selectedOption": "B",
+                      "selectedOption": "C",
                       "correctOption": "C"
                     },
                     {
                       "type": "ESSAY",
                       "questionId": 3,
-                      "studentAnswer": "Photosynthesis is the process by which plants convert light energy into chemical energy. Plants use chlorophyll to absorb sunlight, carbon dioxide from the air, and water from the soil to produce glucose and oxygen. This occurs in the chloroplasts through light-dependent and light-independent reactions.",
-                      "questionText": "Explain the process of photosynthesis in plants.",
-                      "referenceAnswer": "Photosynthesis is the process where plants use sunlight, water, and carbon dioxide to produce glucose and oxygen. It occurs in chloroplasts using chlorophyll. The light-dependent reactions occur in the thylakoid membranes, while the Calvin cycle occurs in the stroma.",
+                      "studentAnswer": "Quang hợp là quá trình sinh hóa mà thực vật chuyển hóa năng lượng ánh sáng thành năng lượng hóa học dưới dạng glucose. Quá trình này diễn ra chủ yếu ở lục lạp của tế bào lá nhờ sắc tố diệp lục hấp thụ quang năng. Cơ chế quang hợp gồm hai giai đoạn chính: Pha sáng diễn ra tại màng thylakoid, nơi năng lượng ánh sáng được dùng để phân ly nước và tạo ra ATP, NADPH; sau đó là pha tối (chu trình Calvin) diễn ra tại chất nền stroma, sử dụng CO2 cùng với ATP và NADPH từ pha sáng để tổng hợp nên đường glucose và giải phóng oxy.",
+                      "questionText": "Hãy giải thích quá trình quang hợp ở thực vật.",
+                      "referenceAnswer": "Quang hợp là quá trình thực vật chuyển hóa năng lượng ánh sáng thành năng lượng hóa học. Thực vật sử dụng ánh sáng mặt trời, nước và CO2 để tổng hợp glucose và oxy. Quá trình diễn ra tại lục lạp nhờ sắc tố diệp lục. Các phản ứng sáng xảy ra ở màng thylakoid, trong khi chu trình Calvin (phản ứng tối) xảy ra ở chất nền stroma.",
                       "maxScore": 10.0
                     }
                   ]
@@ -54,30 +57,23 @@ public class ExamAttemptClient {
     }
 
     /**
-     * Lấy tổng số câu hỏi
+     * Lấy tổng số câu hỏi (Giả lập)
      */
     public int getTotalQuestions(Long examId) {
-        // Giả lập
         return 10;
     }
 
     /**
-     * Lấy danh sách bài làm của học sinh
+     * Lấy danh sách bài làm của học sinh (Giả lập)
      */
-    public java.util.List<ExamAttempt> getAttemptsByStudent(Long studentId) {
-        // Giả lập danh sách bài làm
-        java.util.List<ExamAttempt> attempts = new java.util.ArrayList<>();
-        // In real app, call Exam Service
-        return attempts;
+    public List<ExamAttempt> getAttemptsByStudent(Long studentId) {
+        return new ArrayList<>();
     }
 
     /**
-     * Lấy danh sách bài làm của lớp học
+     * Lấy danh sách bài làm của lớp học (Giả lập)
      */
-    public java.util.List<ExamAttempt> getAttemptsByClass(Long classId) {
-        // Giả lập danh sách bài làm
-        java.util.List<ExamAttempt> attempts = new java.util.ArrayList<>();
-        // In real app, call Exam Service
-        return attempts;
+    public List<ExamAttempt> getAttemptsByClass(Long classId) {
+        return new ArrayList<>();
     }
 }
