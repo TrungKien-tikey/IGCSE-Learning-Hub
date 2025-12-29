@@ -14,7 +14,8 @@ import java.util.List;
 @CrossOrigin(origins = "*")
 public class CourseController {
 
-    @Autowired private CourseService courseService;
+    @Autowired
+    private CourseService courseService;
 
     // --- COURSE APIs (Task 1 - CRUD Cơ bản) ---
 
@@ -50,12 +51,14 @@ public class CourseController {
 
     @DeleteMapping("/{id}/deactivate")
     public ResponseEntity<?> deactivateCourse(@PathVariable Long id) {
-        return courseService.deactivateCourse(id) ? ResponseEntity.ok("Đã ẩn khóa học") : ResponseEntity.status(404).body("Lỗi");
+        return courseService.deactivateCourse(id) ? ResponseEntity.ok("Đã ẩn khóa học")
+                : ResponseEntity.status(404).body("Lỗi");
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
-        return courseService.deleteCourse(id) ? ResponseEntity.ok("Đã xóa vĩnh viễn") : ResponseEntity.status(404).body("Lỗi");
+        return courseService.deleteCourse(id) ? ResponseEntity.ok("Đã xóa vĩnh viễn")
+                : ResponseEntity.status(404).body("Lỗi");
     }
 
     // --- LESSON APIs (Task 2 - Chờ làm) ---
@@ -75,9 +78,17 @@ public class CourseController {
         return courseService.getLessonById(lessonId);
     }
 
+    // Sửa API PUT Lesson
     @PutMapping("/lessons/{lessonId}")
     public Lesson updateLesson(@PathVariable Long lessonId, @RequestBody Lesson req) {
-        return courseService.updateLesson(lessonId, req.getTitle(), req.getContent(), req.getOrderIndex());
+        // Truyền thêm videoUrl và resourceUrl vào Service
+        return courseService.updateLesson(
+                lessonId,
+                req.getTitle(),
+                req.getContent(),
+                req.getOrderIndex(),
+                req.getVideoUrl(),
+                req.getResourceUrl());
     }
 
     @DeleteMapping("/lessons/{lessonId}")
