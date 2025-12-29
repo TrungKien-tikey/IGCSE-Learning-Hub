@@ -56,26 +56,6 @@ public class LanguageService implements ILanguageService {
     }
 
     /**
-     * Lấy feedback cho câu trắc nghiệm đúng
-     */
-    public String getCorrectAnswerFeedback(String language) {
-        if (VIETNAMESE.equals(language)) {
-            return "Chính xác! Bạn đã chọn đáp án đúng.";
-        }
-        return "Correct! You selected the right answer.";
-    }
-
-    /**
-     * Lấy feedback cho câu trắc nghiệm sai
-     */
-    public String getWrongAnswerFeedback(String language, String correctOption) {
-        if (VIETNAMESE.equals(language)) {
-            return "Sai rồi. Đáp án đúng là " + correctOption + ". Hãy xem lại kiến thức này.";
-        }
-        return "Wrong. The correct answer is " + correctOption + ". Please review this topic.";
-    }
-
-    /**
      * Lấy thông báo không có kết quả
      */
     public String getNoResultMessage(String language) {
@@ -93,16 +73,6 @@ public class LanguageService implements ILanguageService {
             return String.format("Tổng điểm: %.2f / %.2f (%.1f%%)", totalScore, maxScore, percentage);
         }
         return String.format("Total score: %.2f / %.2f (%.1f%%)", totalScore, maxScore, percentage);
-    }
-
-    /**
-     * Lấy format số câu đúng
-     */
-    public String getCorrectCountFormat(String language, long correctCount, int total) {
-        if (VIETNAMESE.equals(language)) {
-            return String.format("Số câu đúng: %d / %d", correctCount, total);
-        }
-        return String.format("Correct answers: %d / %d", correctCount, total);
     }
 
     /**
@@ -130,5 +100,19 @@ public class LanguageService implements ILanguageService {
             return ENGLISH;
         }
         return AUTO;
+    }
+
+    /**
+     * Lấy tên ngôn ngữ đầy đủ để gửi cho AI prompt
+     */
+    @Override
+    public String getAiLanguageName(String language) {
+        if (VIETNAMESE.equals(language)) {
+            return "Vietnamese";
+        }
+        if (ENGLISH.equals(language)) {
+            return "English";
+        }
+        return "the same language used in the input (auto-detect)";
     }
 }

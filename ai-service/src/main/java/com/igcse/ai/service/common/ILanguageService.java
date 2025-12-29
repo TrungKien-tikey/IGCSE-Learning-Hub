@@ -7,15 +7,11 @@ public interface ILanguageService {
 
     String getFeedbackByPercentage(String language, double percentage);
 
-    String getCorrectAnswerFeedback(String language);
-
-    String getWrongAnswerFeedback(String language, String correctOption);
-
     String getNoResultMessage(String language);
 
     String getTotalScoreFormat(String language, double totalScore, double maxScore, double percentage);
 
-    String getCorrectCountFormat(String language, long correctCount, int total);
-
     String getDetailHeader(String language);
+
+    String getAiLanguageName(String language);
 }

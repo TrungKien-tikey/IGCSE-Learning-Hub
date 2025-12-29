@@ -1,43 +1,41 @@
 package com.igcse.ai.service;
 
 import com.igcse.ai.client.ExamAttemptClient;
-import com.igcse.ai.dto.GradingResult;
+import com.igcse.ai.client.ExamServiceClient;
+import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.entity.ExamAttempt;
 import com.igcse.ai.exception.*;
 import com.igcse.ai.repository.AIResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import com.igcse.ai.service.common.JsonService;
 import java.util.List;
 import java.util.Objects;
-
+import com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO;
+import com.igcse.ai.service.aiChamDiem.IGradingService;
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
-import com.igcse.ai.service.grading.IGradingService;
+import lombok.RequiredArgsConstructor;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class AIService {
     private static final Logger logger = LoggerFactory.getLogger(AIService.class);
     private static final double PASSING_SCORE = 5.0;
-
+    private final JsonService jsonService;
     private final AIResultRepository aiResultRepository;
     private final IGradingService gradingService;
     private final ILanguageService languageService;
     private final ExamAttemptClient examAttemptClient;
-
-    @Autowired
-    public AIService(AIResultRepository aiResultRepository,
-            IGradingService gradingService,
-            ILanguageService languageService,
-            ExamAttemptClient examAttemptClient) {
-        this.aiResultRepository = aiResultRepository;
-        this.gradingService = gradingService;
-        this.languageService = languageService;
-        this.examAttemptClient = examAttemptClient;
-    }
+    private final ExamServiceClient examServiceClient;
 
     public double evaluateExam(Long attemptId) {
         return evaluateExam(attemptId, LanguageService.DEFAULT_LANGUAGE);
@@ -56,11 +54,47 @@ public class AIService {
             throw new InvalidLanguageException(language);
         }
 
+        // ✅ TỐI ƯU: Kiểm tra cache trước khi gọi API
+        Optional<AIResult> existingResult = aiResultRepository.findByAttemptId(attemptId);
+        
+        // Lấy attempt data để tính hash
         ExamAttempt attempt = examAttemptClient.getExamAttempt(attemptId);
-
         if (attempt == null) {
             logger.error("Exam attempt not found for ID: {}", attemptId);
             throw new ExamAttemptNotFoundException(attemptId);
+        }
+
+        // Tính hash của answers hiện tại
+        String currentAnswersHash = calculateHash(attempt.getAnswers());
+
+        // ✅ VALIDATION: Kiểm tra cache với hash validation
+        if (existingResult.isPresent()) {
+            AIResult cachedResult = existingResult.get();
+            String cachedHash = cachedResult.getAnswersHash();
+            
+            // Nếu language giống và hash giống → return cache (answers không thay đổi)
+            if (lang.equals(cachedResult.getLanguage()) && 
+                currentAnswersHash != null && 
+                currentAnswersHash.equals(cachedHash)) {
+                logger.info("✅ Returning cached result for attemptId: {} (answers unchanged, language: {}, score: {})", 
+                    attemptId, lang, cachedResult.getScore());
+                return cachedResult.getScore();
+            } else {
+                if (currentAnswersHash != null && !currentAnswersHash.equals(cachedHash)) {
+                    logger.info("🔄 Answers changed for attemptId: {}. Re-grading... (old hash: {}, new hash: {})", 
+                        attemptId, 
+                        cachedHash != null ? cachedHash.substring(0, Math.min(8, cachedHash.length())) + "..." : "null",
+                        currentAnswersHash.substring(0, Math.min(8, currentAnswersHash.length())) + "...");
+                } else if (!lang.equals(cachedResult.getLanguage())) {
+                    logger.info("🔄 Language changed from {} to {} for attemptId: {}. Re-grading...", 
+                        cachedResult.getLanguage(), lang, attemptId);
+                } else {
+                    logger.info("🔄 Re-grading attemptId: {} (hash validation failed)", attemptId);
+                }
+                // Fall through để re-grade
+            }
+        } else {
+            logger.debug("No cached result found for attemptId: {}. Grading new...", attemptId);
         }
 
         // Chấm điểm tất cả câu trả lời với ngôn ngữ chỉ định
@@ -90,9 +124,9 @@ public class AIService {
             }
         }
 
-        // Lưu kết quả với language và confidence (upsert: update nếu đã có, insert nếu chưa có)
-        AIResult result = aiResultRepository.findByAttemptId(attemptId)
-                .orElse(new AIResult(attemptId, score, feedback, lang, confidence));
+        // Lưu kết quả với language và confidence (upsert: update nếu đã có, insert nếu
+        // chưa có)
+        AIResult result = existingResult.orElse(new AIResult(attemptId, score, feedback, lang, confidence));
 
         // Update các trường
         result.setScore(score);
@@ -103,17 +137,35 @@ public class AIService {
         result.setExamId(attempt.getExamId());
         result.setEvaluationMethod(overallMethod);
         result.setGradedAt(new java.util.Date());
+        result.setAnswersHash(currentAnswersHash); // ✅ Lưu hash để validate cache lần sau
 
-        try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            result.setDetails(mapper.writeValueAsString(gradingResults));
-        } catch (Exception e) {
-            logger.error("Error serializing grading details for attemptId: {}", attemptId, e);
-            throw new ExamGradingException("Failed to serialize grading details", e);
-        }
+        result.setDetails(jsonService.toJson(gradingResults));
 
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
+
+        // Gọi callback về exam_service để cập nhật điểm số
+        try {
+            com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO detailedResult = new com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO(
+                    attemptId,
+                    score,
+                    maxScore,
+                    feedback,
+                    confidence,
+                    lang,
+                    gradingResults);
+
+            boolean callbackSuccess = examServiceClient.updateGradingResult(attemptId, detailedResult);
+            if (callbackSuccess) {
+                logger.info("Successfully sent grading result callback to exam service for attemptId: {}", attemptId);
+            } else {
+                logger.warn("Failed to send grading result callback to exam service for attemptId: {}", attemptId);
+            }
+        } catch (Exception e) {
+            logger.error("Error sending grading result callback to exam service for attemptId: {}. Error: {}",
+                    attemptId, e.getMessage(), e);
+            // Không throw exception để không làm fail quá trình chấm điểm
+        }
 
         return score;
     }
@@ -150,31 +202,21 @@ public class AIService {
                 .orElseThrow(() -> new AIResultNotFoundException(attemptId));
     }
 
-    public com.igcse.ai.dto.DetailedGradingResultDTO getDetailedResult(Long attemptId) {
+    public DetailedGradingResultDTO getDetailedResult(Long attemptId) {
         logger.debug("Fetching detailed result for attemptId: {}", attemptId);
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
 
         AIResult result = getResult(attemptId);
-        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
         List<GradingResult> detailsList = new java.util.ArrayList<>();
 
-        if (result.getDetails() != null && !result.getDetails().isEmpty()) {
-            try {
-                detailsList = mapper.readValue(result.getDetails(),
-                        mapper.getTypeFactory().constructCollectionType(List.class, GradingResult.class));
-                logger.debug("Successfully parsed grading details for attemptId: {}", attemptId);
-            } catch (Exception e) {
-                logger.error("Error parsing grading details for attemptId: {}", attemptId, e);
-                throw new ExamGradingException("Failed to parse grading details", e);
-            }
-        }
+        detailsList = jsonService.parseGradingDetails(result.getDetails());
 
         Double maxScore = 10.0;
         if (!detailsList.isEmpty()) {
             maxScore = gradingService.calculateMaxScore(detailsList);
         }
 
-        return new com.igcse.ai.dto.DetailedGradingResultDTO(
+        return new DetailedGradingResultDTO(
                 result.getAttemptId(),
                 result.getScore(),
                 maxScore,
@@ -195,5 +237,33 @@ public class AIService {
      */
     public double getPassingScore() {
         return PASSING_SCORE;
+    }
+
+    /**
+     * Tính MD5 hash của answers JSON để validate cache
+     * 
+     * @param answersJson JSON string của answers
+     * @return Base64 encoded MD5 hash, hoặc null nếu có lỗi
+     */
+    private String calculateHash(String answersJson) {
+        if (answersJson == null || answersJson.isEmpty()) {
+            logger.warn("Cannot calculate hash: answersJson is null or empty");
+            return null;
+        }
+
+        try {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hashBytes = md.digest(answersJson.getBytes(StandardCharsets.UTF_8));
+            String hash = Base64.getEncoder().encodeToString(hashBytes);
+            logger.debug("Calculated hash for answers: {} (length: {})", 
+                hash.substring(0, Math.min(8, hash.length())) + "...", hash.length());
+            return hash;
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("Error calculating hash: MD5 algorithm not found", e);
+            return null;
+        } catch (Exception e) {
+            logger.error("Error calculating hash for answers", e);
+            return null;
+        }
     }
 }

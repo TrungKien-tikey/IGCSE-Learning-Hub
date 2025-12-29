@@ -1,31 +1,21 @@
 package com.igcse.ai.entity;
 
-import jakarta.persistence.*;
 import java.util.Date;
 
 /**
  * Lớp ExamAttempt đại diện cho một bài làm của học sinh
  * được gửi từ Exam Service sang AI Service để chấm điểm
+ * 
+ * LƯU Ý: Đây là DTO, KHÔNG phải Entity để lưu vào database.
+ * Dữ liệu exam_attempts chỉ nên có trong exam_db, không phải ai_db.
+ * AI Service chỉ lấy dữ liệu qua REST API, không lưu vào database.
  */
-@Entity
-@Table(name = "exam_attempts")
 public class ExamAttempt {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long attemptId;
-
-    @Column(nullable = false)
     private Long examId;
-
-    @Column(nullable = false)
     private Long studentId;
-
-    @Column(nullable = false)
-    @Temporal(TemporalType.TIMESTAMP)
     private Date submittedAt;
-
-    @Column(columnDefinition = "TEXT")
     private String answers; // Lưu câu trả lời dưới dạng JSON string
 
     // ===== Constructor =====
