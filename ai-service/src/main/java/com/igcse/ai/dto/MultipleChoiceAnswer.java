@@ -38,8 +38,13 @@ public class MultipleChoiceAnswer extends AnswerDTO {
      * Kiểm tra câu trả lời có đúng không
      */
     public boolean isCorrect() {
-        return selectedOption != null &&
-                correctOption != null &&
-                selectedOption.trim().equalsIgnoreCase(correctOption.trim());
+        if (selectedOption == null || correctOption == null) {
+            return false;
+        }
+        // Chuẩn hóa câu trả lời: xóa khoảng trắng, chuyển về chữ hoa, và loại bỏ các ký tự không phải chữ/số.
+        String normalizedSelected = selectedOption.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+        String normalizedCorrect = correctOption.trim().toUpperCase().replaceAll("[^A-Z0-9]", "");
+
+        return normalizedSelected.equals(normalizedCorrect);
     }
 }
