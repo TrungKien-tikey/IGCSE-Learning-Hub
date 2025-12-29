@@ -100,10 +100,11 @@ public List<Course> getAllCourses() {
         return lessonRepository.findById(lessonId).orElse(null);
     }
 
-    public Lesson updateLesson(Long lessonId, String title, String content, Integer order) {
+    public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl, String resourceUrl) {
         Lesson lesson = getLessonById(lessonId);
         if (lesson != null) {
-            lesson.updateLesson(title, content, order);
+            // Gọi hàm update mới bên Entity
+            lesson.updateLesson(title, content, order, videoUrl, resourceUrl);
             return lessonRepository.save(lesson);
         }
         return null;

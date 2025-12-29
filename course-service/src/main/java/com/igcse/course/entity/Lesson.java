@@ -19,6 +19,10 @@ public class Lesson {
 
     private Integer orderIndex;
 
+    // --- MỚI THÊM: 2 Trường lưu Link ---
+    private String videoUrl;    // Link Youtube
+    private String resourceUrl; // Link Drive/PDF
+
     @ManyToOne
     @JoinColumn(name = "course_id")
     @JsonIgnore // Không hiện ngược lại Course khi xem Lesson
@@ -28,10 +32,13 @@ public class Lesson {
     public Lesson() {}
 
     // --- Business Method ---
-    public void updateLesson(String title, String content, Integer orderIndex) {
+    public void updateLesson(String title, String content, Integer orderIndex,String videoUrl, String resourceUrl) {
         if (title != null) this.title = title;
         if (content != null) this.content = content;
         if (orderIndex != null) this.orderIndex = orderIndex;
+        // Logic mới
+        if (videoUrl != null) this.videoUrl = videoUrl;
+        if (resourceUrl != null) this.resourceUrl = resourceUrl;
     }
 
     // --- Getters & Setters ---
@@ -43,6 +50,10 @@ public class Lesson {
     public void setContent(String content) { this.content = content; }
     public Integer getOrderIndex() { return orderIndex; }
     public void setOrderIndex(Integer orderIndex) { this.orderIndex = orderIndex; }
+    public String getVideoUrl() { return videoUrl; }
+    public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+    public String getResourceUrl() { return resourceUrl; }
+    public void setResourceUrl(String resourceUrl) { this.resourceUrl = resourceUrl; }
     public Course getCourse() { return course; }
     public void setCourse(Course course) { this.course = course; }
 }
