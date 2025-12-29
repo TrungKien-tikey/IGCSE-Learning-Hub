@@ -122,6 +122,7 @@ public List<Course> getAllCourses() {
     // PHẦN 3: ENROLLMENT (Task 3 - Giữ nguyên chờ làm)
     // ==========================================
     
+    // 1. Tìm kiếm khóa học
     public List<Course> searchCourses(String keyword) {
         if (keyword != null && !keyword.trim().isEmpty()) {
             return courseRepository.findByTitleContainingIgnoreCase(keyword.trim());
@@ -129,15 +130,19 @@ public List<Course> getAllCourses() {
         return courseRepository.findAll();
     }
 
+    // 2. Ghi danh (Enroll)
     public boolean enrollCourse(Long courseId, Long userId) {
+        // Kiểm tra 1: User đã đăng ký chưa?
         if (enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId)) {
-            return false; // Đã đăng ký rồi
+            return false; // Đã đăng ký rồi thì thôi
         }
+        
+        // Kiểm tra 2: Khóa học có tồn tại và đang mở không?
         Course course = getCourseById(courseId);
         if (course != null && course.isActive()) {
             Enrollment enrollment = new Enrollment();
             enrollment.setCourse(course);
-            enrollment.setUserId(userId);
+            enrollment.setUserId(userId); // Lưu ID người dùng
             enrollmentRepository.save(enrollment);
             return true;
         }
