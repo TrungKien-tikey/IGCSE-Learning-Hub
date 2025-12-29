@@ -1,7 +1,7 @@
 package com.igcse.course.entity;
 
 import jakarta.persistence.*;
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "enrollments")
@@ -9,22 +9,28 @@ public class Enrollment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long enrollmentId;
+    private Long id;
 
-    private Long userId; // Chỉ lưu ID user
-    private Date enrolledAt = new Date();
+    private Long userId; // Chỉ lưu ID của học viên (User Service quản lý thông tin chi tiết)
+
+    private LocalDateTime enrolledAt; // Ngày giờ đăng ký
 
     @ManyToOne
     @JoinColumn(name = "course_id")
     private Course course;
 
-    // --- Getters & Setters ---
-    public Long getEnrollmentId() { return enrollmentId; }
-    public void setEnrollmentId(Long enrollmentId) { this.enrollmentId = enrollmentId; }
+    @PrePersist
+    protected void onCreate() {
+        this.enrolledAt = LocalDateTime.now();
+    }
+
+    // --- GETTER & SETTER ---
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
-    public Date getEnrolledAt() { return enrolledAt; }
-    public void setEnrolledAt(Date enrolledAt) { this.enrolledAt = enrolledAt; }
+    public LocalDateTime getEnrolledAt() { return enrolledAt; }
+    public void setEnrolledAt(LocalDateTime enrolledAt) { this.enrolledAt = enrolledAt; }
     public Course getCourse() { return course; }
     public void setCourse(Course course) { this.course = course; }
 }

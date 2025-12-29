@@ -99,13 +99,20 @@ public class CourseController {
     // --- ENROLLMENT & SEARCH APIs (Task 3 - Chờ làm) ---
 
     // API Tìm kiếm riêng biệt
+    // 1. API Tìm kiếm: GET /api/courses/search?keyword=Java
     @GetMapping("/search")
     public ResponseEntity<List<Course>> searchCourses(@RequestParam String keyword) {
         return ResponseEntity.ok(courseService.searchCourses(keyword));
     }
 
+    // 2. API Ghi danh: POST /api/courses/{courseId}/enroll?userId=1
     @PostMapping("/{courseId}/enroll")
-    public boolean enroll(@PathVariable Long courseId, @RequestParam Long userId) {
-        return courseService.enrollCourse(courseId, userId);
+    public ResponseEntity<?> enroll(@PathVariable Long courseId, @RequestParam Long userId) {
+        boolean success = courseService.enrollCourse(courseId, userId);
+        if (success) {
+            return ResponseEntity.ok("Ghi danh thành công!");
+        } else {
+            return ResponseEntity.badRequest().body("Ghi danh thất bại (Khóa học không tồn tại hoặc đã đăng ký rồi)");
+        }
     }
 }
