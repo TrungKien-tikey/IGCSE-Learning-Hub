@@ -4,61 +4,62 @@ import com.igcse.course.entity.Course;
 import com.igcse.course.entity.Lesson;
 import com.igcse.course.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/courses")
-@CrossOrigin(origins = "*") // Cho phép Frontend gọi thoải mái
+@CrossOrigin(origins = "*")
 public class CourseController {
 
     @Autowired private CourseService courseService;
 
-    // 1. Lấy danh sách & Tìm kiếm
+    // --- COURSE APIs (Task 1 - CRUD Cơ bản) ---
+
+    // 1. Chỉ lấy danh sách tất cả (Bỏ tham số keyword)
     @GetMapping
-    public List<Course> getCourses(@RequestParam(required = false) String keyword) {
-        return courseService.searchCourses(keyword);
+    public ResponseEntity<List<Course>> getAllCourses() {
+        return ResponseEntity.ok(courseService.getAllCourses());
     }
 
-    // 2. Chi tiết khóa học
     @GetMapping("/{id}")
-    public Course getCourseById(@PathVariable Long id) {
-        return courseService.getCourseById(id);
+    public ResponseEntity<?> getCourseById(@PathVariable Long id) {
+        Course course = courseService.getCourseById(id);
+        return course != null ? ResponseEntity.ok(course) : ResponseEntity.status(404).body("Không tìm thấy khóa học");
     }
 
-    // 3. Tạo mới
     @PostMapping
-    public Course createCourse(@RequestBody Course course) {
-        return courseService.createCourse(course);
+    public ResponseEntity<?> createCourse(@RequestBody Course course) {
+        try {
+            return ResponseEntity.ok(courseService.createCourse(course));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
-    // 4. Cập nhật
     @PutMapping("/{id}")
-    public Course updateCourse(@PathVariable Long id, @RequestBody Course req) {
-        return courseService.updateCourse(id, req.getTitle(), req.getDescription(), req.getPrice());
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody Course req) {
+        try {
+            return ResponseEntity.ok(courseService.updateCourse(id, req));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
-    // 5. Vô hiệu hóa
     @DeleteMapping("/{id}/deactivate")
-    public boolean deactivateCourse(@PathVariable Long id) {
-        return courseService.deactivateCourse(id);
+    public ResponseEntity<?> deactivateCourse(@PathVariable Long id) {
+        return courseService.deactivateCourse(id) ? ResponseEntity.ok("Đã ẩn khóa học") : ResponseEntity.status(404).body("Lỗi");
     }
 
-    // 6. Xóa vĩnh viễn
     @DeleteMapping("/{id}")
-    public boolean deleteCourse(@PathVariable Long id) {
-        return courseService.deleteCourse(id);
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
+        return courseService.deleteCourse(id) ? ResponseEntity.ok("Đã xóa vĩnh viễn") : ResponseEntity.status(404).body("Lỗi");
     }
 
-    // 7. Ghi danh
-    @PostMapping("/{courseId}/enroll")
-    public boolean enroll(@PathVariable Long courseId, @RequestParam Long userId) {
-        return courseService.enrollCourse(courseId, userId);
-    }
+    // --- LESSON APIs (Task 2 - Chờ làm) ---
 
-    // --- Bài học (Lesson) APIs ---
-    
     @GetMapping("/{courseId}/lessons")
     public List<Lesson> getLessons(@PathVariable Long courseId) {
         return courseService.getLessonsByCourse(courseId);
@@ -82,5 +83,18 @@ public class CourseController {
     @DeleteMapping("/lessons/{lessonId}")
     public boolean deleteLesson(@PathVariable Long lessonId) {
         return courseService.removeLesson(lessonId);
+    }
+
+    // --- ENROLLMENT & SEARCH APIs (Task 3 - Chờ làm) ---
+
+    // API Tìm kiếm riêng biệt
+    @GetMapping("/search")
+    public ResponseEntity<List<Course>> searchCourses(@RequestParam String keyword) {
+        return ResponseEntity.ok(courseService.searchCourses(keyword));
+    }
+
+    @PostMapping("/{courseId}/enroll")
+    public boolean enroll(@PathVariable Long courseId, @RequestParam Long userId) {
+        return courseService.enrollCourse(courseId, userId);
     }
 }
