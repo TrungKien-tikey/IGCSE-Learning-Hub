@@ -101,6 +101,68 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(ExamServiceConnectionException.class)
+    public ResponseEntity<ErrorResponse> handleExamServiceConnectionException(
+            ExamServiceConnectionException ex, WebRequest request) {
+        logger.error("Exam Service connection error: {}", ex.getDetails(), ex);
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.SERVICE_UNAVAILABLE.value(),
+            ex.getErrorCode(),
+            ex.getMessage(),
+            ex.getDetails(),
+            LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
+    @ExceptionHandler(ExamServiceClientException.class)
+    public ResponseEntity<ErrorResponse> handleExamServiceClientException(
+            ExamServiceClientException ex, WebRequest request) {
+        logger.warn("Exam Service client error: {}", ex.getDetails());
+        
+        HttpStatus status = ex.getHttpStatus() != null ? ex.getHttpStatus() : HttpStatus.BAD_REQUEST;
+        ErrorResponse errorResponse = new ErrorResponse(
+            status.value(),
+            ex.getErrorCode(),
+            ex.getMessage(),
+            ex.getDetails(),
+            LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    @ExceptionHandler(ExamServiceServerException.class)
+    public ResponseEntity<ErrorResponse> handleExamServiceServerException(
+            ExamServiceServerException ex, WebRequest request) {
+        logger.error("Exam Service server error: {}", ex.getDetails(), ex);
+        
+        HttpStatus status = ex.getHttpStatus() != null ? ex.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+        ErrorResponse errorResponse = new ErrorResponse(
+            status.value(),
+            ex.getErrorCode(),
+            ex.getMessage(),
+            ex.getDetails(),
+            LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, status);
+    }
+
+    @ExceptionHandler(InvalidResponseException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidResponseException(
+            InvalidResponseException ex, WebRequest request) {
+        logger.error("Invalid response error: {}", ex.getDetails(), ex);
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            HttpStatus.BAD_GATEWAY.value(),
+            ex.getErrorCode(),
+            ex.getMessage(),
+            ex.getDetails(),
+            LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_GATEWAY);
+    }
+
     @ExceptionHandler(AIServiceException.class)
     public ResponseEntity<ErrorResponse> handleAIServiceException(
             AIServiceException ex, WebRequest request) {

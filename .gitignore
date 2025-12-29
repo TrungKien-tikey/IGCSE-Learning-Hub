@@ -37,7 +37,9 @@ yarn-error.log*
 .pnpm-debug.log*
 .eslintcache
 .stylelintcache
-
+AI_Grading_Postman_Collection.json
+create_sample_essay_answer.sql
+AI_GRADING_FLOW.md
 # Logs & OS
 logs/
 *.log
