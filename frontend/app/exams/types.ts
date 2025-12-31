@@ -25,12 +25,13 @@ export interface Exam {
   description: string;
   duration: number;
   isActive: boolean;
+  endTime: "",
   questions: Question[];
 }
 
 export interface AnswerState {
-  selectedOptionId?: number; // Dùng cho trắc nghiệm
-  textAnswer?: string;       // Dùng cho tự luận
+  selectedOptionId?: number | null;
+  textAnswer?: string | null;
 }
 
 export interface ExamAnswer {
@@ -44,9 +45,13 @@ export interface ExamAnswer {
 export interface ExamAttempt {
   attemptId: number;
   totalScore: number;
+  startTime: string; // Thời gian bắt đầu từ server
   exam: {
+    examId: number;
     title: string;
     description: string;
+    duration: number;
+    questions: any[]; // Có thể là null hoặc undefined nếu backend chưa gửi
   };
   answers: ExamAnswer[];
 }
