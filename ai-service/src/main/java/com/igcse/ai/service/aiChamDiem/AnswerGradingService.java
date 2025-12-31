@@ -1,12 +1,9 @@
 package com.igcse.ai.service.aiChamDiem;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.igcse.ai.dto.aiChamDiem.AnswerDTO;
-import com.igcse.ai.dto.aiChamDiem.ExamAnswersDTO;
 import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.strategy.GradingStrategy;
 import com.igcse.ai.strategy.GradingStrategyFactory;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,44 +15,77 @@ import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
 
 @Service
-@RequiredArgsConstructor
 public class AnswerGradingService implements IGradingService {
     private static final Logger logger = LoggerFactory.getLogger(AnswerGradingService.class);
 
     private final ILanguageService languageService;
     private final GradingStrategyFactory gradingStrategyFactory;
-    private final ObjectMapper objectMapper;
+    private final java.util.concurrent.Executor taskExecutor;
+
+    public AnswerGradingService(
+            ILanguageService languageService,
+            GradingStrategyFactory gradingStrategyFactory,
+            @org.springframework.beans.factory.annotation.Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor) {
+        this.languageService = languageService;
+        this.gradingStrategyFactory = gradingStrategyFactory;
+        this.taskExecutor = taskExecutor;
+    }
 
     @Override
-    public List<GradingResult> gradeAllAnswers(String answersJson, String language) {
+    public List<GradingResult> gradeAllAnswers(List<AnswerDTO> answers, String language) {
         List<GradingResult> results = new ArrayList<>();
         String lang = languageService.normalizeLanguage(language);
 
         logger.debug("Starting to grade all answers, language: {}", lang);
 
-        try {
-            ExamAnswersDTO examAnswers = objectMapper.readValue(answersJson, ExamAnswersDTO.class);
+        if (answers == null || answers.isEmpty()) {
+            logger.warn("No answers found in the request");
+            return results;
+        }
 
-            if (examAnswers.getAnswers() == null || examAnswers.getAnswers().isEmpty()) {
-                logger.warn("No answers found in the request");
-                return results;
+        logger.info("Grading {} answers", answers.size());
+
+        try {
+            List<java.util.concurrent.CompletableFuture<GradingResult>> futures = new ArrayList<>();
+
+            for (AnswerDTO answer : answers) {
+                java.util.concurrent.CompletableFuture<GradingResult> future = java.util.concurrent.CompletableFuture
+                        .supplyAsync(() -> {
+                            try {
+                                return gradeAnswer(answer, lang);
+                            } catch (Exception e) {
+                                logger.error("Error grading answer type {}: {}", answer.getType(), e.getMessage());
+                                return new GradingResult(
+                                        answer.getQuestionId(),
+                                        answer.getType(),
+                                        0.0,
+                                        0.0,
+                                        "Error grading answer: " + e.getMessage(),
+                                        false,
+                                        0.0,
+                                        "ERROR");
+                            }
+                        }, taskExecutor);
+                futures.add(future);
             }
 
-            logger.info("Grading {} answers", examAnswers.getAnswers().size());
+            // Wait for all to complete
+            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
+                    .join();
 
-            for (AnswerDTO answer : examAnswers.getAnswers()) {
+            // Collect results
+            for (java.util.concurrent.CompletableFuture<GradingResult> future : futures) {
                 try {
-                    GradingResult result = gradeAnswer(answer, lang);
-                    results.add(result);
-                } catch (IllegalArgumentException e) {
-                    logger.warn("Skipping grading for answer type {}: {}", answer.getType(), e.getMessage());
+                    results.add(future.get());
+                } catch (Exception e) {
+                    logger.error("Error retrieving grading result", e);
                 }
             }
 
             logger.info("Successfully graded {} answers", results.size());
 
         } catch (Exception e) {
-            logger.error("Error parsing answers JSON", e);
+            logger.error("Error grading answers", e);
         }
 
         return results;

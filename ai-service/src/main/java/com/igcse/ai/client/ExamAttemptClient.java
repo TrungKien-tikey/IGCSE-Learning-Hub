@@ -1,11 +1,8 @@
 package com.igcse.ai.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.igcse.ai.dto.aiChamDiem.AnswerDTO;
 import com.igcse.ai.dto.aiChamDiem.EssayAnswer;
 import com.igcse.ai.dto.aiChamDiem.ExamAnswersDTO;
-import com.igcse.ai.entity.ExamAttempt;
 import com.igcse.ai.exception.ExamAttemptNotFoundException;
 import com.igcse.ai.exception.ExamServiceConnectionException;
 import com.igcse.ai.exception.ExamServiceClientException;
@@ -43,16 +40,15 @@ public class ExamAttemptClient {
   private static final Logger logger = LoggerFactory.getLogger(ExamAttemptClient.class);
 
   private final RestTemplate restTemplate;
-  private final ObjectMapper objectMapper;
 
   @Value("${exam.service.url:http://localhost:8080}")
   private String examServiceUrl;
 
   /**
-   * Lấy ExamAttempt từ Exam Service thông qua REST API
+   * Lấy ExamAnswersDTO từ Exam Service thông qua REST API
    * 
    * @param attemptId ID của exam attempt
-   * @return ExamAttempt object
+   * @return ExamAnswersDTO object chứa danh sách câu trả lời
    * @throws ExamAttemptNotFoundException   nếu attempt không tồn tại (404)
    * @throws ExamServiceConnectionException nếu không thể kết nối đến Exam Service
    * @throws ExamServiceClientException     nếu lỗi client (4xx)
@@ -62,7 +58,7 @@ public class ExamAttemptClient {
   @Retryable(retryFor = { ResourceAccessException.class,
       HttpServerErrorException.class }, maxAttempts = 3, backoff = @Backoff(delay = 1000, multiplier = 2.0), noRetryFor = {
           HttpClientErrorException.NotFound.class, ExamAttemptNotFoundException.class })
-  public ExamAttempt getExamAttempt(Long attemptId) {
+  public ExamAnswersDTO getExamAttempt(Long attemptId) {
     Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
     String url = examServiceUrl + "/api/exams/attempt/" + attemptId;
     logger.info("Fetching exam attempt from: {}", url);
@@ -83,9 +79,9 @@ public class ExamAttemptClient {
         throw new InvalidResponseException(url, "response body");
       }
 
-      // Map data sang Entity của AI Service
-      ExamAttempt attempt = new ExamAttempt();
-      attempt.setAttemptId(attemptId);
+      // Map data sang ExamAnswersDTO
+      ExamAnswersDTO dto = new ExamAnswersDTO();
+      dto.setAttemptId(attemptId);
 
       // Safe conversion for 'exam' object
       Object examObjRaw = response.get("exam");
@@ -93,12 +89,12 @@ public class ExamAttemptClient {
         @SuppressWarnings("unchecked")
         Map<String, Object> examObj = (Map<String, Object>) examObjRaw;
         if (examObj.get("examId") instanceof Number) {
-          attempt.setExamId(((Number) examObj.get("examId")).longValue());
+          dto.setExamId(((Number) examObj.get("examId")).longValue());
         }
       }
 
       if (response.get("userId") instanceof Number) {
-        attempt.setStudentId(((Number) response.get("userId")).longValue());
+        dto.setStudentId(((Number) response.get("userId")).longValue());
       }
 
       // Safe conversion for 'answers' list
@@ -166,13 +162,9 @@ public class ExamAttemptClient {
         }
       }
 
-      // Serialize sang JSON string
-      ExamAnswersDTO dto = new ExamAnswersDTO();
+      // Set answers trực tiếp vào DTO
       dto.setAnswers(mappedAnswers);
-      String jsonAnswers = objectMapper.writeValueAsString(dto);
-
-      attempt.setAnswers(jsonAnswers);
-      return attempt;
+      return dto;
 
     } catch (HttpClientErrorException.NotFound e) {
       // 404 - Attempt không tồn tại
@@ -205,12 +197,6 @@ public class ExamAttemptClient {
           attemptId, url, e.getMessage(), e);
       throw ExamServiceConnectionException.withUrl(url, e);
 
-    } catch (JsonProcessingException e) {
-      // Lỗi parse JSON
-      logger.error("JSON parsing error when processing exam attempt {} response from: {}",
-          attemptId, url, e);
-      throw new InvalidResponseException(url, e);
-
     } catch (RestClientException e) {
       // Các lỗi RestTemplate khác
       logger.error("RestTemplate error when fetching exam attempt {} from: {}",
@@ -226,16 +212,4 @@ public class ExamAttemptClient {
     }
   }
 
-  public int getTotalQuestions(Long examId) {
-    // Giữ lại hoặc impl call API nếu cần
-    return 0;
-  }
-
-  public List<ExamAttempt> getAttemptsByStudent(Long studentId) {
-    return new ArrayList<>();
-  }
-
-  public List<ExamAttempt> getAttemptsByClass(Long classId) {
-    return new ArrayList<>();
-  }
 }

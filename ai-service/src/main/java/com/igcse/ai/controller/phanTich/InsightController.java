@@ -1,7 +1,7 @@
 package com.igcse.ai.controller.phanTich;
 
 import com.igcse.ai.dto.phanTich.AIInsightDTO;
-import com.igcse.ai.service.ASS.phanTich.IInsightService;
+import com.igcse.ai.service.ass.phanTich.IInsightService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

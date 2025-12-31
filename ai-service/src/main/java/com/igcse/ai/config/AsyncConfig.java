@@ -18,22 +18,20 @@ public class AsyncConfig {
     public Executor taskExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
 
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(10);
-        executor.setQueueCapacity(100);
-        executor.setThreadNamePrefix("batch-grading-");
-        
+        executor.setCorePoolSize(20);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("ai-grading-");
+
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
         executor.setRejectedExecutionHandler(
-            (r, e) -> logger.warn("Task rejected: {} in executor: {}", r, e)
-        );
+                (r, e) -> logger.warn("Task rejected: {} in executor: {}", r, e));
 
         executor.initialize();
-        logger.info("AsyncConfig initialized: core={}, max={}, queue={}", 
-            5, 10, 100);
+        logger.info("AsyncConfig initialized: core={}, max={}, queue={}",
+                5, 10, 100);
 
         return executor;
     }
 }
-

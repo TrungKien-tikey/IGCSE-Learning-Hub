@@ -1,4 +1,4 @@
-package com.igcse.ai.service.ASS.thongKe;
+package com.igcse.ai.service.ass.thongKe;
 
 import com.igcse.ai.dto.thongKe.ClassStatisticsDTO;
 import com.igcse.ai.dto.thongKe.StudentStatisticsDTO;

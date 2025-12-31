@@ -1,7 +1,7 @@
 package com.igcse.ai.controller.goiyLoTrinhHoc;
 
 import com.igcse.ai.dto.goiyLoTrinhHoc.LearningRecommendationDTO;
-import com.igcse.ai.service.ASS.goiyLoTrinhHoc.IRecommendationService;
+import com.igcse.ai.service.ass.goiyLoTrinhHoc.IRecommendationService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

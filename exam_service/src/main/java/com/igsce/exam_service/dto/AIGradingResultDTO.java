@@ -50,3 +50,4 @@ public class AIGradingResultDTO {
     private Object gradedAt; // Có thể là Date, String, hoặc Long timestamp
 }
 
+
