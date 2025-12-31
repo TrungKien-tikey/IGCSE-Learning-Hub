@@ -49,3 +49,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     content TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL COMMENT 'ID người dùng',
+    exam_id BIGINT NOT NULL COMMENT 'ID bài thi',
+    content TEXT NOT NULL COMMENT 'Nội dung bình luận',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời gian tạo'
+);
