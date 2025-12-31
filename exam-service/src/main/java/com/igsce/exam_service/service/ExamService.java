@@ -48,6 +48,7 @@ public class ExamService {
         exam.setDescription(request.getDescription());
         exam.setDuration(request.getDuration());
         exam.setActive(request.isActive());
+        exam.setEndTime(request.getEndTime());
 
         List<Question> questions = new ArrayList<>();
 
@@ -115,6 +116,10 @@ public class ExamService {
             throw new RuntimeException("Exam is not active");
         }
 
+        if (exam.getEndTime() != null && LocalDateTime.now().isAfter(exam.getEndTime())) {
+            throw new RuntimeException("Bài thi đã hết hạn vào lúc: " + exam.getEndTime());
+        }
+
         ExamAttempt attempt = new ExamAttempt();
         attempt.setExam(exam);
         attempt.setUserId(userId);
@@ -172,6 +177,55 @@ public class ExamService {
         attempt.setTotalScore(totalScore);
         attemptRepository.save(attempt);
         return true;
+    }
+
+    @Transactional
+    public Exam updateExam(Long examId, CreateExamRequest request) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new RuntimeException("Exam not found"));
+
+        // 1. Cập nhật thông tin chung
+        exam.setTitle(request.getTitle());
+        exam.setDescription(request.getDescription());
+        exam.setDuration(request.getDuration());
+        exam.setActive(request.isActive());
+        exam.setEndTime(request.getEndTime());
+
+        // 2. Xử lý câu hỏi:
+        // Cách đơn giản nhất: Xóa danh sách cũ, thay bằng danh sách mới
+        // Lưu ý: Hibernate sẽ tự động xóa orphan (câu hỏi cũ) nếu config Cascade đúng
+        exam.getQuestions().clear(); 
+
+        if (request.getQuestions() != null) {
+            int currentIndex = 0;
+            for (QuestionRequest qRequest : request.getQuestions()) {
+                Question question = new Question();
+                question.setContent(qRequest.getContent());
+                question.setScore(qRequest.getScore());
+                question.setQuestionType(qRequest.getQuestionType());
+                question.setOrderIndex(qRequest.getOrderIndex() != null ? qRequest.getOrderIndex() : currentIndex++);
+                question.setImage(qRequest.getImage());
+                
+                // Quan trọng: Gán lại Exam cha
+                question.setExam(exam);
+
+                // Xử lý Options
+                if (qRequest.getOptions() != null) {
+                    List<QuestionOption> options = new ArrayList<>();
+                    for (OptionRequest oRequest : qRequest.getOptions()) {
+                        QuestionOption option = new QuestionOption();
+                        option.setContent(oRequest.getContent());
+                        option.setCorrect(oRequest.isCorrect());
+                        option.setQuestion(question);
+                        options.add(option);
+                    }
+                    question.setOptions(options);
+                }
+                exam.getQuestions().add(question);
+            }
+        }
+
+        return examRepository.save(exam);
     }
 
 }

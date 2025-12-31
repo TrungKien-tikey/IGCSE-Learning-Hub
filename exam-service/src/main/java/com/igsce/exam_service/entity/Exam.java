@@ -6,6 +6,7 @@ import lombok.*;
 import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.LocalDateTime;
 
@@ -23,6 +24,10 @@ public class Exam {
     private String title;
     private String description;
     private int duration;
+
+    private LocalDateTime endTime;
+
+    @JsonProperty("isActive")
     private boolean isActive;
 
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
