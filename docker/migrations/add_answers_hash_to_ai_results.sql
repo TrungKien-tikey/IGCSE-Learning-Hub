@@ -15,3 +15,4 @@ COMMENT 'MD5 hash của answers JSON để validate cache';
 -- Kiểm tra column đã được thêm
 DESCRIBE ai_results;
 
+

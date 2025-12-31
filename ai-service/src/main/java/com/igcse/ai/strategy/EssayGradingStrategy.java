@@ -41,8 +41,21 @@ public class EssayGradingStrategy implements GradingStrategy {
             // Lấy tên ngôn ngữ đầy đủ cho AI (ví dụ: "Vietnamese", "English")
             String aiLanguageName = languageService.getAiLanguageName(lang);
 
+            // Kiểm tra câu trả lời trống
+            if (studentAnswer == null || studentAnswer.trim().isEmpty() || "No answer provided".equals(studentAnswer)) {
+                return new GradingResult(
+                        answer.getQuestionId(),
+                        "ESSAY",
+                        0.0,
+                        maxScore,
+                        "No answer provided.",
+                        false,
+                        1.0, // Confidence 100% là 0 điểm
+                        "LOCAL_RULE_BASED");
+            }
+
             // Call LangChain4j AI Service
-            com.igcse.ai.service.llm.EssayGradeResult result = essayGradingAiService.gradeEssay(
+            com.igcse.ai.dto.aiChamDiem.EssayGradeResultDTO result = essayGradingAiService.gradeEssay(
                     question,
                     maxScore,
                     reference,

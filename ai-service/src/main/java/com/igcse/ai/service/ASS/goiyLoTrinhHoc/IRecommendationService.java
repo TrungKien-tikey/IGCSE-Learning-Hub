@@ -1,4 +1,4 @@
-package com.igcse.ai.service.ASS.goiyLoTrinhHoc;
+package com.igcse.ai.service.ass.goiyLoTrinhHoc;
 
 import com.igcse.ai.dto.goiyLoTrinhHoc.LearningRecommendationDTO;
 

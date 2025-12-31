@@ -2,7 +2,7 @@ package com.igcse.ai.controller.thongKe;
 
 import com.igcse.ai.dto.thongKe.ClassStatisticsDTO;
 import com.igcse.ai.dto.thongKe.StudentStatisticsDTO;
-import com.igcse.ai.service.ASS.thongKe.IStatisticsService;
+import com.igcse.ai.service.ass.thongKe.IStatisticsService;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

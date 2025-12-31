@@ -31,3 +31,4 @@ public class ExamServiceClientException extends AIServiceException {
     }
 }
 
+

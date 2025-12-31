@@ -1,4 +1,4 @@
-package com.igcse.ai.service.ASS.phanTich;
+package com.igcse.ai.service.ass.phanTich;
 
 import com.igcse.ai.dto.phanTich.AIInsightDTO;
 

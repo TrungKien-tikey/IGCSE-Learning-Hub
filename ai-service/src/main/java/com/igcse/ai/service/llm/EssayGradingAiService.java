@@ -1,5 +1,7 @@
 package com.igcse.ai.service.llm;
 
+import com.igcse.ai.dto.aiChamDiem.EssayGradeResultDTO;
+
 import dev.langchain4j.service.SystemMessage;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
@@ -28,7 +30,7 @@ public interface EssayGradingAiService {
 
                         Grade this answer now.
                         """)
-        EssayGradeResult gradeEssay(
+        EssayGradeResultDTO gradeEssay(
                         @V("question") String question,
                         @V("maxScore") double maxScore,
                         @V("referenceAnswer") String referenceAnswer,

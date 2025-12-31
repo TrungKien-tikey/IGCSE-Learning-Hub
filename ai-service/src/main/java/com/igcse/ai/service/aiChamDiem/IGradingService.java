@@ -6,7 +6,7 @@ import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import java.util.List;
 
 public interface IGradingService {
-    List<GradingResult> gradeAllAnswers(String answersJson, String language);
+    List<GradingResult> gradeAllAnswers(List<AnswerDTO> answers, String language);
 
     GradingResult gradeAnswer(AnswerDTO answer, String language);
 
