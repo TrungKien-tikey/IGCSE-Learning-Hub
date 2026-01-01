@@ -8,13 +8,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/v1/auth") // <--- SỬA 1: Thêm v1 vào đây cho khớp Kong Gateway
 public class AuthController {
 
     private final AuthService authService;
 
     public AuthController(AuthService authService) {
         this.authService = authService;
+    }
+
+    // <--- SỬA 2: Thêm hàm này để test kết nối (GET Method)
+    @GetMapping("/health")
+    public ResponseEntity<String> healthCheck() {
+        return ResponseEntity.ok("Auth Service is connecting to Gateway successfully!");
     }
 
     @PostMapping("/register")
