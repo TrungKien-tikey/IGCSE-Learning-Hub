@@ -1,14 +1,16 @@
 version: '3.8'
 
 services:
-  # 1. MySQL Database (Nơi lưu dữ liệu cho Auth Service)
+  # =========================================
+  # PHẦN 1: DATABASE CHO AUTH SERVICE (Cũ)
+  # =========================================
   mysql-db:
     image: mysql:8.0
     container_name: igcse_mysql
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: auth_db  # Tự động tạo DB tên auth_db
+      MYSQL_DATABASE: auth_db
     ports:
       - "3306:3306"
     volumes:
@@ -16,7 +18,6 @@ services:
     networks:
       - igcse-network
 
-  # 2. phpMyAdmin (Giao diện quản lý DB - Dùng cái này cho dễ nhìn hơn Workbench)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: igcse_phpmyadmin
@@ -31,11 +32,88 @@ services:
     networks:
       - igcse-network
 
-# Định nghĩa mạng để các container nhìn thấy nhau
+  # =========================================
+  # PHẦN 2: KONG API GATEWAY (Mới thêm vào)
+  # =========================================
+  
+  # 1. Database riêng cho Kong (PostgreSQL)
+  kong-database:
+    image: postgres:13
+    container_name: kong-database
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kongpass
+    volumes:
+      - kong_data:/var/lib/postgresql/data
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Migration (Chạy 1 lần để khởi tạo DB cho Kong rồi tự tắt)
+  kong-migration:
+    image: kong:latest
+    container_name: kong-migration
+    command: "kong migrations bootstrap"
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kongpass
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    networks:
+      - igcse-network
+
+  # 3. KONG GATEWAY (Cổng chính)
+  kong:
+    image: kong:latest
+    container_name: kong-gateway
+    restart: always
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kongpass
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+    ports:
+      - "8000:8000" # Cổng Proxy (Frontend gọi vào đây)
+      - "8443:8443" # Cổng Proxy HTTPS
+      - "8001:8001" # Cổng Admin API
+    depends_on:
+      kong-migration:
+        condition: service_completed_successfully
+    networks:
+      - igcse-network
+
+  # 4. KONGA (Giao diện quản lý Kong)
+  konga:
+    image: pantsel/konga
+    container_name: konga-ui
+    restart: always
+    environment:
+      NODE_ENV: development
+    ports:
+      - "1337:1337" # Cổng truy cập Web Admin Konga
+    networks:
+      - igcse-network
+
+# =========================================
+# CONFIG CHUNG
+# =========================================
 networks:
   igcse-network:
     driver: bridge
 
-# Định nghĩa nơi lưu dữ liệu bền vững (tắt máy không mất data)
 volumes:
-  mysql_data:
+  mysql_data: # Data MySQL bền vững
+  kong_data:  # Data Kong bền vững
