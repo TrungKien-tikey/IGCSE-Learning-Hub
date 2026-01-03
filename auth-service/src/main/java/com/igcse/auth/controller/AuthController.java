@@ -32,4 +32,14 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
+
+    @PostMapping("/verify-token")
+    public ResponseEntity<Boolean> verifyToken(@RequestParam String token) {
+        return ResponseEntity.ok(authService.verifyToken(token));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<String> changePassword(@RequestBody com.igcse.auth.dto.ChangePasswordRequest request) {
+        return ResponseEntity.ok(authService.changePassword(request));
+    }
 }
