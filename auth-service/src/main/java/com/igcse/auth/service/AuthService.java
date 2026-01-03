@@ -56,4 +56,8 @@ public class AuthService {
 
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
-}
+
+    public boolean verifyToken(String token) {
+        return jwtUtils.validateToken(token);
+    }
+}    
