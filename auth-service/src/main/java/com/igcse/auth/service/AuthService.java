@@ -56,4 +56,22 @@ public class AuthService {
 
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
-}
+
+    public boolean verifyToken(String token) {
+        return jwtUtils.validateToken(token);
+    }
+
+    public String changePassword(com.igcse.auth.dto.ChangePasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User khong ton tai"));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new RuntimeException("Mat khau cu khong chinh xac!");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return "Doi mat khau thanh cong!";
+    }
+}    

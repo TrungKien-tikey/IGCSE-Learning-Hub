@@ -20,7 +20,9 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                // <--- SỬA DÒNG NÀY: Thêm v1 và dùng /** để cho phép cả login, register và health
+                .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
