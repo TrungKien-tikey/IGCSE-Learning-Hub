@@ -27,27 +27,4 @@ public class UserService {
         return null;
     }
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public void deleteUser(Long id) {
-        userRepository.deleteById(id);
-    }
-
-    public void deactivateUser(Long id) {
-        User user = getUserById(id);
-        if (user != null) {
-            user.setActive(false);
-            userRepository.save(user);
-        }
-    }
-
-    public void activateUser(Long id) {
-        User user = getUserById(id);
-        if (user != null) {
-            user.setActive(true);
-            userRepository.save(user);
-        }
-    }
 }
