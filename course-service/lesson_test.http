@@ -1,0 +1,49 @@
+### ===========================================
+### TASK 2: QUẢN LÝ BÀI HỌC (LESSON) & TÀI LIỆU
+### ===========================================
+
+### 1. Thêm bài học mới (Có Link Video & Tài liệu)
+# Mong đợi: 200 OK - Trả về true
+POST http://localhost:8082/api/courses/2/lessons
+Content-Type: application/json
+
+{
+  "title": "Bài 1: Giới thiệu Spring Boot",
+  "content": "Bài học này hướng dẫn cài đặt môi trường.",
+  "orderIndex": 1,
+  "videoUrl": "https://www.youtube.com/watch?v=9jI-z9QN6g8",
+  "resourceUrl": "https://docs.google.com/presentation/d/slide-bai-1"
+}
+
+### 2. Thêm bài học thứ 2 (Chỉ có Video, không có tài liệu)
+POST http://localhost:8082/api/courses/2/lessons
+Content-Type: application/json
+
+{
+  "title": "Bài 2: Dependency Injection là gì?",
+  "content": "Giải thích khái niệm DI và IoC Container.",
+  "orderIndex": 2,
+  "videoUrl": "https://www.youtube.com/watch?v=xyz123",
+  "resourceUrl": ""
+}
+
+### 3. Xem danh sách bài học của khóa học 1
+GET http://localhost:8082/api/courses/2/lessons
+
+### 4. Xem chi tiết một bài học (Ví dụ ID = 1)
+GET http://localhost:8082/api/courses/lessons/1
+
+### 5. Cập nhật bài học (Sửa Link tài liệu mới)
+PUT http://localhost:8082/api/courses/lessons/1
+Content-Type: application/json
+
+{
+  "title": "Bài 1: Giới thiệu Spring Boot (Updated)",
+  "content": "Nội dung đã chỉnh sửa.",
+  "orderIndex": 1,
+  "videoUrl": "https://www.youtube.com/watch?v=NEW_VIDEO_LINK",
+  "resourceUrl": "https://drive.google.com/file/d/NEW_PDF_LINK"
+}
+
+### 6. Xóa bài học (Ví dụ ID = 2)
+DELETE http://localhost:8082/api/courses/lessons/1

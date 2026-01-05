@@ -1,0 +1,10 @@
+### 1. Tìm kiếm khóa học (Ví dụ tìm chữ "Java")
+GET http://localhost:8082/api/courses/search?keyword=Java
+
+### 2. Ghi danh User ID = 100 vào Khóa học ID = 2
+# Mong đợi: 200 OK - "Ghi danh thành công!"
+POST http://localhost:8082/api/courses/2/enroll?userId=100
+
+### 3. Ghi danh LẠI lần nữa (Test chặn trùng lặp)
+# Mong đợi: 400 Bad Request
+POST http://localhost:8082/api/courses/2/enroll?userId=100
