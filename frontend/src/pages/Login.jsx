@@ -1,8 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import './Login.css'; // Chúng ta sẽ tạo file này ở bước 2
+import { Link, useNavigate } from 'react-router-dom'; // Thêm useNavigate
+import authService from '../services/authService'; // Import service
+import './Login.css';
 
 function Login() {
+  const navigate = useNavigate(); // Hook để chuyển trang
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -15,10 +17,30 @@ function Login() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // Thêm async
     e.preventDefault();
-    console.log('Dữ liệu đăng nhập:', formData);
-    alert("Đã bấm đăng nhập! (Sẽ kết nối API sau)");
+    
+    try {
+      // 1. Gọi API Đăng nhập
+      const response = await authService.login(formData);
+      
+      // 2. Lấy Token từ kết quả trả về
+      // (Cấu trúc response.data phụ thuộc vào Backend trả về gì, 
+      // nhưng thường là response.data.accessToken hoặc response.data.token)
+      const token = response.data.token || response.data.accessToken;
+
+      // 3. Lưu Token vào "túi" (localStorage) của trình duyệt
+      localStorage.setItem('accessToken', token);
+      
+      // 4. Thông báo và chuyển về trang chủ
+      console.log("Đăng nhập thành công:", response.data);
+      alert("Đăng nhập thành công!");
+      navigate('/'); // Chuyển về trang chủ (Sau này sẽ là trang Dashboard)
+
+    } catch (error) {
+      console.error("Lỗi đăng nhập:", error);
+      alert("Đăng nhập thất bại! Kiểm tra lại email hoặc mật khẩu.");
+    }
   };
 
   return (
