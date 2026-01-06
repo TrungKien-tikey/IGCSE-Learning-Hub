@@ -26,4 +26,33 @@ CREATE TABLE IF NOT EXISTS ai_results (
     CONSTRAINT fk_attempt FOREIGN KEY (attempt_id) REFERENCES exam_attempts(attempt_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE DATABASE IF NOT EXISTS communication_db;
+USE communication_db;
 
+
+CREATE TABLE IF NOT EXISTS notifications (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    title VARCHAR(255),
+    message TEXT,
+    type VARCHAR(50), 
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    sender_id BIGINT NOT NULL,
+    receiver_id BIGINT, -- Null nếu là chat group/room.
+    room_id VARCHAR(100), -- Room ID để gom nhóm tin nhắn
+    content TEXT,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL COMMENT 'ID người dùng',
+    exam_id BIGINT NOT NULL COMMENT 'ID bài thi',
+    content TEXT NOT NULL COMMENT 'Nội dung bình luận',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời gian tạo'
+);
