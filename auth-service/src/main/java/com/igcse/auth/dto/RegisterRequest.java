@@ -1,6 +1,7 @@
 package com.igcse.auth.dto;
 
 public class RegisterRequest {
+    private String fullName;
     private String email;
     private String password;
     private String role; // "STUDENT" hoặc "ADMIN"
@@ -9,6 +10,9 @@ public class RegisterRequest {
     public RegisterRequest() {}
 
     // Getter & Setter
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) { this.fullName = fullName; }
+
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
