@@ -10,6 +10,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
 
+    @Column(name = "full_name") 
+    private String fullName;
+
     @Column(nullable = false, unique = true)
     private String email;
 
@@ -26,8 +29,12 @@ public class User {
     public User() {}
 
     // ===== Getter & Setter =====
-    public Long getUserId() {
-        return userId;
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public void setUserId(Long userId) {
