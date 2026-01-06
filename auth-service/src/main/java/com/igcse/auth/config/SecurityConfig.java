@@ -10,12 +10,12 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration; // <--- Import mới
-import org.springframework.web.cors.CorsConfigurationSource; // <--- Import mới
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // <--- Import mới
+import org.springframework.web.cors.CorsConfiguration; 
+import org.springframework.web.cors.CorsConfigurationSource; 
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource; 
 
-import java.util.Arrays; // <--- Import mới
-import java.util.List;   // <--- Import mới
+import java.util.Arrays; 
+import java.util.List;   
 
 @Configuration
 @EnableWebSecurity
@@ -32,13 +32,11 @@ public class SecurityConfig {
             
             // 3. Cấu hình quyền truy cập
             .authorizeHttpRequests(auth -> auth
-<<<<<<< Updated upstream
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-=======
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/error").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
->>>>>>> Stashed changes
+                // --- PHẦN ĐÃ SỬA CONFLICT ---
+                .requestMatchers("/api/v1/auth/**").permitAll() // Cho phép login, register (v1)
+                .requestMatchers("/error").permitAll() // Cho phép hiển thị lỗi
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Cho phép xem tài liệu API
+                // -----------------------------
                 .anyRequest().authenticated()
             )
             
@@ -55,7 +53,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // SỬA ĐOẠN NÀY: Dùng "*" để cho phép mọi nguồn (5173, 8080, v.v...)
+        // Dùng "*" để cho phép mọi nguồn (5173, 8080, v.v...)
         configuration.setAllowedOriginPatterns(List.of("*")); 
         
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
