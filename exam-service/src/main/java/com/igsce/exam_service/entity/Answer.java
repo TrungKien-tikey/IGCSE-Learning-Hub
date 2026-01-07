@@ -3,11 +3,9 @@ package com.igsce.exam_service.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "exam_answers")

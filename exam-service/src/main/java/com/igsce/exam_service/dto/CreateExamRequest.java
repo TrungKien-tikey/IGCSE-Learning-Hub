@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.igsce.exam_service.enums.QuestionType; // Nhớ import Enum của bạn
 
 @Data
 public class CreateExamRequest {
