@@ -4,6 +4,13 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ProtectedRoute from './components/ProtectedRoute'; // <--- Quan trọng: Import file bảo vệ
 
+import ExamListPage from "./pages/exams/ExamList"; // Ví dụ: file ExamsList.tsx
+import ManageExamsPage from "./pages/exams/ExamManage";
+import EditExamPage from "./pages/exams/ExamEdit"; 
+import ExamAttemptPage from "./pages/exams/ExamAttempt"; 
+import ExamResultPage from "./pages/exams/ExamResult";
+import CreateExamPage from './pages/exams/ExamCreate';
+
 function App() {
   return (
     <BrowserRouter>
@@ -21,6 +28,12 @@ function App() {
         {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} /> 
+        <Route path="/exams" element={<ExamListPage />} />
+        <Route path="/exams/create" element={<CreateExamPage />} />
+        <Route path="/exams/manage" element={<ManageExamsPage />} />
+        <Route path="/exams/edit/:id" element={<EditExamPage />} />
+        <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
+        <Route path="/exams/result" element={<ExamResultPage />} />
 
         {/* --- XỬ LÝ LỖI --- */}
         {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}

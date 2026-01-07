@@ -14,14 +14,16 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/exams")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ExamController {
 
     private final ExamService examService;
 
     @GetMapping
     public List<Exam> getExams() {
-        return examService.getAllExams();
+        List<Exam> exams = examService.getAllExams();
+        exams.forEach(e -> System.out.println("Exam Title: " + e.getTitle()));
+        return exams;
     }
 
     @GetMapping("/{examId}")
@@ -50,7 +52,6 @@ public class ExamController {
     @PostMapping("/start")
     public ResponseEntity<ExamAttempt> startExam(
             @RequestBody StartExamRequest request) {
-
         return ResponseEntity.ok(
                 examService.startExam(
                         request.getExamId(),
