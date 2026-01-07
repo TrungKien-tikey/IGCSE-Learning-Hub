@@ -17,6 +17,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - igcse-network
 
@@ -32,6 +33,18 @@ services:
       PMA_PORT: 3306
     ports:
       - "8081:80"
+    networks:
+      - igcse-network
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: igcse_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # Cổng để các Service (Java/Kotlin) gửi tin nhắn
+      - "15672:15672" # Cổng Web quản lý (Dashboard)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     networks:
       - igcse-network
 
