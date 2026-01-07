@@ -14,12 +14,19 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
 import java.util.concurrent.TimeUnit;
+import java.util.Arrays;
 
 // config/WebConfig.java
 @Configuration
 @EnableRetry
-public class WebConfig {
+public class WebConfig implements WebMvcConfigurer {
 
     @Bean
     @NonNull
@@ -53,5 +60,49 @@ public class WebConfig {
         restTemplate.getInterceptors().add(new RestTemplateLoggingInterceptor());
 
         return restTemplate;
+    }
+
+    // ============================================
+    // CORS Configuration
+    // ============================================
+    
+    @Override
+    public void addCorsMappings(@NonNull CorsRegistry registry) {
+        registry.addMapping("/api/**")
+                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+    }
+
+    @Bean
+    public CorsFilter corsFilter() {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        CorsConfiguration config = new CorsConfiguration();
+        
+        // Allow specific origins
+        config.setAllowedOrigins(Arrays.asList(
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000"
+        ));
+        
+        // Allow all HTTP methods
+        config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // Allow all headers
+        config.setAllowedHeaders(Arrays.asList("*"));
+        
+        // Allow credentials (cookies, auth headers)
+        config.setAllowCredentials(true);
+        
+        // Cache preflight response for 1 hour
+        config.setMaxAge(3600L);
+        
+        // Apply to all API endpoints
+        source.registerCorsConfiguration("/api/**", config);
+        
+        return new CorsFilter(source);
     }
 }

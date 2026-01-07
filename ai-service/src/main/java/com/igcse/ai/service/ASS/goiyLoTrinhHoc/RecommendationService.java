@@ -5,8 +5,11 @@ import com.igcse.ai.service.common.JsonService;
 import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.dto.goiyLoTrinhHoc.LearningRecommendationDTO;
 import com.igcse.ai.entity.AIResult;
+import com.igcse.ai.entity.AIRecommendation;
 import com.igcse.ai.repository.AIResultRepository;
+import com.igcse.ai.repository.AIRecommendationRepository;
 import com.igcse.ai.service.llm.RecommendationAiService;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,17 +23,20 @@ public class RecommendationService implements IRecommendationService {
     private static final Logger logger = LoggerFactory.getLogger(RecommendationService.class);
 
     private final AIResultRepository aiResultRepository;
+    private final AIRecommendationRepository aiRecommendationRepository;
     private final JsonService jsonService;
     private final ILanguageService languageService;
     private final RecommendationAiService recommendationAiService;
 
     public RecommendationService(AIResultRepository aiResultRepository,
             RecommendationAiService recommendationAiService, JsonService jsonService,
-            ILanguageService languageService) {
+            ILanguageService languageService,
+            AIRecommendationRepository aiRecommendationRepository) {
         this.aiResultRepository = aiResultRepository;
         this.recommendationAiService = recommendationAiService;
         this.jsonService = jsonService;
         this.languageService = languageService;
+        this.aiRecommendationRepository = aiRecommendationRepository;
     }
 
     @Override
@@ -38,6 +44,14 @@ public class RecommendationService implements IRecommendationService {
         logger.info("Getting recommendations for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
+        // ✅ BƯỚC 1: Kiểm tra cache
+        Optional<AIRecommendation> cached = aiRecommendationRepository.findByStudentId(studentId);
+        if (cached.isPresent()) {
+            logger.info("Returning cached recommendation for studentId: {}", studentId);
+            return convertToDTO(cached.get());
+        }
+
+        // ✅ BƯỚC 2: Không có cache, tạo mới
         List<AIResult> results = aiResultRepository.findByStudentId(studentId);
 
         if (results.isEmpty()) {
@@ -55,21 +69,31 @@ public class RecommendationService implements IRecommendationService {
         String dataSummary = buildDataSummary(results);
 
         // Thử dùng AI để generate recommendations
+        LearningRecommendationDTO newRecommendation = null;
+        boolean isAiGenerated = false;
+        
         try {
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            LearningRecommendationDTO aiRec = recommendationAiService.generateRecommendation(dataSummary,
-                    aiLanguageName);
-            if (aiRec != null) {
-                aiRec.setStudentId(studentId);
+            newRecommendation = recommendationAiService.generateRecommendation(dataSummary, aiLanguageName);
+            if (newRecommendation != null) {
+                newRecommendation.setStudentId(studentId);
+                isAiGenerated = true;
                 logger.info("AI recommendations generated successfully for studentId: {}", studentId);
-                return aiRec;
             }
         } catch (Exception e) {
             logger.warn("Failed to generate AI recommendations, using fallback: {}", e.getMessage());
         }
 
-        // Fallback: Generate insights từ dữ liệu thật không dùng AI
-        return generateFallbackRecommendations(results, studentId);
+        // Fallback nếu AI lỗi
+        if (newRecommendation == null) {
+            newRecommendation = generateFallbackRecommendations(results, studentId);
+            isAiGenerated = false;
+        }
+
+        // ✅ BƯỚC 3: Lưu vào cache
+        saveRecommendationToCache(newRecommendation, isAiGenerated);
+
+        return newRecommendation;
     }
 
     /**
@@ -243,6 +267,83 @@ public class RecommendationService implements IRecommendationService {
         }
 
         return suggestion.toString();
+    }
+
+    // ✅ THÊM: Convert Entity to DTO
+    private LearningRecommendationDTO convertToDTO(AIRecommendation entity) {
+        LearningRecommendationDTO dto = new LearningRecommendationDTO();
+        dto.setStudentId(entity.getStudentId());
+        dto.setLearningPathSuggestion(entity.getLearningPathSuggestion());
+
+        // Parse JSON arrays
+        try {
+            if (entity.getWeakTopics() != null && !entity.getWeakTopics().isEmpty()) {
+                List<String> weakTopics = jsonService.getObjectMapper().readValue(
+                    entity.getWeakTopics(),
+                    new TypeReference<List<String>>() {}
+                );
+                dto.setWeakTopics(weakTopics);
+            }
+
+            if (entity.getStrongTopics() != null && !entity.getStrongTopics().isEmpty()) {
+                List<String> strongTopics = jsonService.getObjectMapper().readValue(
+                    entity.getStrongTopics(),
+                    new TypeReference<List<String>>() {}
+                );
+                dto.setStrongTopics(strongTopics);
+            }
+
+            if (entity.getRecommendedResources() != null && !entity.getRecommendedResources().isEmpty()) {
+                List<String> resources = jsonService.getObjectMapper().readValue(
+                    entity.getRecommendedResources(),
+                    new TypeReference<List<String>>() {}
+                );
+                dto.setRecommendedResources(resources);
+            }
+        } catch (Exception e) {
+            logger.error("Error parsing JSON in cached recommendation", e);
+            dto.setWeakTopics(new ArrayList<>());
+            dto.setStrongTopics(new ArrayList<>());
+            dto.setRecommendedResources(new ArrayList<>());
+        }
+
+        return dto;
+    }
+
+    // ✅ THÊM: Save to cache
+    private void saveRecommendationToCache(LearningRecommendationDTO dto, boolean isAiGenerated) {
+        try {
+            // Xóa cache cũ nếu có
+            aiRecommendationRepository.deleteByStudentId(dto.getStudentId());
+
+            // Tạo entity mới
+            AIRecommendation entity = new AIRecommendation();
+            entity.setStudentId(dto.getStudentId());
+            entity.setLearningPathSuggestion(dto.getLearningPathSuggestion());
+            entity.setIsAiGenerated(isAiGenerated);
+            entity.setLanguage("vi");
+
+            // Convert lists to JSON
+            try {
+                if (dto.getWeakTopics() != null) {
+                    entity.setWeakTopics(jsonService.toJson(dto.getWeakTopics()));
+                }
+                if (dto.getStrongTopics() != null) {
+                    entity.setStrongTopics(jsonService.toJson(dto.getStrongTopics()));
+                }
+                if (dto.getRecommendedResources() != null) {
+                    entity.setRecommendedResources(jsonService.toJson(dto.getRecommendedResources()));
+                }
+            } catch (Exception e) {
+                logger.error("Error converting to JSON", e);
+            }
+
+            aiRecommendationRepository.save(entity);
+            logger.info("Saved recommendation to cache for studentId: {}", dto.getStudentId());
+        } catch (Exception e) {
+            logger.error("Error saving recommendation to cache", e);
+            // Không throw, chỉ log lỗi để không ảnh hưởng response
+        }
     }
 
 }

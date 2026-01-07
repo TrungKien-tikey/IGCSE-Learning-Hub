@@ -56,3 +56,4 @@ application-local.properties
 .docker/
 *.db
 mysql_data/
+*.md
