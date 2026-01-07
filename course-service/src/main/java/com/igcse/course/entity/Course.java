@@ -1,0 +1,64 @@
+package com.igcse.course.entity;
+
+import jakarta.persistence.*;
+import java.util.Date;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+@Entity
+@Table(name = "courses")
+public class Course {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long courseId;
+
+    private String title;
+    
+    @Column(length = 1000) // Mô tả có thể dài
+    private String description;
+    
+    private Double price;
+    private boolean isActive = true;
+    private Date createdAt = new Date();
+
+    // Quan hệ 1-Nhiều với Lesson
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    @JsonIgnore // Tránh vòng lặp vô tận khi convert sang JSON
+    private List<Lesson> lessons;
+
+    // Quan hệ 1-Nhiều với Enrollment
+    @OneToMany(mappedBy = "course")
+    @JsonIgnore
+    private List<Enrollment> enrollments;
+
+    // --- Constructor ---
+    public Course() {}
+
+    // --- Business Methods (Logic nghiệp vụ tại Entity) ---
+    public void updateCourse(String title, String description, Double price) {
+        if (title != null && !title.isEmpty()) this.title = title;
+        if (description != null) this.description = description;
+        if (price != null) this.price = price;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    // --- Getters & Setters ---
+    public Long getCourseId() { return courseId; }
+    public void setCourseId(Long courseId) { this.courseId = courseId; }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public Double getPrice() { return price; }
+    public void setPrice(Double price) { this.price = price; }
+    public boolean isActive() { return isActive; }
+    public void setActive(boolean active) { isActive = active; }
+    public Date getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
+    public List<Lesson> getLessons() { return lessons; }
+    public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
+}

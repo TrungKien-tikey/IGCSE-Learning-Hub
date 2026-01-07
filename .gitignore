@@ -1,0 +1,56 @@
+### Monorepo Global Ignore ###
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+.factorypath
+.sts4-cache
+
+# Java / Spring Boot / Maven
+target/
+**/target/
+build/
+**/build/
+.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+build_log.txt
+
+# Node / React / Frontend
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.eslintcache
+.stylelintcache
+
+# Logs & OS
+logs/
+*.log
+.DS_Store
+Thumbs.db
+
+# Secrets & Local Config
+.env
+.env.*
+application-local.properties
+**/application-local.properties
+
+# Docker
+.docker/
+*.db
+mysql_data/
