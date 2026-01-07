@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Xóa bỏ mọi khoảng trắng thừa mặc định của trình duyệt */
 * {
   margin: 0;
