@@ -53,7 +53,7 @@ const MainLayout = ({ children }) => {
 
   const handleLogout = () => {
     // Xử lý logout giả lập
-    localStorage.removeItem("token");
+    localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     navigate("/login");
   };
