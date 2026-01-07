@@ -14,18 +14,18 @@ import ExamResultPage from "./pages/exams/ExamResult";
 import CreateExamPage from './pages/exams/ExamCreate';
 
 function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        {/* --- KHU VỰC ĐƯỢC BẢO VỆ (Cần đăng nhập mới vào được) --- */}
-        <Route 
-          path="/" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
+    return (
+        <BrowserRouter>
+            <Routes>
+                {/* --- KHU VỰC ĐƯỢC BẢO VỆ (Cần đăng nhập mới vào được) --- */}
+                <Route
+                    path="/"
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
         {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
         <Route path="/login" element={<Login />} />
@@ -40,12 +40,12 @@ function App() {
         <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
         <Route path="/exams/result" element={<ExamResultPage />} />
 
-        {/* --- XỬ LÝ LỖI --- */}
-        {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
-  );
+                {/* --- XỬ LÝ LỖI --- */}
+                {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;
