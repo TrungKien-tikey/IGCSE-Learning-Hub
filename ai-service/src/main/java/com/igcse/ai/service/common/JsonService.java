@@ -55,4 +55,11 @@ public class JsonService {
             return "";
         }
     }
+
+    /**
+     * Lấy ObjectMapper để sử dụng trong các service khác
+     */
+    public ObjectMapper getObjectMapper() {
+        return objectMapper;
+    }
 }

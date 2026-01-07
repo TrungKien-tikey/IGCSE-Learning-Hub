@@ -7,6 +7,8 @@ import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.exception.*;
 import com.igcse.ai.repository.AIResultRepository;
+import com.igcse.ai.repository.AIInsightRepository;
+import com.igcse.ai.repository.AIRecommendationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,8 @@ public class AIService {
     private final ExamAttemptClient examAttemptClient;
     private final ExamServiceClient examServiceClient;
     private final java.util.concurrent.Executor taskExecutor;
+    private final AIInsightRepository aiInsightRepository;
+    private final AIRecommendationRepository aiRecommendationRepository;
 
     public AIService(
             JsonService jsonService,
@@ -43,7 +47,9 @@ public class AIService {
             ILanguageService languageService,
             ExamAttemptClient examAttemptClient,
             ExamServiceClient examServiceClient,
-            @org.springframework.beans.factory.annotation.Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor) {
+            @org.springframework.beans.factory.annotation.Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor,
+            AIInsightRepository aiInsightRepository,
+            AIRecommendationRepository aiRecommendationRepository) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
@@ -51,6 +57,8 @@ public class AIService {
         this.examAttemptClient = examAttemptClient;
         this.examServiceClient = examServiceClient;
         this.taskExecutor = taskExecutor;
+        this.aiInsightRepository = aiInsightRepository;
+        this.aiRecommendationRepository = aiRecommendationRepository;
     }
 
     public double evaluateExam(Long attemptId) {
@@ -161,6 +169,19 @@ public class AIService {
 
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
+
+        // ✅ Invalidate cache khi có AIResult mới
+        Long studentId = result.getStudentId();
+        if (studentId != null) {
+            try {
+                aiInsightRepository.deleteByStudentId(studentId);
+                aiRecommendationRepository.deleteByStudentId(studentId);
+                logger.info("Invalidated analytics cache for studentId: {}", studentId);
+            } catch (Exception e) {
+                logger.warn("Error invalidating cache for studentId {}: {}", studentId, e.getMessage());
+                // Không throw, chỉ log để không ảnh hưởng quá trình chấm điểm
+            }
+        }
 
         // Gọi callback về exam_service ch update điểm số (Async)
         java.util.concurrent.CompletableFuture.runAsync(() -> {

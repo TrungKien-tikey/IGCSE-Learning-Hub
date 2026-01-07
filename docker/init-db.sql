@@ -44,11 +44,44 @@ CREATE TABLE IF NOT EXISTS ai_results (
     exam_id BIGINT COMMENT 'ID bài thi (từ exam_db.exams.exam_id)',
     details TEXT COMMENT 'JSON chứa chi tiết điểm từng câu (tham chiếu đến exam_db.exam_answers)',
     evaluation_method VARCHAR(50) DEFAULT 'LOCAL_RULE_BASED' COMMENT 'Phương pháp chấm: AI_GPT4_LANGCHAIN hoặc LOCAL_RULE_BASED',
-    answers_hash VARCHAR(64) COMMENT 'MD5 hash của answers JSON để validate cache (tránh chấm lại khi answers không thay đổi)',
     INDEX idx_attempt_id (attempt_id),
     INDEX idx_student_id (student_id),
     INDEX idx_exam_id (exam_id),
     INDEX idx_graded_at (graded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Bảng lưu phân tích (Insight)
+CREATE TABLE IF NOT EXISTS ai_insights (
+    insight_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id BIGINT NOT NULL,
+    overall_summary TEXT,
+    key_strengths TEXT COMMENT 'JSON array',
+    areas_for_improvement TEXT COMMENT 'JSON array',
+    action_plan TEXT,
+    language VARCHAR(10) DEFAULT 'vi',
+    is_ai_generated BOOLEAN DEFAULT TRUE,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_student_id (student_id),
+    INDEX idx_generated_at (generated_at),
+    UNIQUE KEY uk_student_id (student_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Bảng lưu gợi ý (Recommendation)
+CREATE TABLE IF NOT EXISTS ai_recommendations (
+    recommendation_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id BIGINT NOT NULL,
+    weak_topics TEXT COMMENT 'JSON array',
+    strong_topics TEXT COMMENT 'JSON array',
+    recommended_resources TEXT COMMENT 'JSON array',
+    learning_path_suggestion TEXT,
+    language VARCHAR(10) DEFAULT 'vi',
+    is_ai_generated BOOLEAN DEFAULT TRUE,
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_student_id (student_id),
+    INDEX idx_generated_at (generated_at),
+    UNIQUE KEY uk_student_id (student_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

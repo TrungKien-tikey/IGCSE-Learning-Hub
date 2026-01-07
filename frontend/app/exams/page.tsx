@@ -11,7 +11,7 @@ const CURRENT_USER_ROLE = "TEACHER"; // Đổi thành "STUDENT" để ẩn nút 
 export default function ExamListPage() {
   const [exams, setExams] = useState<Exam[]>([]);
   // State lưu vai trò người dùng
-  const [role, setRole] = useState(CURRENT_USER_ROLE); 
+  const [role] = useState(CURRENT_USER_ROLE); 
   const router = useRouter();
 
   useEffect(() => {

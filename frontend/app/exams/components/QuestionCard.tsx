@@ -16,19 +16,19 @@ export default function QuestionCard({
   return (
     <div className="border rounded p-4 mb-4">
       <p className="font-medium mb-3">
-        {question.content} ({question.marks} marks)
+        {question.content} ({question.score} marks)
       </p>
 
       {question.options.map((opt) => (
         <label
-          key={opt.id}
+          key={opt.optionId}
           className="flex items-center gap-2 mb-2 cursor-pointer"
         >
           <input
             type="radio"
-            name={`question-${question.id}`}
-            checked={selectedOptionId === opt.id}
-            onChange={() => onSelect(question.id, opt.id)}
+            name={`question-${question.questionId}`}
+            checked={selectedOptionId === opt.optionId}
+            onChange={() => onSelect(question.questionId, opt.optionId)}
           />
           {opt.content}
         </label>

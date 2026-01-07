@@ -6,8 +6,10 @@ import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.dto.phanTich.AIInsightDTO;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.repository.AIResultRepository;
+import com.igcse.ai.repository.AIInsightRepository;
 import com.igcse.ai.service.llm.InsightAiService;
-
+import com.igcse.ai.entity.AIInsight;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ public class InsightService implements IInsightService {
     private static final double STRENGTH_PERCENTAGE = 80.0;
     private static final double WEAKNESS_PERCENTAGE = 50.0;
 
+    private final AIInsightRepository aiInsightRepository;
     private final AIResultRepository aiResultRepository;
     private final JsonService jsonService;
     private final ILanguageService languageService;
@@ -33,11 +36,13 @@ public class InsightService implements IInsightService {
     public InsightService(AIResultRepository aiResultRepository,
             InsightAiService insightAiService,
             JsonService jsonService,
-            ILanguageService languageService) {
+            ILanguageService languageService,
+            AIInsightRepository aiInsightRepository) {
         this.aiResultRepository = aiResultRepository;
         this.insightAiService = insightAiService;
         this.jsonService = jsonService;
         this.languageService = languageService;
+        this.aiInsightRepository = aiInsightRepository;
     }
 
     @Override
@@ -45,29 +50,115 @@ public class InsightService implements IInsightService {
         logger.info("Processing insights for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
+        // ✅ BƯỚC 1: Kiểm tra cache
+        Optional<AIInsight> cached = aiInsightRepository.findByStudentId(studentId);
+        if (cached.isPresent()) {
+            logger.info("Returning cached insight for studentId: {}", studentId);
+            return convertToDTO(cached.get());
+        }
+
+        // ✅ BƯỚC 2: Không có cache, tạo mới
         List<AIResult> results = aiResultRepository.findByStudentId(studentId);
         if (results.isEmpty()) {
             return createEmptyInsight(studentId);
         }
 
-        // Bước 1: Parse và tiền xử lý dữ liệu 1 lần duy nhất
+        // Bước 1: Parse và tiền xử lý dữ liệu
         AnalysisData analysis = analyzeStudentData(results);
 
         // Bước 2: Thử dùng AI
+        AIInsightDTO newInsight = null;
+        boolean isAiGenerated = false;
+
         try {
             String dataSummary = buildTextSummary(analysis);
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            AIInsightDTO aiInsight = insightAiService.generateInsight(dataSummary, aiLanguageName);
-            if (aiInsight != null) {
-                aiInsight.setStudentId(studentId);
-                return aiInsight;
+            newInsight = insightAiService.generateInsight(dataSummary, aiLanguageName);
+            if (newInsight != null) {
+                newInsight.setStudentId(studentId);
+                isAiGenerated = true;
             }
         } catch (Exception e) {
             logger.warn("AI service failed for student {}: {}", studentId, e.getMessage());
         }
 
-        // Bước 3: Fallback logic (Sử dụng dữ liệu đã phân tích ở Bước 1)
-        return generateFallbackInsights(analysis, studentId);
+        // Bước 3: Fallback nếu AI lỗi
+        if (newInsight == null) {
+            newInsight = generateFallbackInsights(analysis, studentId);
+            isAiGenerated = false;
+        }
+
+        // ✅ BƯỚC 3: Lưu vào cache
+        saveInsightToCache(newInsight, isAiGenerated);
+
+        return newInsight;
+    }
+
+    // ✅ THÊM: Convert Entity to DTO
+    private AIInsightDTO convertToDTO(AIInsight entity) {
+        AIInsightDTO dto = new AIInsightDTO();
+        dto.setStudentId(entity.getStudentId());
+        dto.setOverallSummary(entity.getOverallSummary());
+        dto.setActionPlan(entity.getActionPlan());
+
+        // Parse JSON arrays
+        try {
+            if (entity.getKeyStrengths() != null && !entity.getKeyStrengths().isEmpty()) {
+                List<String> strengths = jsonService.getObjectMapper().readValue(
+                        entity.getKeyStrengths(),
+                        new TypeReference<List<String>>() {
+                        });
+                dto.setKeyStrengths(strengths);
+            }
+
+            if (entity.getAreasForImprovement() != null && !entity.getAreasForImprovement().isEmpty()) {
+                List<String> improvements = jsonService.getObjectMapper().readValue(
+                        entity.getAreasForImprovement(),
+                        new TypeReference<List<String>>() {
+                        });
+                dto.setAreasForImprovement(improvements);
+            }
+        } catch (Exception e) {
+            logger.error("Error parsing JSON in cached insight", e);
+            dto.setKeyStrengths(new ArrayList<>());
+            dto.setAreasForImprovement(new ArrayList<>());
+        }
+
+        return dto;
+    }
+
+    // ✅ THÊM: Save to cache
+    private void saveInsightToCache(AIInsightDTO dto, boolean isAiGenerated) {
+        try {
+            // Xóa cache cũ nếu có
+            aiInsightRepository.deleteByStudentId(dto.getStudentId());
+
+            // Tạo entity mới
+            AIInsight entity = new AIInsight();
+            entity.setStudentId(dto.getStudentId());
+            entity.setOverallSummary(dto.getOverallSummary());
+            entity.setActionPlan(dto.getActionPlan());
+            entity.setIsAiGenerated(isAiGenerated);
+            entity.setLanguage("vi");
+
+            // Convert lists to JSON
+            try {
+                if (dto.getKeyStrengths() != null) {
+                    entity.setKeyStrengths(jsonService.toJson(dto.getKeyStrengths()));
+                }
+                if (dto.getAreasForImprovement() != null) {
+                    entity.setAreasForImprovement(jsonService.toJson(dto.getAreasForImprovement()));
+                }
+            } catch (Exception e) {
+                logger.error("Error converting to JSON", e);
+            }
+
+            aiInsightRepository.save(entity);
+            logger.info("Saved insight to cache for studentId: {}", dto.getStudentId());
+        } catch (Exception e) {
+            logger.error("Error saving insight to cache", e);
+            // Không throw, chỉ log lỗi để không ảnh hưởng response
+        }
     }
 
     /**
