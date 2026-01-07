@@ -1,7 +1,6 @@
 package com.igsce.exam_service.dto;
 
 import lombok.Data;
-import java.util.*;
 
 @Data
 public class CreateExamResponse {

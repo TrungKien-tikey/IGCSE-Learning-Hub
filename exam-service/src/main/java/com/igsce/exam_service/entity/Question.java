@@ -4,16 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import com.igsce.exam_service.enums.*;
 
 import java.util.ArrayList;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "questions")
