@@ -24,6 +24,7 @@ public class Exam {
     private String title;
     private String description;
     private int duration;
+    private int maxAttempts = 1;
 
     private LocalDateTime endTime;
 

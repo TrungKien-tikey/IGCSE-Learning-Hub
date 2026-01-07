@@ -7,7 +7,7 @@ import com.igsce.exam_service.dto.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
@@ -27,6 +27,12 @@ public class ExamController {
     @GetMapping("/{examId}")
     public Exam getExam(@PathVariable Long examId) {
         return examService.getExamById(examId);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteExam(@PathVariable Long id) {
+        examService.deleteExam(id);
+        return ResponseEntity.ok("Xóa bài thi thành công");
     }
 
     @GetMapping("/attempt/{attemptId}")
@@ -59,6 +65,12 @@ public class ExamController {
                 examService.submitExam(
                         request.getAttemptId(),
                         request.getAnswers()));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateExam(@PathVariable Long id, @RequestBody CreateExamRequest request) {
+        examService.updateExam(id, request);
+        return ResponseEntity.ok("Cập nhật thành công");
     }
 
 }
