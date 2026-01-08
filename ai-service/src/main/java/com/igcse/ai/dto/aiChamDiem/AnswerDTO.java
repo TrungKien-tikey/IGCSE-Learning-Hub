@@ -14,7 +14,7 @@ import lombok.Setter;
 })
 @Getter
 @Setter
-public abstract class AnswerDTO {
+public class AnswerDTO {
     protected Long questionId;
     protected String type;
 }
