@@ -1,6 +1,5 @@
 package com.igcse.ai.config;
 
-import com.igcse.ai.exception.AIServiceException; // Import AIServiceException
 import com.igcse.ai.service.llm.EssayGradingAiService;
 import com.igcse.ai.service.llm.InsightAiService;
 import com.igcse.ai.service.llm.RecommendationAiService;

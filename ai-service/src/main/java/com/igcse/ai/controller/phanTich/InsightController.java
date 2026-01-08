@@ -26,4 +26,9 @@ public class InsightController {
     public ResponseEntity<AIInsightDTO> getInsight(@PathVariable Long studentId) {
         return ResponseEntity.ok(insightService.getInsight(studentId));
     }
+
+    @GetMapping("/attempt/{attemptId}")
+    public ResponseEntity<AIInsightDTO> getInsightByAttempt(@PathVariable Long attemptId) {
+        return ResponseEntity.ok(insightService.getInsightByAttempt(attemptId));
+    }
 }

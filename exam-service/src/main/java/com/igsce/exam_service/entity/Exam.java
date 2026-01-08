@@ -5,7 +5,6 @@ import lombok.*;
 
 import java.util.*;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -25,15 +24,16 @@ public class Exam {
     private String title;
     private String description;
     private int duration;
-    private int maxAttempts = 1;
 
     private LocalDateTime endTime;
 
     @JsonProperty("isActive")
     private boolean isActive;
 
+    private int maxAttempts = 1; // Số lần làm bài tối đa, mặc định là 1
+
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonIgnoreProperties("exam")
+    @JsonManagedReference 
     private List<Question> questions = new ArrayList<>();
 
     public void updateExam(String title, String description, int duration) {

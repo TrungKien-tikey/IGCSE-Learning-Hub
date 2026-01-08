@@ -2,15 +2,10 @@ package com.igsce.exam_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
-
 import com.igsce.exam_service.enums.*;
-
 import java.util.ArrayList;
 
 @Entity
@@ -40,7 +35,7 @@ public class Question {
 
     @ManyToOne
     @JoinColumn(name = "exam_id")
-    @JsonIgnoreProperties("questions")
+    @JsonBackReference
     private Exam exam;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)

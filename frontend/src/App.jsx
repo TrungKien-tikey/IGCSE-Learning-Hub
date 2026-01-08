@@ -44,8 +44,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/profile" element={<Profile />} />
-
-        {/* --- EXAM ROUTES --- */}
+        
+        {/* --- EXAM ROUTES (Công khai) --- */}
         <Route path="/exams" element={<ExamListPage />} />
         <Route path="/exams/create" element={<CreateExamPage />} />
         <Route path="/exams/manage" element={<ManageExamsPage />} />
