@@ -56,47 +56,68 @@ public class CourseController {
     public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
         // GỌI SERVICE ĐỂ XÓA
         boolean deleted = courseService.deleteCourse(id);
-        
+
         if (deleted) {
             return ResponseEntity.noContent().build(); // 204 No Content (Xóa thành công)
         } else {
-            return ResponseEntity.notFound().build();  // 404 Not Found (Không tìm thấy ID)
+            return ResponseEntity.notFound().build(); // 404 Not Found (Không tìm thấy ID)
         }
     }
 
     // --- LESSON APIs (Task 2 - Chờ làm) ---
 
+    // 1. Lấy danh sách bài học của 1 khóa
     @GetMapping("/{courseId}/lessons")
-    public List<Lesson> getLessons(@PathVariable Long courseId) {
-        return courseService.getLessonsByCourse(courseId);
+    public ResponseEntity<List<Lesson>> getLessons(@PathVariable Long courseId) {
+        List<Lesson> lessons = courseService.getLessonsByCourse(courseId);
+        return ResponseEntity.ok(lessons);
     }
 
+    // 2. Thêm bài học mới
     @PostMapping("/{courseId}/lessons")
-    public boolean addLesson(@PathVariable Long courseId, @RequestBody Lesson lesson) {
-        return courseService.addLesson(courseId, lesson);
+    public ResponseEntity<?> addLesson(@PathVariable Long courseId, @RequestBody Lesson lesson) {
+        boolean success = courseService.addLesson(courseId, lesson);
+        if (success) {
+            return ResponseEntity.ok("Thêm bài học thành công!");
+        } else {
+            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học để thêm bài.");
+        }
     }
 
+    // 3. Xem chi tiết 1 bài học
     @GetMapping("/lessons/{lessonId}")
-    public Lesson getLessonDetail(@PathVariable Long lessonId) {
-        return courseService.getLessonById(lessonId);
+    public ResponseEntity<?> getLessonDetail(@PathVariable Long lessonId) {
+        Lesson lesson = courseService.getLessonById(lessonId);
+        return lesson != null ? ResponseEntity.ok(lesson) : ResponseEntity.notFound().build();
     }
 
-    // Sửa API PUT Lesson
+    // 4. Sửa bài học
     @PutMapping("/lessons/{lessonId}")
-    public Lesson updateLesson(@PathVariable Long lessonId, @RequestBody Lesson req) {
-        // Truyền thêm videoUrl và resourceUrl vào Service
-        return courseService.updateLesson(
+    public ResponseEntity<?> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson req) {
+        Lesson updatedLesson = courseService.updateLesson(
                 lessonId,
                 req.getTitle(),
                 req.getContent(),
                 req.getOrderIndex(),
                 req.getVideoUrl(),
                 req.getResourceUrl());
+
+        if (updatedLesson != null) {
+            return ResponseEntity.ok(updatedLesson);
+        } else {
+            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy bài học ID " + lessonId);
+        }
     }
 
+    // 5. Xóa bài học
     @DeleteMapping("/lessons/{lessonId}")
-    public boolean deleteLesson(@PathVariable Long lessonId) {
-        return courseService.removeLesson(lessonId);
+    public ResponseEntity<?> deleteLesson(@PathVariable Long lessonId) {
+        boolean deleted = courseService.removeLesson(lessonId);
+        if (deleted) {
+            return ResponseEntity.ok("Đã xóa bài học.");
+        } else {
+            return ResponseEntity.status(404).body("Không tìm thấy bài học để xóa.");
+        }
     }
 
     // --- ENROLLMENT & SEARCH APIs (Task 3 - Chờ làm) ---
