@@ -56,7 +56,7 @@ public List<Course> getAllCourses() {
         }
 
         // Gọi hàm update của Entity
-        existingCourse.updateCourse(req.getTitle(), req.getDescription(), req.getPrice());
+        existingCourse.updateCourse(req.getTitle(), req.getDescription(), req.getPrice(), req.getDuration());
         return courseRepository.save(existingCourse);
     }
 
