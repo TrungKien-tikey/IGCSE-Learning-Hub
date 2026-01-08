@@ -1,11 +1,16 @@
 package com.igsce.exam_service.service;
 
-import lombok.*;
 import java.util.*;
 import java.time.LocalDateTime;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.igcse.ai.dto.aiChamDiem.AnswerDTO;
+import com.igcse.ai.dto.aiChamDiem.GradingResult;
+import com.igcse.ai.service.aiChamDiem.AnswerGradingService;
 
 import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
@@ -18,6 +23,9 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
+
+    @Autowired
+    private AnswerGradingService aiGradingService;
 
     public ExamService(ExamRepository examRepository,
                        ExamAttemptRepository attemptRepository,
@@ -148,8 +156,17 @@ public class ExamService {
         ExamAttempt attempt = attemptRepository.findById(attemptId)
                 .orElseThrow(() -> new RuntimeException("Not found"));
 
+        // Kiểm tra xem đã nộp chưa (tránh spam)
+        if (attempt.getSubmittedAt() != null) {
+             // throw new RuntimeException("Bài đã nộp rồi"); // Hoặc return false tùy logic
+        }
+        attempt.setSubmittedAt(LocalDateTime.now());
+
         double totalScore = 0;
         List<Answer> answersToSave = new ArrayList<>();
+        
+        // Danh sách chứa các câu tự luận cần AI chấm
+        List<AnswerDTO> essayAnswersToGrade = new ArrayList<>();
 
         for (StudentAnswerDTO dto : userAnswers) {
             Question question = questionRepository.findById(dto.getQuestionId()).orElse(null);
@@ -163,34 +180,104 @@ public class ExamService {
 
             // --- LOGIC CHẤM ĐIỂM ---
             if (question.getQuestionType() == QuestionType.MCQ) {
-                // 1. Xử lý Trắc nghiệm
+                // 1. Xử lý Trắc nghiệm (Chấm ngay lập tức)
                 answer.setSelectedOptionId(dto.getSelectedOptionId());
                 
-                // Tìm option đúng trong database
                 QuestionOption correctOption = question.getOptions().stream()
                     .filter(QuestionOption::isCorrect)
                     .findFirst().orElse(null);
 
-                // So sánh ID option sinh viên chọn với ID option đúng
-                if (correctOption != null && correctOption.getOptionId().equals(dto.getSelectedOptionId())) {
+                boolean isCorrect = correctOption != null && correctOption.getOptionId().equals(dto.getSelectedOptionId());
+                
+                if (isCorrect) {
                     score = question.getScore();
+                    answer.setFeedback("Chính xác");
+                } else {
+                    answer.setFeedback("Sai");
                 }
+                
+                totalScore += score;
+                answer.setScore(score);
+
             } else {
-                // 2. Xử lý Tự luận
+                // 2. Xử lý Tự luận (Gửi cho AI)
                 answer.setTextAnswer(dto.getTextAnswer());
-                // Tự luận thường không chấm tự động được ngay -> score = 0 hoặc chờ giáo viên chấm
-                score = 0; 
+                answer.setScore(0.0); // Tạm thời 0
+                answer.setFeedback("Đang chấm điểm..."); // Đánh dấu để Frontend biết
+
+                // Chuẩn bị DTO để gửi sang AI Service
+                AnswerDTO aiDto = new AnswerDTO();
+                aiDto.setQuestionId(question.getQuestionId());
+                aiDto.setType("ESSAY"); // Hoặc question.getQuestionType().toString()
+                // aiDto.setContent(dto.getTextAnswer() != null ? dto.getTextAnswer() : ""); // Bài làm
+                // aiDto.setQuestionContent(question.getContent()); // Đề bài
+                // aiDto.setMaxScore(question.getScore());
+                // // Nếu có rubric/đáp án mẫu thì set vào đây, tạm thời dùng default
+                // aiDto.setCorrectAnswer("Chấm điểm dựa trên độ chính xác, đầy đủ ý và diễn đạt mạch lạc."); 
+                
+                essayAnswersToGrade.add(aiDto);
             }
 
-            answer.setScore(score);
-            totalScore += score;
             answersToSave.add(answer);
         }
 
         attempt.setAnswers(answersToSave);
-        attempt.setTotalScore(totalScore);
-        attemptRepository.save(attempt);
+        attempt.setTotalScore(totalScore); // Điểm này mới chỉ gồm trắc nghiệm
+        
+        // Lưu lần 1
+        ExamAttempt savedAttempt = attemptRepository.save(attempt);
+
+        // [ASYNC] Gọi AI chấm điểm chạy ngầm
+        if (!essayAnswersToGrade.isEmpty()) {
+            gradeEssaysAsync(savedAttempt.getAttemptId(), essayAnswersToGrade);
+        }
+
         return true;
+    }
+
+    @Async("taskExecutor") 
+    public void gradeEssaysAsync(Long attemptId, List<AnswerDTO> essays) {
+        try {
+            // Gọi AI Service (Chạy mất vài giây -> vài chục giây)
+            // Giả sử ngôn ngữ chấm là tiếng Việt ("vi")
+            List<GradingResult> results = aiGradingService.gradeAllAnswers(essays, "vi");
+
+            // Sau khi có kết quả, cập nhật lại DB
+            updateExamAttemptWithAiResults(attemptId, results);
+            
+        } catch (Exception e) {
+            System.err.println("Lỗi chấm điểm AI: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Cập nhật điểm và feedback vào DB sau khi AI trả kết quả
+     */
+    @Transactional
+    public void updateExamAttemptWithAiResults(Long attemptId, List<GradingResult> results) {
+        ExamAttempt attempt = attemptRepository.findById(attemptId).orElse(null);
+        if (attempt == null) return;
+
+        double additionalScore = 0;
+
+        // Duyệt qua kết quả AI trả về
+        for (GradingResult result : results) {
+            // Tìm câu trả lời tương ứng trong DB (dựa vào QuestionID)
+            for (Answer ans : attempt.getAnswers()) {
+                if (ans.getQuestion().getQuestionId().equals(result.getQuestionId())) {
+                    ans.setScore(result.getScore());
+                    ans.setFeedback(result.getFeedback());
+                    additionalScore += result.getScore();
+                    break; // Found logic
+                }
+            }
+        }
+
+        // Cộng thêm điểm tự luận vào tổng điểm
+        attempt.setTotalScore(attempt.getTotalScore() + additionalScore);
+        
+        attemptRepository.save(attempt);
     }
 
     @Transactional
