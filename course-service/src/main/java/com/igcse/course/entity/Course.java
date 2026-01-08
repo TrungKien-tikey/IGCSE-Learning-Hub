@@ -21,6 +21,8 @@ public class Course {
     private Double price;
     private boolean isActive = true;
     private Date createdAt = new Date();
+    @Column(name = "duration")
+    private String duration;
 
     // Quan hệ 1-Nhiều với Lesson
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
@@ -36,10 +38,11 @@ public class Course {
     public Course() {}
 
     // --- Business Methods (Logic nghiệp vụ tại Entity) ---
-    public void updateCourse(String title, String description, Double price) {
+    public void updateCourse(String title, String description, Double price, String duration) {
         if (title != null && !title.isEmpty()) this.title = title;
         if (description != null) this.description = description;
         if (price != null) this.price = price;
+        if (duration != null && !duration.isEmpty()) this.duration = duration;
     }
 
     public void deactivate() {
@@ -61,4 +64,6 @@ public class Course {
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }
     public List<Lesson> getLessons() { return lessons; }
     public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
+    public String getDuration() { return duration; }
+    public void setDuration(String duration) { this.duration = duration; }
 }
