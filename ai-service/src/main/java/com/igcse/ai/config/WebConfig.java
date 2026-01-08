@@ -69,7 +69,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://127.0.0.1:3000")
+                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5174")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -85,7 +85,9 @@ public class WebConfig implements WebMvcConfigurer {
         config.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
             "http://localhost:3001",
-            "http://127.0.0.1:3000"
+            "http://localhost:5174",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:5174"
         ));
         
         // Allow all HTTP methods
