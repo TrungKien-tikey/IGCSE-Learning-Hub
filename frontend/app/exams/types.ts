@@ -24,6 +24,7 @@ export interface Exam {
   title: string;
   description: string;
   duration: number;
+  maxAttempts: number;
   isActive: boolean;
   endTime: "",
   questions: Question[];

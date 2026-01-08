@@ -2,8 +2,10 @@ version: '3.8'
 
 services:
   # =========================================
-  # PHẦN 1: DATABASE CHO AUTH SERVICE (Cũ)
+  # PHẦN 1: DATABASE & BACKEND (Auth Service)
   # =========================================
+  
+  # 1.1 MySQL Database (Kho chứa user)
   mysql-db:
     image: mysql:8.0
     container_name: igcse_mysql
@@ -15,9 +17,11 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - igcse-network
 
+  # 1.2 phpMyAdmin (Giao diện quản lý MySQL)
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: igcse_phpmyadmin
@@ -31,15 +35,48 @@ services:
       - "8081:80"
     networks:
       - igcse-network
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: igcse_rabbitmq
+    restart: always
+    ports:
+      - "5672:5672"   # Cổng để các Service (Java/Kotlin) gửi tin nhắn
+      - "15672:15672" # Cổng Web quản lý (Dashboard)
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    networks:
+      - igcse-network
+
+  # 1.3 AUTH SERVICE (Java Spring Boot - Cần thêm cái này!)
+  auth-service:
+    # Lưu ý: Đảm bảo thư mục code nằm đúng ở ./backend/auth-service
+    build: ./auth-service
+    container_name: auth-service
+    restart: always # Tự khởi động lại nếu bị lỗi
+    ports:
+      - "8080:8080"
+    environment:
+      # Quan trọng: Dùng tên service "mysql-db" thay vì "localhost"
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/auth_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      # Tự động cập nhật bảng nếu code thay đổi
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    depends_on:
+      - mysql-db # Chờ MySQL chạy xong mới chạy cái này
+    networks:
+      - igcse-network
 
   # =========================================
-  # PHẦN 2: KONG API GATEWAY (Mới thêm vào)
+  # PHẦN 2: KONG API GATEWAY
   # =========================================
   
-  # 1. Database riêng cho Kong (PostgreSQL)
+  # 2.1 Database riêng cho Kong (PostgreSQL)
   kong-database:
     image: postgres:13
     container_name: kong-database
+    restart: always
     environment:
       POSTGRES_USER: kong
       POSTGRES_DB: kong
@@ -54,7 +91,7 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Migration (Chạy 1 lần để khởi tạo DB cho Kong rồi tự tắt)
+  # 2.2 Migration (Chạy 1 lần để khởi tạo DB cho Kong rồi tự tắt)
   kong-migration:
     image: kong:latest
     container_name: kong-migration
@@ -70,7 +107,7 @@ services:
     networks:
       - igcse-network
 
-  # 3. KONG GATEWAY (Cổng chính)
+  # 2.3 KONG GATEWAY (Cổng chính - Frontend gọi vào đây)
   kong:
     image: kong:latest
     container_name: kong-gateway
@@ -85,8 +122,9 @@ services:
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001, 0.0.0.0:8444 ssl
+      KONG_PROXY_LISTEN: 0.0.0.0:8000
     ports:
-      - "8000:8000" # Cổng Proxy (Frontend gọi vào đây)
+      - "8000:8000" # Cổng Proxy
       - "8443:8443" # Cổng Proxy HTTPS
       - "8001:8001" # Cổng Admin API
     depends_on:
@@ -95,7 +133,7 @@ services:
     networks:
       - igcse-network
 
-  # 4. KONGA (Giao diện quản lý Kong)
+  # 2.4 KONGA (Giao diện quản lý Kong)
   konga:
     image: pantsel/konga
     container_name: konga-ui
@@ -103,7 +141,7 @@ services:
     environment:
       NODE_ENV: development
     ports:
-      - "1337:1337" # Cổng truy cập Web Admin Konga
+      - "1337:1337"
     networks:
       - igcse-network
 
@@ -115,5 +153,5 @@ networks:
     driver: bridge
 
 volumes:
-  mysql_data: # Data MySQL bền vững
-  kong_data:  # Data Kong bền vững
+  mysql_data:
+  kong_data:

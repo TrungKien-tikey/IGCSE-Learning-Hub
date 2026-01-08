@@ -49,6 +49,7 @@ public class ExamService {
         exam.setDuration(request.getDuration());
         exam.setActive(request.isActive());
         exam.setEndTime(request.getEndTime());
+        exam.setMaxAttempts(request.getMaxAttempts() < 1 ? 1 : request.getMaxAttempts());
 
         List<Question> questions = new ArrayList<>();
 
@@ -107,6 +108,14 @@ public class ExamService {
         return examRepository.save(exam);
     }
 
+    public void deleteExam(Long id) {
+        Exam exam = examRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy bài thi với ID: " + id));
+        
+        exam.setActive(false);
+        examRepository.save(exam);
+    }
+
     public ExamAttempt startExam(Long examId, Long userId) {
 
         Exam exam = examRepository.findById(examId)
@@ -118,6 +127,11 @@ public class ExamService {
 
         if (exam.getEndTime() != null && LocalDateTime.now().isAfter(exam.getEndTime())) {
             throw new RuntimeException("Bài thi đã hết hạn vào lúc: " + exam.getEndTime());
+        }
+
+        int currentAttempts = attemptRepository.countByExam_ExamIdAndUserId(examId, userId);
+        if (currentAttempts >= exam.getMaxAttempts()) {
+            throw new RuntimeException("Bạn đã hết lượt làm bài! (" + currentAttempts + " / " + exam.getMaxAttempts() + " lần)");
         }
 
         ExamAttempt attempt = new ExamAttempt();
@@ -190,6 +204,7 @@ public class ExamService {
         exam.setDuration(request.getDuration());
         exam.setActive(request.isActive());
         exam.setEndTime(request.getEndTime());
+        exam.setMaxAttempts(request.getMaxAttempts() < 1 ? 1 : request.getMaxAttempts());
 
         // 2. Xử lý câu hỏi:
         // Cách đơn giản nhất: Xóa danh sách cũ, thay bằng danh sách mới

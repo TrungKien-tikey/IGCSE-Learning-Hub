@@ -14,13 +14,11 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
-    // --- PHẦN BẠN ĐANG THIẾU ---
     private String fullName;
 
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String avatar;
-    // ---------------------------
 
     private String role;
     private boolean isActive = true;
@@ -31,7 +29,6 @@ public class User {
     public User() {
     }
 
-    // --- CẦN PHẢI CÓ CÁC GETTER/SETTER NÀY ---
     public String getFullName() {
         return fullName;
     }
@@ -47,9 +44,7 @@ public class User {
     public void setAvatar(String avatar) {
         this.avatar = avatar;
     }
-    // -----------------------------------------
 
-    // Các getter/setter khác (giữ nguyên hoặc thêm nếu thiếu)
     public Long getUserId() {
         return userId;
     }
