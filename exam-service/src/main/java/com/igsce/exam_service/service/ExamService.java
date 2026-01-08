@@ -2,6 +2,7 @@ package com.igsce.exam_service.service;
 
 import java.util.*;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
@@ -9,13 +10,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.igcse.ai.dto.aiChamDiem.AnswerDTO;
-import com.igcse.ai.dto.aiChamDiem.GradingResult;
-import com.igcse.ai.service.aiChamDiem.AnswerGradingService;
+import com.igcse.ai.dto.aiChamDiem.EssayAnswer;
 
 import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.enums.QuestionType;
 import com.igsce.exam_service.dto.*;
+import com.igsce.exam_service.client.AIServiceClient;
 
 @Service
 public class ExamService {
@@ -23,16 +24,16 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
-
-    @Autowired
-    private AnswerGradingService aiGradingService;
+    private final AIServiceClient aiServiceClient;
 
     public ExamService(ExamRepository examRepository,
                        ExamAttemptRepository attemptRepository,
-                       QuestionRepository questionRepository) {
+                       QuestionRepository questionRepository,
+                       AIServiceClient aiServiceClient) {
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionRepository = questionRepository;
+        this.aiServiceClient = aiServiceClient;
     }
 
     public List<Exam> getAllExams() {
@@ -205,17 +206,20 @@ public class ExamService {
                 answer.setScore(0.0); // Tạm thời 0
                 answer.setFeedback("Đang chấm điểm..."); // Đánh dấu để Frontend biết
 
-                // Chuẩn bị DTO để gửi sang AI Service
-                AnswerDTO aiDto = new AnswerDTO();
-                aiDto.setQuestionId(question.getQuestionId());
-                aiDto.setType("ESSAY"); // Hoặc question.getQuestionType().toString()
-                // aiDto.setContent(dto.getTextAnswer() != null ? dto.getTextAnswer() : ""); // Bài làm
-                // aiDto.setQuestionContent(question.getContent()); // Đề bài
-                // aiDto.setMaxScore(question.getScore());
-                // // Nếu có rubric/đáp án mẫu thì set vào đây, tạm thời dùng default
-                // aiDto.setCorrectAnswer("Chấm điểm dựa trên độ chính xác, đầy đủ ý và diễn đạt mạch lạc."); 
+                // Chuẩn bị EssayAnswer DTO để gửi sang AI Service
+                EssayAnswer essayAnswer = new EssayAnswer();
+                essayAnswer.setQuestionId(question.getQuestionId());
+                essayAnswer.setStudentAnswer(dto.getTextAnswer() != null ? dto.getTextAnswer() : "");
+                essayAnswer.setQuestionText(question.getContent() != null ? question.getContent() : "");
+                essayAnswer.setMaxScore(question.getScore());
+                // Lấy đáp án tham khảo từ Question entity, nếu không có thì dùng default
+                String referenceAnswer = question.getEssayCorrectAnswer();
+                if (referenceAnswer == null || referenceAnswer.trim().isEmpty()) {
+                    referenceAnswer = "Chấm điểm dựa trên độ chính xác, đầy đủ ý và diễn đạt mạch lạc.";
+                }
+                essayAnswer.setReferenceAnswer(referenceAnswer);
                 
-                essayAnswersToGrade.add(aiDto);
+                essayAnswersToGrade.add(essayAnswer);
             }
 
             answersToSave.add(answer);
@@ -238,12 +242,14 @@ public class ExamService {
     @Async("taskExecutor") 
     public void gradeEssaysAsync(Long attemptId, List<AnswerDTO> essays) {
         try {
-            // Gọi AI Service (Chạy mất vài giây -> vài chục giây)
+            // Gọi AI Service qua HTTP REST API (Chạy mất vài giây -> vài chục giây)
             // Giả sử ngôn ngữ chấm là tiếng Việt ("vi")
-            List<GradingResult> results = aiGradingService.gradeAllAnswers(essays, "vi");
-
-            // Sau khi có kết quả, cập nhật lại DB
-            updateExamAttemptWithAiResults(attemptId, results);
+            boolean success = aiServiceClient.markExam(attemptId, "vi");
+            
+            if (!success) {
+                System.err.println("Lỗi gọi AI service để chấm điểm cho attemptId: " + attemptId);
+            }
+            // AI service sẽ gọi callback về /api/exams/grading-result khi xong
             
         } catch (Exception e) {
             System.err.println("Lỗi chấm điểm AI: " + e.getMessage());
@@ -252,24 +258,33 @@ public class ExamService {
     }
 
     /**
-     * Cập nhật điểm và feedback vào DB sau khi AI trả kết quả
+     * Nhận callback từ AI service và cập nhật điểm vào DB
      */
     @Transactional
-    public void updateExamAttemptWithAiResults(Long attemptId, List<GradingResult> results) {
-        ExamAttempt attempt = attemptRepository.findById(attemptId).orElse(null);
-        if (attempt == null) return;
+    public boolean updateGradingResultFromAI(GradingResultCallbackDTO callback) {
+        ExamAttempt attempt = attemptRepository.findById(callback.getAttemptId()).orElse(null);
+        if (attempt == null) {
+            System.err.println("Không tìm thấy attempt với ID: " + callback.getAttemptId());
+            return false;
+        }
 
         double additionalScore = 0;
 
         // Duyệt qua kết quả AI trả về
-        for (GradingResult result : results) {
-            // Tìm câu trả lời tương ứng trong DB (dựa vào QuestionID)
-            for (Answer ans : attempt.getAnswers()) {
-                if (ans.getQuestion().getQuestionId().equals(result.getQuestionId())) {
-                    ans.setScore(result.getScore());
-                    ans.setFeedback(result.getFeedback());
-                    additionalScore += result.getScore();
-                    break; // Found logic
+        if (callback.getAnswerScores() != null) {
+            for (Map<String, Object> answerScore : callback.getAnswerScores()) {
+                Long questionId = ((Number) answerScore.get("questionId")).longValue();
+                Double score = ((Number) answerScore.get("score")).doubleValue();
+                String feedback = (String) answerScore.get("feedback");
+
+                // Tìm câu trả lời tương ứng trong DB (dựa vào QuestionID)
+                for (Answer ans : attempt.getAnswers()) {
+                    if (ans.getQuestion().getQuestionId().equals(questionId)) {
+                        ans.setScore(score);
+                        ans.setFeedback(feedback != null ? feedback : "Đã chấm");
+                        additionalScore += score;
+                        break;
+                    }
                 }
             }
         }
@@ -278,6 +293,7 @@ public class ExamService {
         attempt.setTotalScore(attempt.getTotalScore() + additionalScore);
         
         attemptRepository.save(attempt);
+        return true;
     }
 
     @Transactional

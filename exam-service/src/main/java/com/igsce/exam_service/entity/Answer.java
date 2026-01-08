@@ -2,10 +2,7 @@ package com.igsce.exam_service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-
 import com.fasterxml.jackson.annotation.JsonBackReference;
-
 
 @Entity
 @Table(name = "exam_answers")
@@ -32,9 +29,9 @@ public class Answer {
     @Column(columnDefinition = "TEXT")
     private String textAnswer;
 
-    @Column(columnDefinition = "TEXT")
-    private String feedback; // Lưu lời nhận xét của AI hoặc hệ thống
-
     private double score; // Điểm đạt được của câu này
+
+    @Column(columnDefinition = "TEXT")
+    private String feedback; // Nhận xét/feedback cho câu trả lời
 
 }

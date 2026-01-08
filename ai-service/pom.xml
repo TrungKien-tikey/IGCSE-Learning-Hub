@@ -129,6 +129,7 @@
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
 					<mainClass>com.igcse.ai.AIServiceApplication</mainClass>
+					<classifier>exec</classifier>
 				</configuration>
 			</plugin>
 		</plugins>

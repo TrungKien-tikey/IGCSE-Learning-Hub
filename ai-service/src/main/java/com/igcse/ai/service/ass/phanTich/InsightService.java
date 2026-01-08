@@ -94,6 +94,52 @@ public class InsightService implements IInsightService {
         return newInsight;
     }
 
+    @Override
+    public AIInsightDTO getInsightByAttempt(Long attemptId) {
+        logger.info("Processing insight for attemptId: {}", attemptId);
+
+        Optional<AIResult> resultOpt = aiResultRepository.findByAttemptId(attemptId);
+        if (resultOpt.isEmpty()) {
+            // Return empty or error? plan implies we show it in UI.
+            // If no result, maybe not graded yet?
+            return null;
+        }
+
+        AIResult result = resultOpt.get();
+        Long studentId = result.getStudentId();
+
+        // Use the single result to build analysis data
+        AnalysisData analysis = analyzeStudentData(Collections.singletonList(result));
+
+        AIInsightDTO insight = null;
+
+        try {
+            String dataSummary = buildTextSummary(analysis);
+            // Append explicit attempt info
+            dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
+
+            String aiLanguageName = languageService.getAiLanguageName("vi");
+            insight = insightAiService.generateInsight(dataSummary, aiLanguageName);
+
+            if (insight != null) {
+                insight.setStudentId(studentId);
+            }
+
+        } catch (Exception e) {
+            logger.warn("AI service failed for attempt {}: {}", attemptId, e.getMessage());
+        }
+
+        if (insight == null) {
+            insight = generateFallbackInsights(analysis, studentId);
+            // Override summary to be specific to attempt if fallback
+            insight.setOverallSummary(result.getFeedback() != null && !result.getFeedback().isEmpty()
+                    ? result.getFeedback()
+                    : insight.getOverallSummary());
+        }
+
+        return insight;
+    }
+
     // ✅ THÊM: Convert Entity to DTO
     private AIInsightDTO convertToDTO(AIInsight entity) {
         AIInsightDTO dto = new AIInsightDTO();

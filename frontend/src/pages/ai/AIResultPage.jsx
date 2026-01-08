@@ -5,29 +5,32 @@ import ResultHeader from "./components/ResultHeader";
 import ResultSummary from "./components/ResultSummary";
 import QuestionTypeBreakdown from "./components/QuestionTypeBreakdown";
 import QuestionResultCard from "./components/QuestionResultCard";
+import InsightCard from "./components/InsightCard";
+import { getAttemptInsight, getResultDetails } from "./services/aiService";
 
 export default function AIResultPage() {
     const { attemptId } = useParams();
     const navigate = useNavigate();
 
     const [result, setResult] = useState(null);
+    const [insight, setInsight] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         if (!attemptId) return;
 
-        const fetchResult = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(
-                    `http://localhost:8082/api/ai/result/${attemptId}/details`
-                );
-                if (!res.ok) {
-                    throw new Error("Không thể tải kết quả chấm điểm");
-                }
-                const data = await res.json();
-                setResult(data);
+                // Fetch result and insight in parallel
+                const [resultData, insightData] = await Promise.all([
+                    getResultDetails(attemptId),
+                    getAttemptInsight(attemptId)
+                ]);
+
+                setResult(resultData);
+                setInsight(insightData);
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -35,7 +38,7 @@ export default function AIResultPage() {
             }
         };
 
-        fetchResult();
+        fetchData();
     }, [attemptId]);
 
     // Loading Skeleton
@@ -115,6 +118,13 @@ export default function AIResultPage() {
 
                 {/* Summary Card */}
                 <ResultSummary result={result} />
+
+                {/* AI Insights - Only show if insight exists */}
+                {insight && (
+                    <div className="mt-6">
+                        <InsightCard insight={insight} />
+                    </div>
+                )}
 
                 {/* Question Type Breakdown */}
                 <div className="mt-6">

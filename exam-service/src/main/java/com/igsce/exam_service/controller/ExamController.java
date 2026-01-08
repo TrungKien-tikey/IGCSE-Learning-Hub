@@ -74,4 +74,9 @@ public class ExamController {
         return ResponseEntity.ok("Cập nhật thành công");
     }
 
+    @PostMapping("/grading-result")
+    public ResponseEntity<Boolean> updateGradingResult(@RequestBody GradingResultCallbackDTO request) {
+        return ResponseEntity.ok(examService.updateGradingResultFromAI(request));
+    }
+
 }
