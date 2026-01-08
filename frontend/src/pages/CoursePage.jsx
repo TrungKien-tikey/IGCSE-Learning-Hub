@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './CoursePage.css'; // <--- QUAN TRỌNG: Import file CSS vừa tạo
-
+import LessonModal from './LessonModal'; // Import file vừa tạo
 export default function CoursePage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,6 +11,14 @@ export default function CoursePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
+  // ... các state cũ ...
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [selectedCourseForLesson, setSelectedCourseForLesson] = useState(null);
+
+  const openLessonModal = (course) => {
+    setSelectedCourseForLesson(course);
+    setIsLessonModalOpen(true);
+  };
 
   const [formData, setFormData] = useState({
     title: '',
@@ -180,6 +188,9 @@ export default function CoursePage() {
 
                   {/* Sửa lời gọi hàm xóa: truyền courseId */}
                   <button onClick={() => handleDelete(course.courseId)} className="btn-action btn-delete">Xóa</button>
+                  <button onClick={() => openLessonModal(course)} className="btn-action" style={{ backgroundColor: '#673ab7', color: 'white' }}>
+                    Bài học
+                  </button>
                 </div>
               </div>
             ))}
@@ -224,6 +235,11 @@ export default function CoursePage() {
           </div>
         )}
       </div>
+      <LessonModal
+        course={selectedCourseForLesson}
+        isOpen={isLessonModalOpen}
+        onClose={() => setIsLessonModalOpen(false)}
+      />
     </div>
   );
 }
