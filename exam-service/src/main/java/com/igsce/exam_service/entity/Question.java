@@ -4,16 +4,14 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.List;
-import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import com.igsce.exam_service.enums.*;
 
 import java.util.ArrayList;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "questions")
@@ -42,7 +40,7 @@ public class Question {
 
     @ManyToOne
     @JoinColumn(name = "exam_id")
-    @JsonBackReference
+    @JsonIgnoreProperties("questions")
     private Exam exam;
 
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)

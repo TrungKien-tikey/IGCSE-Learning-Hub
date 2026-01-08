@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // <--- Thêm useNavigate để chuyển trang
-import authService from '../services/authService'; // <--- Import service vừa viết
+import { Link, useNavigate } from 'react-router-dom';
+import authService from '../services/authService';
 import './Register.css';
 
 function Register() {
-  const navigate = useNavigate(); // <--- Khởi tạo hook chuyển trang
+  const navigate = useNavigate();
+
+  // 1. Thêm 'role' vào state, mặc định là STUDENT
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'STUDENT' // <--- Mới thêm
   });
 
   const handleChange = (e) => {
@@ -19,44 +22,42 @@ function Register() {
     });
   };
 
-  const handleSubmit = async (e) => { // <--- Thêm từ khóa async
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. Kiểm tra mật khẩu nhập lại
+    // Kiểm tra mật khẩu nhập lại
     if (formData.password !== formData.confirmPassword) {
       alert("Mật khẩu nhập lại không khớp!");
       return;
     }
 
     try {
-      // 2. Gọi API thực sự
+      // 2. Gửi thêm trường 'role' xuống Backend
       const response = await authService.register({
         fullName: formData.fullName,
         email: formData.email,
-        password: formData.password
+        password: formData.password,
+        role: formData.role // <--- Quan trọng: Gửi role đã chọn
       });
 
-      // 3. Nếu thành công
       console.log("Đăng ký thành công:", response.data);
       alert("Đăng ký thành công! Hãy đăng nhập ngay.");
-      navigate('/login'); // Chuyển sang trang đăng nhập
+      navigate('/login'); 
 
     } catch (error) {
-      // 4. Nếu thất bại (Backend trả về lỗi)
       console.error("Lỗi đăng ký:", error);
-      // Lấy câu thông báo lỗi từ Backend (nếu có)
       const message = error.response?.data || "Đăng ký thất bại. Vui lòng thử lại!";
       alert(message);
     }
   };
 
-  // ... (Phần return giao diện giữ nguyên y hệt cũ) ...
   return (
     <div className="register-container">
       <div className="register-box">
         <h2>Đăng Ký Tài Khoản</h2>
         <form onSubmit={handleSubmit}>
-          {/* ... Các ô input giữ nguyên ... */}
+          
+          {/* Nhập Họ tên */}
           <div className="input-group">
             <label>Họ và tên</label>
             <input 
@@ -65,9 +66,11 @@ function Register() {
               placeholder="Ví dụ: Nguyễn Văn A"
               value={formData.fullName} 
               onChange={handleChange} 
+              required
             />
           </div>
 
+          {/* Nhập Email */}
           <div className="input-group">
             <label>Email</label>
             <input 
@@ -76,9 +79,34 @@ function Register() {
               placeholder="email@example.com"
               value={formData.email} 
               onChange={handleChange} 
+              required
             />
           </div>
 
+          {/* 3. Phần chọn Vai trò (Dropdown) - MỚI THÊM */}
+          <div className="input-group">
+            <label>Bạn là ai?</label>
+            <select
+              name="role"
+              value={formData.role}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginTop: '5px',
+                borderRadius: '5px',
+                border: '1px solid #ccc'
+              }}
+            >
+              <option value="STUDENT">Học sinh (Student)</option>
+              <option value="TEACHER">Giáo viên (Teacher)</option>
+              <option value="PARENT">Phụ huynh (Parent)</option>
+              <option value="MANAGER">Quản lý (Manager)</option>
+              <option value="ADMIN">Quản trị viên (Admin)</option>
+            </select>
+          </div>
+
+          {/* Nhập Mật khẩu */}
           <div className="input-group">
             <label>Mật khẩu</label>
             <input 
@@ -87,9 +115,11 @@ function Register() {
               placeholder="******"
               value={formData.password} 
               onChange={handleChange} 
+              required
             />
           </div>
           
+          {/* Nhập lại Mật khẩu */}
           <div className="input-group">
             <label>Nhập lại mật khẩu</label>
             <input 
@@ -98,6 +128,7 @@ function Register() {
               placeholder="******"
               value={formData.confirmPassword} 
               onChange={handleChange} 
+              required
             />
           </div>
 
