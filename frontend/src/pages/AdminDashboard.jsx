@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Trash2, UserX, Search, RefreshCw } from 'lucide-react';
 
-interface User {
-    userId: number;
-    email: string;
-    fullName: string;
-    role: string;
-    isActive: boolean;
-    createdAt?: string;
-}
-
 export default function AdminDashboard() {
-    const [users, setUsers] = useState<User[]>([]);
+    const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
 
@@ -33,7 +24,7 @@ export default function AdminDashboard() {
         fetchUsers();
     }, []);
 
-    const handleDelete = async (userId: number) => {
+    const handleDelete = async (userId) => {
         if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
 
         try {
@@ -52,7 +43,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleDeactivate = async (userId: number) => {
+    const handleDeactivate = async (userId) => {
         try {
             const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/deactivate`, {
                 method: 'PATCH',
@@ -69,7 +60,7 @@ export default function AdminDashboard() {
         }
     };
 
-    const handleActivate = async (userId: number) => {
+    const handleActivate = async (userId) => {
         try {
             const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/activate`, {
                 method: 'PATCH',
