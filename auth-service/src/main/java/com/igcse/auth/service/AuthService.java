@@ -34,15 +34,15 @@ public class AuthService {
         }
 
         User user = new User();
-        
-        // 👇 THÊM DÒNG NÀY: Lưu họ tên (Frontend có gửi cái này)
-        user.setFullName(request.getFullName()); 
-        
+        user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
-        user.setPasswordHash(passwordEncoder.encode(request.getPassword())); 
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         
-        // 👇 SỬA DÒNG NÀY: Gán cứng quyền là "USER"
-        user.setRole("USER"); 
+        if (request.getRole() != null && !request.getRole().isEmpty()) {
+            user.setRole(request.getRole().toUpperCase()); // Ví dụ: "admin" -> "ADMIN"
+        } else {
+            user.setRole("STUDENT"); // Fallback an toàn
+        }
         
         user.setActive(true);
 

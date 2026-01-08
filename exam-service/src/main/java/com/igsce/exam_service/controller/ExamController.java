@@ -7,26 +7,34 @@ import com.igsce.exam_service.dto.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/exams")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "http://localhost:5173")
 public class ExamController {
 
     private final ExamService examService;
 
     @GetMapping
     public List<Exam> getExams() {
-        return examService.getAllExams();
+        List<Exam> exams = examService.getAllExams();
+        exams.forEach(e -> System.out.println("Exam Title: " + e.getTitle()));
+        return exams;
     }
 
     @GetMapping("/{examId}")
     public Exam getExam(@PathVariable Long examId) {
         return examService.getExamById(examId);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteExam(@PathVariable Long id) {
+        examService.deleteExam(id);
+        return ResponseEntity.ok("Xóa bài thi thành công");
     }
 
     @GetMapping("/attempt/{attemptId}")
@@ -44,7 +52,6 @@ public class ExamController {
     @PostMapping("/start")
     public ResponseEntity<ExamAttempt> startExam(
             @RequestBody StartExamRequest request) {
-
         return ResponseEntity.ok(
                 examService.startExam(
                         request.getExamId(),
@@ -59,6 +66,12 @@ public class ExamController {
                 examService.submitExam(
                         request.getAttemptId(),
                         request.getAnswers()));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateExam(@PathVariable Long id, @RequestBody CreateExamRequest request) {
+        examService.updateExam(id, request);
+        return ResponseEntity.ok("Cập nhật thành công");
     }
 
 }
