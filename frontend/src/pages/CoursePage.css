@@ -1,0 +1,255 @@
+/* frontend/src/pages/CoursePage.css */
+
+/* Tổng thể trang */
+.course-page {
+  padding: 40px;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Header: Tiêu đề + Nút thêm */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 28px;
+  color: #1a1a1a;
+  font-weight: 700;
+  margin: 0;
+}
+
+.btn-add {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.2);
+}
+
+.btn-add:hover {
+  background-color: #0056b3;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 123, 255, 0.3);
+}
+
+/* Lưới danh sách khóa học (Grid) */
+.course-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 25px;
+}
+
+/* Thẻ khóa học (Card) */
+.course-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: all 0.3s ease;
+  border: 1px solid #e1e4e8;
+  display: flex;
+  flex-direction: column;
+}
+
+.course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  border-color: #007bff;
+}
+
+.card-body {
+  padding: 20px;
+  flex: 1;
+}
+
+.course-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin-top: 0;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.course-desc {
+  font-size: 14px;
+  color: #6c757d;
+  line-height: 1.5;
+  margin-bottom: 20px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Giới hạn 3 dòng */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #f1f1f1;
+  padding-top: 15px;
+}
+
+.price-tag {
+  color: #28a745;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.duration-tag {
+  background: #f8f9fa;
+  color: #666;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Nút Sửa/Xóa trong card */
+.card-actions {
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-action {
+  flex: 1;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid transparent;
+}
+
+.btn-edit {
+  color: #d97706;
+  background-color: #fffbeb;
+  border-color: #fcd34d;
+}
+.btn-edit:hover { background-color: #fef3c7; }
+
+.btn-delete {
+  color: #dc3545;
+  background-color: #fff5f5;
+  border-color: #f8d7da;
+}
+.btn-delete:hover { background-color: #ffebeb; }
+
+/* MODAL (Popup) */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  background: white;
+  width: 100%;
+  max-width: 500px;
+  border-radius: 12px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modal-header {
+  background: #007bff;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 { margin: 0; font-size: 18px; }
+
+.btn-close {
+  background: none; border: none; color: white;
+  font-size: 24px; cursor: pointer;
+}
+
+.modal-body { padding: 20px; }
+
+.form-group { margin-bottom: 15px; }
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+}
+
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box; /* Quan trọng để không bị vỡ layout */
+}
+
+.form-input:focus, .form-textarea:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  background: #f9fafb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-cancel {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn-submit {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Animation */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }

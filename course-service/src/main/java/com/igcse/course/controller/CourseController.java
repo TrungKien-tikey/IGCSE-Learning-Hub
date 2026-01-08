@@ -41,12 +41,9 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody Course req) {
-        try {
-            return ResponseEntity.ok(courseService.updateCourse(id, req));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails) {
+        // Gọi thẳng service và trả về luôn
+        return ResponseEntity.ok(courseService.updateCourse(id, courseDetails));
     }
 
     @DeleteMapping("/{id}/deactivate")
@@ -56,9 +53,15 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
-        return courseService.deleteCourse(id) ? ResponseEntity.ok("Đã xóa vĩnh viễn")
-                : ResponseEntity.status(404).body("Lỗi");
+    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
+        // GỌI SERVICE ĐỂ XÓA
+        boolean deleted = courseService.deleteCourse(id);
+        
+        if (deleted) {
+            return ResponseEntity.noContent().build(); // 204 No Content (Xóa thành công)
+        } else {
+            return ResponseEntity.notFound().build();  // 404 Not Found (Không tìm thấy ID)
+        }
     }
 
     // --- LESSON APIs (Task 2 - Chờ làm) ---
