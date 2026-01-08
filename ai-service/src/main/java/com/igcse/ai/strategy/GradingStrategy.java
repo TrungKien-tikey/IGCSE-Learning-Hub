@@ -1,7 +1,7 @@
 package com.igcse.ai.strategy;
 
-import com.igcse.ai.dto.AnswerDTO;
-import com.igcse.ai.dto.GradingResult;
+import com.igcse.ai.dto.aiChamDiem.AnswerDTO;
+import com.igcse.ai.dto.aiChamDiem.GradingResult;
 
 /**
  * Interface cho chiến lược chấm điểm (Strategy Pattern)
