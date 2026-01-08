@@ -1,6 +1,5 @@
 package com.igcse.ai.strategy;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -14,7 +13,7 @@ public class GradingStrategyFactory {
 
     private final List<GradingStrategy> strategies;
 
-    @Autowired
+    
     public GradingStrategyFactory(List<GradingStrategy> strategies) {
         this.strategies = strategies;
     }

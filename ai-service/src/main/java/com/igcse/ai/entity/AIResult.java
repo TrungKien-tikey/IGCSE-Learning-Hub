@@ -45,6 +45,9 @@ public class AIResult {
     @Column
     private String evaluationMethod; // "AI_GPT4_LANGCHAIN" hoặc "LOCAL_RULE_BASED"
 
+    @Column(name = "answers_hash", length = 64)
+    private String answersHash; // MD5 hash của answers JSON để validate cache
+
     // ===== Constructor =====
     public AIResult() {
     }
@@ -154,6 +157,14 @@ public class AIResult {
 
     public void setEvaluationMethod(String evaluationMethod) {
         this.evaluationMethod = evaluationMethod;
+    }
+
+    public String getAnswersHash() {
+        return answersHash;
+    }
+
+    public void setAnswersHash(String answersHash) {
+        this.answersHash = answersHash;
     }
 
     /**
