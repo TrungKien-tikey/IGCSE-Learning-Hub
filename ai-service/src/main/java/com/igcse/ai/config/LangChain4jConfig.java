@@ -42,7 +42,11 @@ public class LangChain4jConfig {
         if (openaiApiKey == null || openaiApiKey.trim().isEmpty() ||
                 "your-api-key-here".equals(openaiApiKey) ||
                 openaiApiKey.startsWith("invalid-")) {
-            throw new AIServiceException("OpenAI API Key không hợp lệ.");
+            // Thay vì throw exception làm crash app, ta log warning và dùng key dummy
+            // App vẫn khởi động được, nhưng chức năng AI sẽ lỗi (và rơi vào fallback)
+            System.err.println(
+                    "CẢNH BÁO: OpenAI API Key chưa được cấu hình hoặc không hợp lệ. Các chức năng AI sẽ không hoạt động.");
+            openaiApiKey = "demo-key-to-prevent-startup-crash";
         }
 
         return OpenAiChatModel.builder()
