@@ -51,4 +51,12 @@ public class Exam {
         return isActive;
     }
 
+    public String getTitle() {
+        return this.title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
 }
