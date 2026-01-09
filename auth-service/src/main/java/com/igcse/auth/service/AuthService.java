@@ -59,7 +59,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
-        String token = jwtUtils.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
 
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
