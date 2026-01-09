@@ -15,7 +15,7 @@ import java.util.Map;
 public class AIServiceClient {
 
     private final RestTemplate restTemplate;
-    
+
     @Value("${ai.service.url:http://localhost:8082}")
     private String aiServiceUrl;
 
@@ -23,27 +23,32 @@ public class AIServiceClient {
         this.restTemplate = restTemplate;
     }
 
+    public String getAiServiceUrl() {
+        return aiServiceUrl;
+    }
+
     /**
      * Gọi AI service để chấm điểm bài thi
+     * 
      * @param attemptId ID của attempt
-     * @param language Ngôn ngữ chấm điểm (vi/en)
+     * @param language  Ngôn ngữ chấm điểm (vi/en)
      * @return true nếu thành công
      */
     public boolean markExam(Long attemptId, String language) {
         try {
             String url = aiServiceUrl + "/api/ai/mark-exam/" + attemptId + "?language=" + language;
-            
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Void> request = new HttpEntity<>(headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                url, 
-                HttpMethod.POST, 
-                request, 
-                new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {}
-            );
-            
+                    url,
+                    HttpMethod.POST,
+                    request,
+                    new org.springframework.core.ParameterizedTypeReference<Map<String, Object>>() {
+                    });
+
             return response.getStatusCode().is2xxSuccessful();
         } catch (Exception e) {
             System.err.println("Lỗi gọi AI service: " + e.getMessage());

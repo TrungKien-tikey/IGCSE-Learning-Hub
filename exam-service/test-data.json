@@ -1,0 +1,104 @@
+{
+  "createExam": {
+    "fullExam": {
+      "title": "Bài thi Toán học IGCSE",
+      "description": "Bài thi kiểm tra kiến thức Toán học cơ bản IGCSE",
+      "duration": 120,
+      "maxAttempts": 3,
+      "endTime": "2026-12-31T23:59:59",
+      "isActive": true,
+      "questions": [
+        {
+          "content": "Tính giá trị của biểu thức: 2 + 3 × 4",
+          "score": 2.0,
+          "orderIndex": 0,
+          "questionType": "MCQ",
+          "options": [
+            {"content": "14", "isCorrect": true},
+            {"content": "20", "isCorrect": false},
+            {"content": "24", "isCorrect": false},
+            {"content": "8", "isCorrect": false}
+          ]
+        },
+        {
+          "content": "Giải phương trình: x² - 5x + 6 = 0",
+          "score": 3.0,
+          "orderIndex": 1,
+          "questionType": "MCQ",
+          "options": [
+            {"content": "x = 2 hoặc x = 3", "isCorrect": true},
+            {"content": "x = -2 hoặc x = -3", "isCorrect": false},
+            {"content": "x = 1 hoặc x = 6", "isCorrect": false},
+            {"content": "x = 5 hoặc x = -6", "isCorrect": false}
+          ]
+        },
+        {
+          "content": "Chứng minh rằng tổng các góc trong tam giác bằng 180°.",
+          "score": 5.0,
+          "orderIndex": 2,
+          "questionType": "ESSAY",
+          "essayCorrectAnswer": "Trong tam giác ABC, kẻ đường thẳng song song với BC qua đỉnh A. Khi đó, ta có góc BAC = góc ACD (theo định lý đường thẳng song song cắt hai đường thẳng tạo thành góc trong tương đẳng). Tương tự, góc ABC = góc BCE. Tổng các góc: góc BAC + góc ABC + góc ACB = góc ACD + góc BCE + góc ACB = 180°."
+        }
+      ]
+    },
+    "simpleExam": {
+      "title": "Bài thi thử nghiệm",
+      "description": "Bài thi đơn giản để test",
+      "duration": 60,
+      "maxAttempts": 1,
+      "isActive": true,
+      "questions": [
+        {
+          "content": "1 + 1 = ?",
+          "score": 1.0,
+          "questionType": "MCQ",
+          "options": [
+            {"content": "2", "isCorrect": true},
+            {"content": "3", "isCorrect": false}
+          ]
+        },
+        {
+          "content": "Viết một đoạn văn ngắn về tầm quan trọng của học tập.",
+          "score": 3.0,
+          "questionType": "ESSAY"
+        }
+      ]
+    }
+  },
+  "startExam": {
+    "examId": 1,
+    "userId": 1
+  },
+  "submitExam": {
+    "fullSubmit": {
+      "attemptId": 1,
+      "answers": [
+        {
+          "questionId": 1,
+          "selectedOptionId": 1
+        },
+        {
+          "questionId": 2,
+          "selectedOptionId": 5
+        },
+        {
+          "questionId": 3,
+          "textAnswer": "Trong tam giác ABC, kẻ đường thẳng song song với BC qua đỉnh A cắt AB tại D và AC tại E. Khi đó, góc BAC = góc ACD (góc trong tương đẳng), góc ABC = góc BCE. Tổng các góc trong tam giác ADE bằng 180°. Vậy tổng các góc trong tam giác ABC bằng 180°."
+        }
+      ]
+    },
+    "simpleSubmit": {
+      "attemptId": 1,
+      "answers": [
+        {
+          "questionId": 1,
+          "selectedOptionId": 1
+        },
+        {
+          "questionId": 2,
+          "textAnswer": "Học tập rất quan trọng vì nó giúp chúng ta phát triển kiến thức, kỹ năng và tư duy. Học tập mở mang tầm nhìn, giúp chúng ta thích nghi với thế giới thay đổi và đạt được mục tiêu trong cuộc sống."
+        }
+      ]
+    }
+  }
+}
