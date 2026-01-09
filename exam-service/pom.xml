@@ -31,12 +31,6 @@
 	</properties>
 	<dependencies>
 		<dependency>
-			<groupId>com.igcse</groupId>
-			<artifactId>ai-service</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-
-		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>

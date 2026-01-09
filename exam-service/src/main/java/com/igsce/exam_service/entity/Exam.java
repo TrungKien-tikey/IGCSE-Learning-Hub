@@ -32,7 +32,7 @@ public class Exam {
 
     private int maxAttempts = 1; // Số lần làm bài tối đa, mặc định là 1
 
-    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference 
     private List<Question> questions = new ArrayList<>();
 

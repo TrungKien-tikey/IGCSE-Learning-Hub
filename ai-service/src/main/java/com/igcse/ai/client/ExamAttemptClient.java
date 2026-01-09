@@ -74,6 +74,9 @@ public class ExamAttemptClient {
           null,
           responseType).getBody();
 
+      // [DEBUG] Log raw response để kiểm tra dữ liệu
+      logger.info(">>> Raw Response from Exam Service for attempt {}: {}", attemptId, response);
+
       if (response == null) {
         logger.error("Received null response from Exam Service for attemptId: {}", attemptId);
         throw new InvalidResponseException(url, "response body");
