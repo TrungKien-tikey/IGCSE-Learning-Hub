@@ -9,6 +9,12 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
+    public Long getId() {
+        return userId;
+    }
+    public void setId(Long userId) {
+        this.userId = userId;
+    }
 
     @Column(name = "full_name") 
     private String fullName;
