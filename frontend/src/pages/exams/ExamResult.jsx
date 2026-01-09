@@ -33,13 +33,26 @@ export default function ExamResultPage() {
         if (attemptId) fetchResult(false);
     }, [attemptId]);
 
+    // Kiểm tra trạng thái chấm điểm (Dựa trên score = 0 và loại ESSAY)
+    const hasPendingEssay = result?.answers?.some(
+        (a) => a.question.questionType === "ESSAY" && !a.feedback // Chưa có feedback -> Đang chấm
+            || (a.question.questionType === "ESSAY" && a.feedback === "Đang chấm điểm...")
+    ) || false;
+
+    // Auto-polling: Tự động cập nhật mỗi 3s nếu đang chấm
+    useEffect(() => {
+        if (!hasPendingEssay) return;
+
+        console.log("⏳ Đang chờ AI chấm điểm... Polling...");
+        const interval = setInterval(() => {
+            fetchResult(false);
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [hasPendingEssay]);
+
     if (loading) return <div className="p-10 text-center text-gray-500">Đang tải kết quả...</div>;
     if (!result) return <div className="p-10 text-center text-red-500">Không tìm thấy kết quả.</div>;
-
-    // Kiểm tra trạng thái chấm điểm (Dựa trên score = 0 và loại ESSAY)
-    const hasPendingEssay = result.answers?.some(
-        (a) => a.question.questionType === "ESSAY" && a.score === 0 && !a.feedback
-    );
 
     return (
         <div className="max-w-4xl mx-auto p-6 pb-20">

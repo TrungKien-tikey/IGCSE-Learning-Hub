@@ -22,7 +22,7 @@ export default function CreateExamPage() {
 
   // State form soạn thảo
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
-  
+
   // State câu hỏi nháp (Xóa <DraftQuestion>)
   const [draftQ, setDraftQ] = useState({
     id: 0, // id = 0 nghĩa là đang tạo mới
@@ -30,6 +30,7 @@ export default function CreateExamPage() {
     image: null,
     score: 10,
     questionType: "MCQ",
+    essayCorrectAnswer: "", // Đáp án tham khảo cho ESSAY
     options: [],
   });
 
@@ -105,6 +106,7 @@ export default function CreateExamPage() {
       image: null,
       score: 10,
       questionType: "MCQ",
+      essayCorrectAnswer: "",
       options: [],
     });
   };
@@ -120,6 +122,12 @@ export default function CreateExamPage() {
       if (!hasCorrect) return alert("Phải chọn ít nhất 1 đáp án đúng");
       const hasEmptyOption = draftQ.options.some((opt) => !opt.content.trim());
       if (hasEmptyOption) return alert("Nội dung đáp án không được để trống");
+    }
+
+    if (draftQ.questionType === "ESSAY") {
+      if (!draftQ.essayCorrectAnswer || !draftQ.essayCorrectAnswer.trim()) {
+        return alert("Vui lòng nhập đáp án tham khảo cho câu tự luận");
+      }
     }
 
     const questionId = draftQ.id === 0 ? Date.now() : draftQ.id;
@@ -140,7 +148,7 @@ export default function CreateExamPage() {
   };
 
   const editQuestionFromList = (q) => {
-    setDraftQ(q); 
+    setDraftQ(q);
     setIsAddingQuestion(true);
   };
 
@@ -332,7 +340,7 @@ export default function CreateExamPage() {
           {isAddingQuestion && (
             <div className="bg-blue-50 border-2 border-blue-200 p-6 rounded-lg shadow-md animate-fade-in">
               <h3 className="text-lg font-bold text-blue-800 mb-4">
-                 {draftQ.id === 0 ? "Soạn câu hỏi mới" : "Chỉnh sửa câu hỏi"}
+                {draftQ.id === 0 ? "Soạn câu hỏi mới" : "Chỉnh sửa câu hỏi"}
               </h3>
 
               <div className="mb-4">
@@ -394,6 +402,25 @@ export default function CreateExamPage() {
                 </div>
               </div>
 
+              {/* ESSAY REFERENCE ANSWER */}
+              {draftQ.questionType === "ESSAY" && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Đáp án tham khảo (Reference Answer) *
+                  </label>
+                  <textarea
+                    value={draftQ.essayCorrectAnswer || ''}
+                    onChange={(e) => setDraftQ({ ...draftQ, essayCorrectAnswer: e.target.value })}
+                    rows={4}
+                    className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400 outline-none"
+                    placeholder="Nhập đáp án mẫu để AI tham khảo khi chấm điểm..."
+                  />
+                  <small className="text-gray-500 text-xs mt-1 block">
+                    💡 Đáp án này sẽ được AI sử dụng làm tiêu chí chấm điểm. Hãy nhập đáp án chi tiết và chính xác.
+                  </small>
+                </div>
+              )}
+
               {draftQ.questionType === "MCQ" && (
                 <div className="mb-4 bg-white p-4 rounded border">
                   <div className="flex justify-between items-center mb-2">
@@ -443,9 +470,8 @@ export default function CreateExamPage() {
               <button
                 onClick={handleSubmitExam}
                 disabled={loading}
-                className={`w-full py-4 rounded-lg text-white text-xl font-bold transition shadow-lg ${
-                  loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 hover:shadow-xl"
-                }`}
+                className={`w-full py-4 rounded-lg text-white text-xl font-bold transition shadow-lg ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700 hover:shadow-xl"
+                  }`}
               >
                 {loading ? "Đang lưu..." : "✓ HOÀN TẤT VÀ TẠO BÀI THI"}
               </button>

@@ -9,7 +9,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute'; // <--- Quan trọng: Import file bảo vệ
 
-import ExamListPage from "./pages/exams/ExamList"; // Ví dụ: file ExamsList.tsx
+// Exam Pages
+import ExamListPage from "./pages/exams/ExamList";
 import ManageExamsPage from "./pages/exams/ExamManage";
 import EditExamPage from "./pages/exams/ExamEdit";
 import ExamAttemptPage from "./pages/exams/ExamAttempt";
@@ -19,18 +20,18 @@ import CoursePage from './pages/CoursePage';
 
 
 function App() {
-    return (
-        <BrowserRouter>
-            <Routes>
-                {/* --- KHU VỰC ĐƯỢC BẢO VỆ (Cần đăng nhập mới vào được) --- */}
-                <Route
-                    path="/"
-                    element={
-                        <ProtectedRoute>
-                            <Dashboard />
-                        </ProtectedRoute>
-                    }
-                />
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* --- KHU VỰC ĐƯỢC BẢO VỆ (Cần đăng nhập mới vào được) --- */}
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
 
                 {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
                 <Route path="/login" element={<Login />} />

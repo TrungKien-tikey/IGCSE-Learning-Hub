@@ -1,9 +1,11 @@
 package com.igcse.ai.config;
 
-import com.igcse.ai.service.llm.LangChainConfidenceEvaluator;
-import com.igcse.ai.exception.AIServiceException; // Import AIServiceException
-import org.slf4j.Logger; // Import Logger
-import org.slf4j.LoggerFactory; // Import LoggerFactory
+import com.igcse.ai.service.llm.EssayGradingAiService;
+import com.igcse.ai.service.llm.InsightAiService;
+import com.igcse.ai.service.llm.RecommendationAiService;
+
+// import org.slf4j.Logger; // Import Logger
+// import org.slf4j.LoggerFactory; // Import LoggerFactory
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
@@ -17,7 +19,8 @@ import java.time.Duration;
 @Configuration
 public class LangChain4jConfig {
 
-    private static final Logger logger = LoggerFactory.getLogger(LangChain4jConfig.class); // Add Logger
+    // private static final Logger logger =
+    // LoggerFactory.getLogger(LangChain4jConfig.class); // Add Logger
 
     @Value("${openai.api.key}")
     private String openaiApiKey;
@@ -34,28 +37,47 @@ public class LangChain4jConfig {
     @Value("${openai.log.responses:false}") // Mặc định tắt logging responses
     private boolean logResponses;
 
-    @Bean
-    public LangChainConfidenceEvaluator confidenceEvaluator() {
-        // Nếu không có API Key hoặc key là placeholder/invalid, ném ngoại lệ
-        if (openaiApiKey == null || openaiApiKey.trim().isEmpty() || 
-            "your-api-key-here".equals(openaiApiKey) ||
-            openaiApiKey.startsWith("invalid-") || openaiApiKey.startsWith("test-") ||
-            (openaiApiKey.length() < 20 || !openaiApiKey.startsWith("sk-"))) {
-            logger.error("OpenAI API Key không hợp lệ hoặc thiếu. Vui lòng kiểm tra thuộc tính 'openai.api.key'.");
-            throw new AIServiceException("OpenAI API Key không hợp lệ hoặc thiếu.");
+    private ChatLanguageModel createChatModel(double temperature) {
+        if (openaiApiKey == null || openaiApiKey.trim().isEmpty() ||
+                "your-api-key-here".equals(openaiApiKey) ||
+                openaiApiKey.startsWith("invalid-")) {
+            // Thay vì throw exception làm crash app, ta log warning và dùng key dummy
+            // App vẫn khởi động được, nhưng chức năng AI sẽ lỗi (và rơi vào fallback)
+            System.err.println(
+                    "CẢNH BÁO: OpenAI API Key chưa được cấu hình hoặc không hợp lệ. Các chức năng AI sẽ không hoạt động.");
+            openaiApiKey = "demo-key-to-prevent-startup-crash";
         }
 
-        ChatLanguageModel model = OpenAiChatModel.builder()
+        return OpenAiChatModel.builder()
                 .apiKey(openaiApiKey)
                 .modelName(modelName)
-                .temperature(0.3) // Nhiệt độ thấp để đánh giá ổn định
+                .temperature(temperature) // Dùng tham số truyền vào
                 .timeout(Duration.ofSeconds(timeoutSeconds))
-                .logRequests(logRequests) // Sử dụng giá trị cấu hình
-                .logResponses(logResponses) // Sử dụng giá trị cấu hình
+                .logRequests(logRequests)
+                .logResponses(logResponses)
                 .build();
+    }
 
-        return AiServices.builder(LangChainConfidenceEvaluator.class)
-                .chatLanguageModel(model)
+    @Bean
+    public EssayGradingAiService essayGradingAiService() {
+        return AiServices.builder(EssayGradingAiService.class)
+                .chatLanguageModel(createChatModel(0.3)) // Chấm điểm cần chính xác cao
+                .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                .build();
+    }
+
+    @Bean
+    public InsightAiService insightAiService() {
+        return AiServices.builder(InsightAiService.class)
+                .chatLanguageModel(createChatModel(0.5)) // Phân tích cần sự linh hoạt hơn
+                .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
+                .build();
+    }
+
+    @Bean
+    public RecommendationAiService recommendationAiService() {
+        return AiServices.builder(RecommendationAiService.class)
+                .chatLanguageModel(createChatModel(0.5))
                 .chatMemory(MessageWindowChatMemory.withMaxMessages(10))
                 .build();
     }
