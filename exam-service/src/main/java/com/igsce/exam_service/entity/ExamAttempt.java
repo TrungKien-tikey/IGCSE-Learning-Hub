@@ -21,6 +21,7 @@ public class ExamAttempt {
     private Long userId;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
+    private LocalDateTime submittedAt; // Thời điểm nộp bài
     private double totalScore;
 
     @ManyToOne
