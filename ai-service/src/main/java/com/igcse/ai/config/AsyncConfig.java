@@ -30,7 +30,7 @@ public class AsyncConfig {
 
         executor.initialize();
         logger.info("AsyncConfig initialized: core={}, max={}, queue={}",
-                5, 10, 100);
+                executor.getCorePoolSize(), executor.getMaxPoolSize(), executor.getQueueCapacity());
 
         return executor;
     }
