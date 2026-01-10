@@ -1,14 +1,14 @@
 package com.igcse.auth.service;
 
-import com.igcse.auth.config.RabbitMQConfig; // Import Config
+import com.igcse.auth.config.RabbitMQConfig;
 import com.igcse.auth.dto.AuthResponse;
 import com.igcse.auth.dto.LoginRequest;
 import com.igcse.auth.dto.RegisterRequest;
-import com.igcse.auth.dto.UserSyncDTO; // Import DTO
+import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.entity.User;
 import com.igcse.auth.repository.UserRepository;
 import com.igcse.auth.util.JwtUtils;
-import org.springframework.amqp.rabbit.core.RabbitTemplate; // Import RabbitTemplate
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,9 +21,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
-    private final RabbitTemplate rabbitTemplate; // 1. Khai báo thêm RabbitTemplate
+    private final RabbitTemplate rabbitTemplate;
 
-    // 2. Cập nhật Constructor để tiêm RabbitTemplate vào
     public AuthService(UserRepository userRepository, 
                        PasswordEncoder passwordEncoder, 
                        JwtUtils jwtUtils, 
@@ -36,7 +35,7 @@ public class AuthService {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    // 3. Hàm Đăng ký (Đã tích hợp RabbitMQ)
+    // 1. Đăng ký (Đã tích hợp Security & RabbitMQ)
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email nay da ton tai!");
@@ -47,15 +46,21 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         
-        if (request.getRole() != null && !request.getRole().isEmpty()) {
-            user.setRole(request.getRole().toUpperCase());
+        // --- LOGIC BẢO MẬT ROLE MỚI ---
+        // Chỉ cho phép đăng ký là PARENT hoặc STUDENT.
+        // Nếu cố tình nhập ADMIN, TEACHER... sẽ bị ép về STUDENT.
+        String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
+
+        if ("PARENT".equals(requestedRole)) {
+            user.setRole("PARENT");
         } else {
-            user.setRole("STUDENT");
+            user.setRole("STUDENT"); // Mặc định tất cả trường hợp khác
         }
+        // -------------------------------
         
         user.setActive(true);
 
-        // Lưu User vào DB (Lúc này mới có ID)
+        // Lưu vào DB
         User savedUser = userRepository.save(user);
 
         // --- BẮT ĐẦU: Gửi tin nhắn sang RabbitMQ ---
@@ -68,15 +73,14 @@ public class AuthService {
             );
 
             rabbitTemplate.convertAndSend(
-                RabbitMQConfig.USER_EXCHANGE,      // Exchange lấy từ Config
-                RabbitMQConfig.USER_SYNC_ROUTING_KEY, // Routing Key lấy từ Config
+                RabbitMQConfig.USER_EXCHANGE,
+                RabbitMQConfig.USER_SYNC_ROUTING_KEY,
                 syncData
             );
             
-            System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail());
+            System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail() + " | Role: " + savedUser.getRole());
 
         } catch (Exception e) {
-            // Log lỗi nếu RabbitMQ bị sập (để không ảnh hưởng đến việc User đăng ký)
             System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
         }
         // --- KẾT THÚC RabbitMQ ---
@@ -84,7 +88,7 @@ public class AuthService {
         return "Dang ky thanh cong!";
     }
 
-    // 4. Đăng nhập (Giữ nguyên)
+    // 2. Đăng nhập
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
@@ -98,12 +102,12 @@ public class AuthService {
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
 
-    // 5. Xác thực token (Giữ nguyên)
+    // 3. Xác thực token
     public boolean verifyToken(String token) {
         return jwtUtils.validateToken(token);
     }
 
-    // 6. Đổi mật khẩu (Giữ nguyên)
+    // 4. Đổi mật khẩu
     public String changePassword(com.igcse.auth.dto.ChangePasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
