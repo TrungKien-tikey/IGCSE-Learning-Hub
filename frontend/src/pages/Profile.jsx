@@ -26,20 +26,33 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchUser = async () => {
+            const token = localStorage.getItem('accessToken');
+            if (!token) {
+                console.error("Chưa đăng nhập! Không tìm thấy token.");
+                setLoading(false);
+                return;
+            }
+
             try {
-                const res = await fetch(`http://localhost:8082/api/users/${currentUserId}`);
-                if (!res.ok) throw new Error("Không thể tải dữ liệu");
+                // Sửa thành Port 8083 và endpoint /me
+                const res = await fetch(`http://localhost:8083/api/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!res.ok) throw new Error("Không thể tải dữ liệu profile");
                 const data = await res.json();
 
                 setUser(data);
                 setFormData({
                     fullName: data.fullName || '',
-                    phone: '0987654321',
+                    phone: '0987654321', // Mock data nếu DB chưa có
                     address: 'Hà Nội, Việt Nam',
                     bio: 'Học viên chăm chỉ tại IGCSE Learning Hub'
                 });
             } catch (error) {
-                console.error(error);
+                console.error("Lỗi fetch profile:", error);
             } finally {
                 setLoading(false);
             }
@@ -61,9 +74,13 @@ export default function ProfilePage() {
 
             try {
                 // Gửi lên Backend
-                const res = await fetch(`http://localhost:8082/api/users/${currentUserId}`, {
+                const token = localStorage.getItem('accessToken');
+                const res = await fetch(`http://localhost:8083/api/users/me`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         fullName: user?.fullName, // Giữ nguyên tên cũ
                         avatar: base64String      // Cập nhật avatar mới
@@ -87,9 +104,13 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         try {
-            const res = await fetch(`http://localhost:8082/api/users/${currentUserId}`, {
+            const token = localStorage.getItem('accessToken');
+            const res = await fetch(`http://localhost:8083/api/users/me`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     fullName: formData.fullName,
                     avatar: user?.avatar // Giữ nguyên avatar cũ khi đổi tên
