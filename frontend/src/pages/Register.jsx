@@ -99,10 +99,7 @@ function Register() {
               }}
             >
               <option value="STUDENT">Học sinh (Student)</option>
-              <option value="TEACHER">Giáo viên (Teacher)</option>
               <option value="PARENT">Phụ huynh (Parent)</option>
-              <option value="MANAGER">Quản lý (Manager)</option>
-              <option value="ADMIN">Quản trị viên (Admin)</option>
             </select>
           </div>
 
