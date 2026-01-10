@@ -41,7 +41,7 @@ export default function EditExamPage() {
   useEffect(() => {
     if (!examId) return;
 
-    fetch(`http://localhost:8080/api/exams/${examId}`)
+    fetch(`/api/exams/${examId}`)
       .then((res) => {
         if (!res.ok) throw new Error("Không tìm thấy bài thi");
         return res.json();
@@ -206,7 +206,7 @@ export default function EditExamPage() {
     };
 
     try {
-      const res = await fetch(`http://localhost:8080/api/exams/${examId}`, {
+      const res = await fetch(`/api/exams/${examId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

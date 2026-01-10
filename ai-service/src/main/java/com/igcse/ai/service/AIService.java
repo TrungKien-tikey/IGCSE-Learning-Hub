@@ -1,14 +1,10 @@
 package com.igcse.ai.service;
 
-import com.igcse.ai.client.ExamAttemptClient;
-import com.igcse.ai.client.ExamServiceClient;
 import com.igcse.ai.dto.aiChamDiem.ExamAnswersDTO;
 import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.exception.*;
 import com.igcse.ai.repository.AIResultRepository;
-import com.igcse.ai.repository.AIInsightRepository;
-import com.igcse.ai.repository.AIRecommendationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,42 +30,48 @@ public class AIService {
     private final AIResultRepository aiResultRepository;
     private final IGradingService gradingService;
     private final ILanguageService languageService;
-    private final ExamAttemptClient examAttemptClient;
-    private final ExamServiceClient examServiceClient;
-    private final java.util.concurrent.Executor taskExecutor;
-    private final AIInsightRepository aiInsightRepository;
-    private final AIRecommendationRepository aiRecommendationRepository;
 
     public AIService(
             JsonService jsonService,
             AIResultRepository aiResultRepository,
             IGradingService gradingService,
-            ILanguageService languageService,
-            ExamAttemptClient examAttemptClient,
-            ExamServiceClient examServiceClient,
-            @org.springframework.beans.factory.annotation.Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor,
-            AIInsightRepository aiInsightRepository,
-            AIRecommendationRepository aiRecommendationRepository) {
+            ILanguageService languageService) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
         this.languageService = languageService;
-        this.examAttemptClient = examAttemptClient;
-        this.examServiceClient = examServiceClient;
-        this.taskExecutor = taskExecutor;
-        this.aiInsightRepository = aiInsightRepository;
-        this.aiRecommendationRepository = aiRecommendationRepository;
     }
 
-    public double evaluateExam(Long attemptId) {
-        return evaluateExam(attemptId, LanguageService.DEFAULT_LANGUAGE);
+    /**
+     * Chấm điểm dựa trên DTO được đẩy sang (Push Mode) - Dùng cho RabbitMQ
+     */
+
+    public double evaluateExamFromDTO(ExamAnswersDTO attempt) {
+        DetailedGradingResultDTO result = evaluateExamInternal(attempt);
+        return result.getScore();
     }
 
-    public double evaluateExam(Long attemptId, String language) {
-        logger.info("Starting exam evaluation for attemptId: {}, language: {}", attemptId, language);
+    /**
+     * Dùng cho RabbitMQ Listener: Chỉ châm điểm và trả về kết quả, KHÔNG gọi
+     * callback REST.
+     * Listener sẽ tự gửi message vào queue kết quả.
+     */
+    public DetailedGradingResultDTO evaluateExamGetResult(ExamAnswersDTO attempt) {
+        return evaluateExamInternal(attempt);
+    }
+
+    /**
+     * Logic chấm điểm cốt lõi (Shared)
+     */
+    private DetailedGradingResultDTO evaluateExamInternal(ExamAnswersDTO attempt) {
+        Long attemptId = attempt.getAttemptId();
+        String language = attempt.getLanguage();
+        if (language == null)
+            language = LanguageService.DEFAULT_LANGUAGE;
+
+        logger.info("Starting exam evaluation (Internal) for attemptId: {}, language: {}", attemptId, language);
 
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
-        Objects.requireNonNull(language, "Language cannot be null");
 
         String lang = languageService.normalizeLanguage(language);
 
@@ -78,70 +80,43 @@ public class AIService {
             throw new InvalidLanguageException(language);
         }
 
-        // ✅ TỐI ƯU: Kiểm tra cache trước khi gọi API
+        // Kiểm tra cache
         Optional<AIResult> existingResult = aiResultRepository.findByAttemptId(attemptId);
-
-        // Lấy attempt data để tính hash
-        ExamAnswersDTO attempt = examAttemptClient.getExamAttempt(attemptId);
-        if (attempt == null) {
-            logger.error("Exam attempt not found for ID: {}", attemptId);
-            throw new ExamAttemptNotFoundException(attemptId);
-        }
-
-        // Tính hash của answers hiện tại (serialize để tính hash)
         String answersJson = jsonService.toJson(attempt);
         String currentAnswersHash = calculateHash(answersJson);
 
-        // ✅ VALIDATION: Kiểm tra cache với hash validation
+        // Validation Cache logic... (giữ nguyên logic check hash cũ)
         if (existingResult.isPresent()) {
             AIResult cachedResult = existingResult.get();
             String cachedHash = cachedResult.getAnswersHash();
 
-            // Nếu language giống và hash giống → return cache (answers không thay đổi)
             if (lang.equals(cachedResult.getLanguage()) &&
                     currentAnswersHash != null &&
                     currentAnswersHash.equals(cachedHash)) {
-                logger.info("✅ Returning cached result for attemptId: {} (answers unchanged, language: {}, score: {})",
-                        attemptId, lang, cachedResult.getScore());
-                return cachedResult.getScore();
-            } else {
-                if (currentAnswersHash != null && !currentAnswersHash.equals(cachedHash)) {
-                    logger.info("🔄 Answers changed for attemptId: {}. Re-grading... (old hash: {}, new hash: {})",
-                            attemptId,
-                            cachedHash != null ? cachedHash.substring(0, Math.min(8, cachedHash.length())) + "..."
-                                    : "null",
-                            currentAnswersHash.substring(0, Math.min(8, currentAnswersHash.length())) + "...");
-                } else if (!lang.equals(cachedResult.getLanguage())) {
-                    logger.info("🔄 Language changed from {} to {} for attemptId: {}. Re-grading...",
-                            cachedResult.getLanguage(), lang, attemptId);
-                } else {
-                    logger.info("🔄 Re-grading attemptId: {} (hash validation failed)", attemptId);
-                }
-                // Fall through để re-grade
+                logger.info("✅ Returning cached result for attemptId: {}", attemptId);
+
+                // Reconstruct DTO from cache
+                List<GradingResult> detailsList = jsonService.parseGradingDetails(cachedResult.getDetails());
+                Double maxScore = 10.0;
+                if (!detailsList.isEmpty())
+                    maxScore = gradingService.calculateMaxScore(detailsList);
+
+                return new DetailedGradingResultDTO(
+                        attemptId, cachedResult.getScore(), maxScore, cachedResult.getFeedback(),
+                        cachedResult.getConfidence(), lang, detailsList);
             }
-        } else {
-            logger.debug("No cached result found for attemptId: {}. Grading new...", attemptId);
+            // else fall through
         }
 
-        // Chấm điểm tất cả câu trả lời với ngôn ngữ chỉ định
+        // Chấm điểm
         List<GradingResult> gradingResults = gradingService.gradeAllAnswers(attempt.getAnswers(), lang);
 
-        // Tính tổng điểm
         double totalScore = gradingService.calculateTotalScore(gradingResults);
         double maxScore = gradingService.calculateMaxScore(gradingResults);
-
-        // Tính điểm trên thang 10
         double score = maxScore > 0 ? (totalScore / maxScore) * 10.0 : 0.0;
-
-        // Tính confidence trung bình
         double confidence = gradingService.calculateAverageConfidence(gradingResults);
-
-        // Tạo feedback tổng hợp với ngôn ngữ chỉ định
         String feedback = gradingService.generateOverallFeedback(gradingResults, lang);
 
-        // Xác định method tổng
-        // Nếu có ít nhất 1 câu dùng AI -> Tổng là AI
-        // Nếu toàn bộ là LOCAL -> Tổng là LOCAL
         String overallMethod = "LOCAL_RULE_BASED";
         for (GradingResult r : gradingResults) {
             if ("AI_GPT4_LANGCHAIN".equals(r.getEvaluationMethod())) {
@@ -150,11 +125,8 @@ public class AIService {
             }
         }
 
-        // Lưu kết quả với language và confidence (upsert: update nếu đã có, insert nếu
-        // chưa có)
+        // Lưu DB
         AIResult result = existingResult.orElse(new AIResult(attemptId, score, feedback, lang, confidence));
-
-        // Update các trường
         result.setScore(score);
         result.setFeedback(feedback);
         result.setLanguage(lang);
@@ -163,59 +135,21 @@ public class AIService {
         result.setExamId(attempt.getExamId());
         result.setEvaluationMethod(overallMethod);
         result.setGradedAt(new java.util.Date());
-        result.setAnswersHash(currentAnswersHash); // ✅ Lưu hash để validate cache lần sau
-
+        result.setAnswersHash(currentAnswersHash);
         result.setDetails(jsonService.toJson(gradingResults));
 
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
-        // ✅ Invalidate cache khi có AIResult mới
-        Long studentId = result.getStudentId();
-        if (studentId != null) {
-            try {
-                aiInsightRepository.deleteByStudentId(studentId);
-                aiRecommendationRepository.deleteByStudentId(studentId);
-                logger.info("Invalidated analytics cache for studentId: {}", studentId);
-            } catch (Exception e) {
-                logger.warn("Error invalidating cache for studentId {}: {}", studentId, e.getMessage());
-                // Không throw, chỉ log để không ảnh hưởng quá trình chấm điểm
-            }
-        }
+        // Invalidate cache (Đã chuyển sang TierManagerService kiểm soát Tầng 2)
+        // Không xóa DB bừa bãi ở đây nữa để tránh mất lịch sử Tầng 2 khi chưa đủ bài
+        // thi
 
-        // Gọi callback về exam_service ch update điểm số (Async)
-        java.util.concurrent.CompletableFuture.runAsync(() -> {
-            try {
-                com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO detailedResult = new com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO(
-                        attemptId,
-                        score,
-                        maxScore,
-                        feedback,
-                        confidence,
-                        lang,
-                        gradingResults);
-
-                boolean callbackSuccess = examServiceClient.updateGradingResult(attemptId, detailedResult);
-                if (callbackSuccess) {
-                    logger.info("Successfully sent grading result callback to exam service for attemptId: {}",
-                            attemptId);
-                } else {
-                    logger.warn("Failed to send grading result callback to exam service for attemptId: {}", attemptId);
-                }
-            } catch (Exception e) {
-                logger.error("Error sending grading result callback to exam service for attemptId: {}. Error: {}",
-                        attemptId, e.getMessage(), e);
-            }
-        }, taskExecutor);
-
-        return score;
+        return new DetailedGradingResultDTO(
+                attemptId, score, maxScore, feedback, confidence, lang, gradingResults);
     }
 
-    public String analyzeAnswers(Long attemptId) {
-        return analyzeAnswers(attemptId, LanguageService.DEFAULT_LANGUAGE);
-    }
-
-    public String analyzeAnswers(Long attemptId, String language) {
+    public String analyzeAnswers(Long attemptId, String language, ExamAnswersDTO attemptDTO) {
         logger.info("Analyzing answers for attemptId: {}", attemptId);
 
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
@@ -227,8 +161,12 @@ public class AIService {
             return result.getFeedback();
         }
 
-        logger.debug("No cached result found, evaluating exam for attemptId: {}", attemptId);
-        evaluateExam(attemptId, language);
+        logger.debug("Evaluating exam from provided DTO for attemptId: {}", attemptId);
+        if (attemptDTO == null) {
+            throw new ExamGradingException("Cannot analyze answers: DTO is missing and legacy pull is disabled",
+                    attemptId);
+        }
+        evaluateExamFromDTO(attemptDTO);
         result = aiResultRepository.findByAttemptId(attemptId)
                 .orElseThrow(() -> new ExamGradingException("Failed to grade exam", attemptId));
 

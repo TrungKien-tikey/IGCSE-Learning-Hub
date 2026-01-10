@@ -23,7 +23,7 @@ export default function ExamAttemptPage() {
   useEffect(() => {
     if (!examId) return;
     
-    fetch(`http://localhost:8080/api/exams/${examId}`)
+    fetch(`/api/exams/${examId}`)
       .then(res => res.json())
       .then(data => {
          setTimeLeft(data.duration * 60); 
@@ -77,7 +77,7 @@ export default function ExamAttemptPage() {
     const answerList = Object.values(answers);
 
     try {
-        const res = await fetch(`http://localhost:8080/api/exams/submit`, {
+        const res = await fetch(`/api/exams/submit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             // SỬA TẠI ĐÂY: Thay vì gửi trực tiếp answerList, hãy bọc nó lại

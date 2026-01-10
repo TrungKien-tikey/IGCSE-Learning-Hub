@@ -18,6 +18,11 @@ import ExamResultPage from "./pages/exams/ExamResult";
 import CreateExamPage from './pages/exams/ExamCreate';
 import CoursePage from './pages/CoursePage';
 
+// AI Pages
+import AIHomePage from './pages/ai/AIHomePage';
+import AIResultPage from './pages/ai/AIResultPage';
+import StudentDashboard from './pages/ai/StudentDashboard';
+
 
 function App() {
   return (
@@ -33,29 +38,34 @@ function App() {
           }
         />
 
-                {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
-                <Route path="/login" element={<Login />} />
+        {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
+        <Route path="/login" element={<Login />} />
 
-                <Route path="/register" element={<Register />} />
-                <Route path="/testnotify" element={<TestNotificationPage />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/exams" element={<ExamListPage />} />
-                <Route path="/exams/create" element={<CreateExamPage />} />
-                <Route path="/exams/manage" element={<ManageExamsPage />} />
-                <Route path="/exams/edit/:id" element={<EditExamPage />} />
-                <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
-                <Route path="/exams/result" element={<ExamResultPage />} />
-                <Route path="/courses" element={<CoursePage />} />
-                <Route path="/profile" element={<Profile />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/testnotify" element={<TestNotificationPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/exams" element={<ExamListPage />} />
+        <Route path="/exams/create" element={<CreateExamPage />} />
+        <Route path="/exams/manage" element={<ManageExamsPage />} />
+        <Route path="/exams/edit/:id" element={<EditExamPage />} />
+        <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
+        <Route path="/exams/result" element={<ExamResultPage />} />
+        <Route path="/courses" element={<CoursePage />} />
+        <Route path="/profile" element={<Profile />} />
 
-                {/* --- XỬ LÝ LỖI --- */}
-                {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
-            </Routes>
-        </BrowserRouter>
-    );
+        {/* --- AI SECTIONS (Dùng để test NiFi integration) --- */}
+        <Route path="/ai" element={<AIHomePage />} />
+        <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
+        <Route path="/ai/dashboard/student" element={<StudentDashboard />} />
+
+        {/* --- XỬ LÝ LỖI --- */}
+        {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 
 }
 

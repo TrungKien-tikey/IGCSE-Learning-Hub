@@ -23,7 +23,7 @@ export default function ExamListPage() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
     
-    fetch("http://localhost:8080/api/exams")
+    fetch("/api/exams")
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
         return res.json();
@@ -75,7 +75,7 @@ export default function ExamListPage() {
 
   const startExam = async (examId) => {
     try {
-      const res = await fetch(`http://localhost:8080/api/exams/start`, {
+      const res = await fetch(`/api/exams/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ examId: examId, userId: CURRENT_USER_ID }),

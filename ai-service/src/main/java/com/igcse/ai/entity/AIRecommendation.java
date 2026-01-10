@@ -40,7 +40,16 @@ public class AIRecommendation {
     @Column(name = "is_ai_generated")
     private Boolean isAiGenerated;
 
-    @Column(name = "generated_at", nullable = false)
+    @Column(name = "progress_id")
+    private Long progressId;
+
+    @Column(name = "total_exams_analyzed")
+    private Integer totalExamsAnalyzed;
+
+    @Column(name = "avg_score_analyzed")
+    private Double avgScoreAnalyzed;
+
+    @Column(name = "generated_at", nullable = false, updatable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date generatedAt;
 
@@ -48,92 +57,108 @@ public class AIRecommendation {
     @Temporal(TemporalType.TIMESTAMP)
     private Date updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        Date now = new Date();
+        this.generatedAt = now;
+        this.updatedAt = now;
+        if (this.isAiGenerated == null)
+            this.isAiGenerated = true;
+        if (this.language == null)
+            this.language = "vi";
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = new Date();
+    }
+
     // // Constructors
     // public AIRecommendation() {
-    //     this.generatedAt = new Date();
-    //     this.updatedAt = new Date();
-    //     this.language = "vi";
-    //     this.isAiGenerated = true;
+    // this.generatedAt = new Date();
+    // this.updatedAt = new Date();
+    // this.language = "vi";
+    // this.isAiGenerated = true;
     // }
 
     // // Getters and Setters
     // public Long getRecommendationId() {
-    //     return recommendationId;
+    // return recommendationId;
     // }
 
     // public void setRecommendationId(Long recommendationId) {
-    //     this.recommendationId = recommendationId;
+    // this.recommendationId = recommendationId;
     // }
 
     // public Long getStudentId() {
-    //     return studentId;
+    // return studentId;
     // }
 
     // public void setStudentId(Long studentId) {
-    //     this.studentId = studentId;
+    // this.studentId = studentId;
     // }
 
     // public String getWeakTopics() {
-    //     return weakTopics;
+    // return weakTopics;
     // }
 
     // public void setWeakTopics(String weakTopics) {
-    //     this.weakTopics = weakTopics;
+    // this.weakTopics = weakTopics;
     // }
 
     // public String getStrongTopics() {
-    //     return strongTopics;
+    // return strongTopics;
     // }
 
     // public void setStrongTopics(String strongTopics) {
-    //     this.strongTopics = strongTopics;
+    // this.strongTopics = strongTopics;
     // }
 
     // public String getRecommendedResources() {
-    //     return recommendedResources;
+    // return recommendedResources;
     // }
 
     // public void setRecommendedResources(String recommendedResources) {
-    //     this.recommendedResources = recommendedResources;
+    // this.recommendedResources = recommendedResources;
     // }
 
     // public String getLearningPathSuggestion() {
-    //     return learningPathSuggestion;
+    // return learningPathSuggestion;
     // }
 
     // public void setLearningPathSuggestion(String learningPathSuggestion) {
-    //     this.learningPathSuggestion = learningPathSuggestion;
+    // this.learningPathSuggestion = learningPathSuggestion;
     // }
 
     // public String getLanguage() {
-    //     return language;
+    // return language;
     // }
 
     // public void setLanguage(String language) {
-    //     this.language = language;
+    // this.language = language;
     // }
 
     // public Boolean getIsAiGenerated() {
-    //     return isAiGenerated;
+    // return isAiGenerated;
     // }
 
     // public void setIsAiGenerated(Boolean isAiGenerated) {
-    //     this.isAiGenerated = isAiGenerated;
+    // this.isAiGenerated = isAiGenerated;
     // }
 
     // public Date getGeneratedAt() {
-    //     return generatedAt;
+    // return generatedAt;
     // }
 
     // public void setGeneratedAt(Date generatedAt) {
-    //     this.generatedAt = generatedAt;
+    // this.generatedAt = generatedAt;
     // }
 
     // public Date getUpdatedAt() {
-    //     return updatedAt;
+    // return updatedAt;
     // }
 
     // public void setUpdatedAt(Date updatedAt) {
-    //     this.updatedAt = updatedAt;
+    // this.updatedAt = updatedAt;
     // }
 }

@@ -15,7 +15,7 @@ export default function ExamResultPage() {
     const fetchResult = (showLoading = true) => {
         if (showLoading) setIsRefreshing(true);
 
-        fetch(`http://localhost:8080/api/exams/attempt/${attemptId}`)
+        fetch(`/api/exams/attempt/${attemptId}`)
             .then((res) => res.json())
             .then((data) => {
                 setResult(data);
