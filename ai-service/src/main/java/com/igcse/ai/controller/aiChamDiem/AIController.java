@@ -15,8 +15,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
-        "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174" })
 @RequiredArgsConstructor
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
