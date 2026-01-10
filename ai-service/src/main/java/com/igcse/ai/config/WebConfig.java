@@ -65,11 +65,13 @@ public class WebConfig implements WebMvcConfigurer {
     // ============================================
     // CORS Configuration
     // ============================================
-    
+
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5174")
+                .allowedOrigins("http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
+                        "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173",
+                        "http://127.0.0.1:5174")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                 .allowedHeaders("*")
                 .allowCredentials(true)
@@ -80,31 +82,32 @@ public class WebConfig implements WebMvcConfigurer {
     public CorsFilter corsFilter() {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         CorsConfiguration config = new CorsConfiguration();
-        
+
         // Allow specific origins
         config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "http://localhost:5174",
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:5174"
-        ));
-        
+                "http://localhost:3000",
+                "http://localhost:3001",
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:5174"));
+
         // Allow all HTTP methods
         config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        
+
         // Allow all headers
         config.setAllowedHeaders(Arrays.asList("*"));
-        
+
         // Allow credentials (cookies, auth headers)
         config.setAllowCredentials(true);
-        
+
         // Cache preflight response for 1 hour
         config.setMaxAge(3600L);
-        
+
         // Apply to all API endpoints
         source.registerCorsConfiguration("/api/**", config);
-        
+
         return new CorsFilter(source);
     }
 }

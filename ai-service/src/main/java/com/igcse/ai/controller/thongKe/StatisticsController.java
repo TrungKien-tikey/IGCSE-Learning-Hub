@@ -5,7 +5,6 @@ import com.igcse.ai.dto.thongKe.StudentStatisticsDTO;
 import com.igcse.ai.service.ass.thongKe.IStatisticsService;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,8 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai/statistics")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
-        "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174" })
 public class StatisticsController {
 
     private final IStatisticsService statisticsService;

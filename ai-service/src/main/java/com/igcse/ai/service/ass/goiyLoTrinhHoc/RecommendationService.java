@@ -8,11 +8,14 @@ import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.entity.AIRecommendation;
 import com.igcse.ai.repository.AIResultRepository;
 import com.igcse.ai.repository.AIRecommendationRepository;
+import com.igcse.ai.repository.AIProgressRepository;
+import com.igcse.ai.service.common.TierManagerService;
 import com.igcse.ai.service.llm.RecommendationAiService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,17 +29,23 @@ public class RecommendationService implements IRecommendationService {
     private final AIRecommendationRepository aiRecommendationRepository;
     private final JsonService jsonService;
     private final ILanguageService languageService;
+    private final AIProgressRepository aiProgressRepository;
+    private final TierManagerService tierManagerService;
     private final RecommendationAiService recommendationAiService;
 
     public RecommendationService(AIResultRepository aiResultRepository,
             RecommendationAiService recommendationAiService, JsonService jsonService,
             ILanguageService languageService,
-            AIRecommendationRepository aiRecommendationRepository) {
+            AIRecommendationRepository aiRecommendationRepository,
+            AIProgressRepository aiProgressRepository,
+            TierManagerService tierManagerService) {
         this.aiResultRepository = aiResultRepository;
         this.recommendationAiService = recommendationAiService;
         this.jsonService = jsonService;
         this.languageService = languageService;
         this.aiRecommendationRepository = aiRecommendationRepository;
+        this.aiProgressRepository = aiProgressRepository;
+        this.tierManagerService = tierManagerService;
     }
 
     @Override
@@ -45,16 +54,38 @@ public class RecommendationService implements IRecommendationService {
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
         // ✅ BƯỚC 1: Kiểm tra cache
-        Optional<AIRecommendation> cached = aiRecommendationRepository.findByStudentId(studentId);
+        Optional<AIRecommendation> cached = aiRecommendationRepository
+                .findTopByStudentIdOrderByGeneratedAtDesc(studentId);
         if (cached.isPresent()) {
-            logger.info("Returning cached recommendation for studentId: {}", studentId);
+            logger.info("Returning latest cached recommendation for studentId: {}", studentId);
             return convertToDTO(cached.get());
         }
 
         // ✅ BƯỚC 2: Không có cache, tạo mới
-        List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+        return refreshRecommendation(studentId, null);
+    }
 
-        if (results.isEmpty()) {
+    @Override
+    public void triggerUpdate(Long studentId, String nifiData) {
+        logger.info("Manual trigger update for studentId: {} with data size: {}",
+                studentId, (nifiData != null ? nifiData.length() : "null"));
+        refreshRecommendation(studentId, nifiData);
+    }
+
+    @Transactional
+    private LearningRecommendationDTO refreshRecommendation(Long studentId, String nifiData) {
+        List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+        TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
+
+        // Tổng hợp dữ liệu cũ
+        String dataSummary = buildDataSummary(results);
+
+        // Nếu NiFi có gửi thêm dữ liệu "nóng hổi", mình ưu tiên đưa lên đầu
+        if (nifiData != null && !nifiData.isEmpty()) {
+            dataSummary = "DỮ LIỆU MỚI NHẤT TỪ HỆ THỐNG: " + nifiData + "\n\n" + dataSummary;
+        }
+
+        if (results.isEmpty() && (nifiData == null || nifiData.isEmpty())) {
             logger.debug("No results found for studentId: {}", studentId);
             LearningRecommendationDTO rec = new LearningRecommendationDTO();
             rec.setStudentId(studentId);
@@ -65,13 +96,18 @@ public class RecommendationService implements IRecommendationService {
             return rec;
         }
 
-        // Tổng hợp dữ liệu thành text summary cho AI
-        String dataSummary = buildDataSummary(results);
+        // ✅ KIỂM TRA SMART TRIGGER: Dùng chung qua TierManager
+        if (shouldSkipAiUpdate(studentId, analysis.avgScore(), nifiData)) {
+            logger.info("Skipping AI update for studentId: {} - Data has not changed significantly.", studentId);
+            return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
+                    .map(this::convertToDTO)
+                    .orElseGet(() -> generateFallbackRecommendations(results, studentId));
+        }
 
         // Thử dùng AI để generate recommendations
         LearningRecommendationDTO newRecommendation = null;
         boolean isAiGenerated = false;
-        
+
         try {
             String aiLanguageName = languageService.getAiLanguageName("vi");
             newRecommendation = recommendationAiService.generateRecommendation(dataSummary, aiLanguageName);
@@ -90,10 +126,23 @@ public class RecommendationService implements IRecommendationService {
             isAiGenerated = false;
         }
 
-        // ✅ BƯỚC 3: Lưu vào cache
+        // ✅ BƯỚC 3: Lưu vào cache (Lưu mới, không xóa cũ để giữ history)
         saveRecommendationToCache(newRecommendation, isAiGenerated);
+        tierManagerService.resetCounter(studentId);
 
         return newRecommendation;
+    }
+
+    /**
+     * Logic thông minh để quyết định có nên gọi AI hay không
+     */
+    private boolean shouldSkipAiUpdate(Long studentId, double currentAvgScore, String nifiData) {
+        // 1. Phím tắt: nifiData luôn chạy
+        if (nifiData != null && !nifiData.isEmpty())
+            return false;
+
+        // 2. Delegate cho TierManager
+        return !tierManagerService.shouldTriggerTier2(studentId, currentAvgScore);
     }
 
     /**
@@ -279,25 +328,25 @@ public class RecommendationService implements IRecommendationService {
         try {
             if (entity.getWeakTopics() != null && !entity.getWeakTopics().isEmpty()) {
                 List<String> weakTopics = jsonService.getObjectMapper().readValue(
-                    entity.getWeakTopics(),
-                    new TypeReference<List<String>>() {}
-                );
+                        entity.getWeakTopics(),
+                        new TypeReference<List<String>>() {
+                        });
                 dto.setWeakTopics(weakTopics);
             }
 
             if (entity.getStrongTopics() != null && !entity.getStrongTopics().isEmpty()) {
                 List<String> strongTopics = jsonService.getObjectMapper().readValue(
-                    entity.getStrongTopics(),
-                    new TypeReference<List<String>>() {}
-                );
+                        entity.getStrongTopics(),
+                        new TypeReference<List<String>>() {
+                        });
                 dto.setStrongTopics(strongTopics);
             }
 
             if (entity.getRecommendedResources() != null && !entity.getRecommendedResources().isEmpty()) {
                 List<String> resources = jsonService.getObjectMapper().readValue(
-                    entity.getRecommendedResources(),
-                    new TypeReference<List<String>>() {}
-                );
+                        entity.getRecommendedResources(),
+                        new TypeReference<List<String>>() {
+                        });
                 dto.setRecommendedResources(resources);
             }
         } catch (Exception e) {
@@ -313,17 +362,17 @@ public class RecommendationService implements IRecommendationService {
     // ✅ THÊM: Save to cache
     private void saveRecommendationToCache(LearningRecommendationDTO dto, boolean isAiGenerated) {
         try {
-            // Xóa cache cũ nếu có
-            aiRecommendationRepository.deleteByStudentId(dto.getStudentId());
+            // ✅ BƯỚC 1: Lấy các bản ghi cũ chưa được đúc kết
+            List<AIRecommendation> unlinked = aiRecommendationRepository
+                    .findTop5ByStudentIdAndProgressIdIsNullOrderByGeneratedAtDesc(dto.getStudentId());
 
-            // Tạo entity mới
+            // ✅ BƯỚC 2: Tạo Entity mới
             AIRecommendation entity = new AIRecommendation();
             entity.setStudentId(dto.getStudentId());
             entity.setLearningPathSuggestion(dto.getLearningPathSuggestion());
             entity.setIsAiGenerated(isAiGenerated);
             entity.setLanguage("vi");
 
-            // Convert lists to JSON
             try {
                 if (dto.getWeakTopics() != null) {
                     entity.setWeakTopics(jsonService.toJson(dto.getWeakTopics()));
@@ -338,11 +387,24 @@ public class RecommendationService implements IRecommendationService {
                 logger.error("Error converting to JSON", e);
             }
 
-            aiRecommendationRepository.save(entity);
-            logger.info("Saved recommendation to cache for studentId: {}", dto.getStudentId());
+            AIRecommendation savedRec = aiRecommendationRepository.save(entity);
+
+            // ✅ BƯỚC 3: Liên kết với Progress hiện tại (nếu có)
+            aiProgressRepository.findTopByStudentIdOrderByGeneratedAtDesc(dto.getStudentId())
+                    .ifPresent(progress -> {
+                        savedRec.setProgressId(progress.getProgressId());
+                        aiRecommendationRepository.save(savedRec);
+
+                        // Cập nhật luôn cho các bản cũ chưa liên kết
+                        for (AIRecommendation old : unlinked) {
+                            old.setProgressId(progress.getProgressId());
+                            aiRecommendationRepository.save(old);
+                        }
+                    });
+
+            logger.info("Saved recommendation and linked to progress for studentId: {}", dto.getStudentId());
         } catch (Exception e) {
             logger.error("Error saving recommendation to cache", e);
-            // Không throw, chỉ log lỗi để không ảnh hưởng response
         }
     }
 

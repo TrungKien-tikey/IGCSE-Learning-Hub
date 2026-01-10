@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # =========================================
@@ -63,8 +62,50 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động cập nhật bảng nếu code thay đổi
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    networks:
+      - igcse-network
+
+  # 1.4 AI SERVICE (Java Spring Boot - Tự động hóa!)
+  ai-service:
+    build: ./ai-service
+    container_name: ai-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      # Kết nối DB qua tên service dùng chung "igcse_mysql" (tùy thuộc vào container_name hoặc service name)
+      # Trong docker-compose này, mysql service đặt tên là "mysql-db"
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/ai_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      # QUAN TRỌNG: Tự động cập nhật Database (Thêm bảng/cột mới) mà không cần chạy SQL thủ công
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - EXAM_SERVICE_URL=http://exam-service:8085
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
-      - mysql-db # Chờ MySQL chạy xong mới chạy cái này
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
+
+  # 1.5 EXAM SERVICE (Java Spring Boot - Tự động hóa!)
+  exam-service:
+    build: ./exam-service
+    container_name: exam-service
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      # Tự động tạo bảng/cột cho Exam Service
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - mysql-db
+      - rabbitmq
     networks:
       - igcse-network
 
@@ -145,6 +186,30 @@ services:
     networks:
       - igcse-network
 
+  # =========================================
+  # PHẦN 3: DATA ORCHESTRATION (Apache NiFi)
+  # =========================================
+  nifi:
+    image: apache/nifi:latest
+    container_name: igcse_nifi
+    restart: always
+    ports:
+      - "8091:8443"
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123 # Yêu cầu ít nhất 12 ký tự
+      - NIFI_WEB_HTTPS_PORT=8443
+      - NIFI_WEB_PROXY_HOST=localhost:8091
+    volumes:
+      - nifi_conf:/opt/nifi/nifi-current/conf
+      - nifi_database_repository:/opt/nifi/nifi-current/database_repository
+      - nifi_flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
+      - nifi_content_repository:/opt/nifi/nifi-current/content_repository
+      - nifi_provenance_repository:/opt/nifi/nifi-current/provenance_repository
+      - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
+    networks:
+      - igcse-network
+
 # =========================================
 # CONFIG CHUNG
 # =========================================
@@ -155,3 +220,8 @@ networks:
 volumes:
   mysql_data:
   kong_data:
+  nifi_conf:
+  nifi_database_repository:
+  nifi_flowfile_repository:
+  nifi_content_repository:
+  nifi_provenance_repository:
