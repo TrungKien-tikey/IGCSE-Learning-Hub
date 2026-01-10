@@ -5,8 +5,6 @@ import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.exception.*;
 import com.igcse.ai.repository.AIResultRepository;
-import com.igcse.ai.repository.AIInsightRepository;
-import com.igcse.ai.repository.AIRecommendationRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -32,22 +30,16 @@ public class AIService {
     private final AIResultRepository aiResultRepository;
     private final IGradingService gradingService;
     private final ILanguageService languageService;
-    private final AIInsightRepository aiInsightRepository;
-    private final AIRecommendationRepository aiRecommendationRepository;
 
     public AIService(
             JsonService jsonService,
             AIResultRepository aiResultRepository,
             IGradingService gradingService,
-            ILanguageService languageService,
-            AIInsightRepository aiInsightRepository,
-            AIRecommendationRepository aiRecommendationRepository) {
+            ILanguageService languageService) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
         this.languageService = languageService;
-        this.aiInsightRepository = aiInsightRepository;
-        this.aiRecommendationRepository = aiRecommendationRepository;
     }
 
     /**
@@ -149,14 +141,9 @@ public class AIService {
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
-        // Invalidate cache
-        if (result.getStudentId() != null) {
-            try {
-                aiInsightRepository.deleteByStudentId(result.getStudentId());
-                aiRecommendationRepository.deleteByStudentId(result.getStudentId());
-            } catch (Exception e) {
-            }
-        }
+        // Invalidate cache (Đã chuyển sang TierManagerService kiểm soát Tầng 2)
+        // Không xóa DB bừa bãi ở đây nữa để tránh mất lịch sử Tầng 2 khi chưa đủ bài
+        // thi
 
         return new DetailedGradingResultDTO(
                 attemptId, score, maxScore, feedback, confidence, lang, gradingResults);

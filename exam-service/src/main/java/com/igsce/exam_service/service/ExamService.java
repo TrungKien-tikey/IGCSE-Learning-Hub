@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.enums.QuestionType;
@@ -18,12 +18,12 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     public ExamService(ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
             QuestionRepository questionRepository,
-            org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate) {
+            RabbitTemplate rabbitTemplate) {
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionRepository = questionRepository;
