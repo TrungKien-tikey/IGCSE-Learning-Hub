@@ -13,7 +13,7 @@ export default function ManageExamsPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch("http://localhost:8080/api/exams")
+    fetch("/api/exams")
       .then((res) => res.json())
       .then((data) => setExams(Array.isArray(data) ? data : []))
       .catch((err) => console.error("Lỗi tải danh sách:", err));
@@ -31,7 +31,7 @@ export default function ManageExamsPage() {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`http://localhost:8080/api/exams/${examId}`, {
+      const res = await fetch(`/api/exams/${examId}`, {
         method: "DELETE",
       });
 
