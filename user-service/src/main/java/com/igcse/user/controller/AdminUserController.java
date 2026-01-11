@@ -37,4 +37,11 @@ public class AdminUserController {
     public void activateUser(@PathVariable Long id) {
         userService.activateUser(id);
     }
+
+    // API: Cập nhật Role (PATCH /api/admin/users/1/role)
+    @PatchMapping("/{id}/role")
+    public void updateUserRole(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String newRole = body.get("role");
+        userService.updateUserRole(id, newRole);
+    }
 }
