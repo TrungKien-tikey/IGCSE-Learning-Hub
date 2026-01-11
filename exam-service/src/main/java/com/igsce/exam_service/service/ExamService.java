@@ -2,17 +2,15 @@ package com.igsce.exam_service.service;
 
 import java.util.*;
 import java.time.LocalDateTime;
-import java.util.Map;
 
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.enums.QuestionType;
 import com.igsce.exam_service.dto.*;
-import com.igsce.exam_service.client.AIServiceClient;
 
 @Service
 public class ExamService {
@@ -20,16 +18,16 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
-    private final AIServiceClient aiServiceClient;
+    private final RabbitTemplate rabbitTemplate;
 
     public ExamService(ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
             QuestionRepository questionRepository,
-            AIServiceClient aiServiceClient) {
+            RabbitTemplate rabbitTemplate) {
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionRepository = questionRepository;
-        this.aiServiceClient = aiServiceClient;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @Transactional(readOnly = true)
@@ -83,36 +81,67 @@ public class ExamService {
     public void gradeEssaysAsync(Long attemptId) {
         System.out.println(">>> [ExamService] Starting async grading for attemptId: " + attemptId);
         try {
-            // Gọi AI Service qua HTTP REST API (Chạy mất vài giây -> vài chục giây)
-            // Giả sử ngôn ngữ chấm là tiếng Việt ("vi")
-            System.out.println(">>> [ExamService] Calling AI Service at " + aiServiceClient.getAiServiceUrl() + "...");
-            boolean success = aiServiceClient.markExam(attemptId, "vi");
-            System.out.println(">>> [ExamService] AI Service call result: " + success);
+            // 1. Lấy dữ liệu bài làm từ DB
+            ExamAttempt attempt = attemptRepository.findById(attemptId)
+                    .orElseThrow(() -> new RuntimeException("Attempt not found: " + attemptId));
 
-            if (!success) {
-                System.err.println(">>> [ExamService] Failed to call AI service for attemptId: " + attemptId);
+            // Force fetch questions/answers
+            if (attempt.getAnswers() != null) {
+                attempt.getAnswers().size();
+                attempt.getAnswers().forEach(a -> {
+                    if (a.getQuestion() != null) {
+                        a.getQuestion().getQuestionType();
+                        a.getQuestion().getEssayCorrectAnswer();
+                    }
+                });
             }
+
+            // 2. Build ExamAnswersDTO để gửi đi
+            ExamAnswersDTO dto = new ExamAnswersDTO();
+            dto.setAttemptId(attemptId);
+            dto.setStudentId(attempt.getUserId());
+            dto.setExamId(attempt.getExam() != null ? attempt.getExam().getExamId() : null);
+            dto.setLanguage("vi"); // Mặc định hoặc lấy từ user preference
+
+            List<AnswerDTO> answerDTOs = new ArrayList<>();
+            if (attempt.getAnswers() != null) {
+                for (Answer ans : attempt.getAnswers()) {
+                    Question q = ans.getQuestion();
+                    if (q == null)
+                        continue;
+
+                    if (q.getQuestionType() == QuestionType.ESSAY) {
+                        EssayAnswer essay = new EssayAnswer();
+                        essay.setQuestionId(q.getQuestionId());
+                        essay.setStudentAnswer(ans.getTextAnswer());
+                        essay.setQuestionText(q.getContent());
+                        essay.setReferenceAnswer(q.getEssayCorrectAnswer());
+                        essay.setMaxScore(q.getScore());
+                        answerDTOs.add(essay);
+                    } else {
+                        // Có thể thêm trắc nghiệm nếu muốn AI phân tích
+                    }
+                }
+            }
+            dto.setAnswers(answerDTOs);
+
+            // 3. Gửi Message qua RabbitMQ
+            System.out.println(">>> [ExamService] Sending grading request to RabbitMQ via exchange: "
+                    + com.igsce.exam_service.config.RabbitConfig.EXCHANGE_NAME);
+            rabbitTemplate.convertAndSend(
+                    com.igsce.exam_service.config.RabbitConfig.EXCHANGE_NAME,
+                    com.igsce.exam_service.config.RabbitConfig.ROUTING_KEY,
+                    dto);
+            System.out.println(">>> [ExamService] Message sent successfully!");
+
         } catch (Exception e) {
-            System.err.println(">>> [ExamService] Exception calling AI service: " + e.getMessage());
+            System.err.println(">>> [ExamService] Exception sending to RabbitMQ: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     @Transactional
     public Exam createExam(CreateExamRequest request) {
-        // #region agent log
-        try {
-            java.io.File logFile = new java.io.File("d:\\oop\\IGCSE-Learning-Hub\\.cursor\\debug.log");
-            logFile.getParentFile().mkdirs();
-            java.io.FileWriter fw = new java.io.FileWriter(logFile, true);
-            fw.write(String.format(
-                    "{\"timestamp\":%d,\"location\":\"ExamService.java:68\",\"message\":\"createExam service entry\",\"data\":{\"requestNotNull\":%s},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n",
-                    System.currentTimeMillis(), request != null ? "true" : "false"));
-            fw.close();
-        } catch (Exception logEx) {
-            System.err.println("Log write error: " + logEx.getMessage());
-        }
-        // #endregion
         try {
             if (request == null) {
                 throw new IllegalArgumentException("CreateExamRequest cannot be null");
@@ -132,18 +161,6 @@ public class ExamService {
 
             if (request.getQuestions() != null) {
                 System.out.println("Processing " + request.getQuestions().size() + " questions");
-                // #region agent log
-                try {
-                    java.io.File logFile = new java.io.File("d:\\oop\\IGCSE-Learning-Hub\\.cursor\\debug.log");
-                    java.io.FileWriter fw = new java.io.FileWriter(logFile, true);
-                    fw.write(String.format(
-                            "{\"timestamp\":%d,\"location\":\"ExamService.java:91\",\"message\":\"before processing questions\",\"data\":{\"questionsCount\":%d},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"C\"}\n",
-                            System.currentTimeMillis(), request.getQuestions().size()));
-                    fw.close();
-                } catch (Exception logEx) {
-                    System.err.println("Log write error: " + logEx.getMessage());
-                }
-                // #endregion
 
                 // [FIX 1] Tạo biến đếm bắt đầu từ 0 để tự động đánh số
                 int currentIndex = 0;
@@ -208,33 +225,9 @@ public class ExamService {
             }
 
             exam.setQuestions(questions);
-            // #region agent log
-            try {
-                java.io.File logFile = new java.io.File("d:\\oop\\IGCSE-Learning-Hub\\.cursor\\debug.log");
-                java.io.FileWriter fw = new java.io.FileWriter(logFile, true);
-                fw.write(String.format(
-                        "{\"timestamp\":%d,\"location\":\"ExamService.java:160\",\"message\":\"before save\",\"data\":{\"questionsCount\":%d},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"D\"}\n",
-                        System.currentTimeMillis(), questions.size()));
-                fw.close();
-            } catch (Exception logEx) {
-                System.err.println("Log write error: " + logEx.getMessage());
-            }
-            // #endregion
 
             System.out.println("Saving exam to database...");
             Exam savedExam = examRepository.save(exam);
-            // #region agent log
-            try {
-                java.io.File logFile = new java.io.File("d:\\oop\\IGCSE-Learning-Hub\\.cursor\\debug.log");
-                java.io.FileWriter fw = new java.io.FileWriter(logFile, true);
-                fw.write(String.format(
-                        "{\"timestamp\":%d,\"location\":\"ExamService.java:181\",\"message\":\"after save\",\"data\":{\"examId\":%d},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"D\"}\n",
-                        System.currentTimeMillis(), savedExam != null ? savedExam.getExamId() : -1));
-                fw.close();
-            } catch (Exception logEx) {
-                System.err.println("Log write error: " + logEx.getMessage());
-            }
-            // #endregion
             System.out.println("Exam saved successfully with ID: " + savedExam.getExamId());
 
             return savedExam;

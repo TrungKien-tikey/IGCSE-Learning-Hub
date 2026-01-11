@@ -15,33 +15,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
-@CrossOrigin(origins = { "http://localhost:3000", "http://localhost:3001", "http://localhost:5173",
-        "http://localhost:5174", "http://127.0.0.1:3000", "http://127.0.0.1:5173", "http://127.0.0.1:5174" })
 @RequiredArgsConstructor
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
 
     private final AIService aiService;
-
-    @PostMapping("/mark-exam/{attemptId}")
-    public ResponseEntity<Map<String, Object>> markExam(
-            @PathVariable Long attemptId,
-            @RequestParam(value = "language", defaultValue = "auto") String language) {
-
-        logger.info("Mark exam request - attemptId: {}, language: {}", attemptId, language);
-
-        try {
-            double score = aiService.evaluateExam(attemptId, language);
-            Map<String, Object> response = new HashMap<>();
-            response.put("attemptId", attemptId);
-            response.put("score", score);
-            response.put("passed", score >= 5.0);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            logger.error("Error marking exam for attemptId: {}", attemptId, e);
-            throw e;
-        }
-    }
 
     @GetMapping("/result/{attemptId}")
     public ResponseEntity<AIResultResponse> getResult(@PathVariable Long attemptId) {

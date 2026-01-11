@@ -38,90 +38,107 @@ public class AIInsight {
     @Column(name = "is_ai_generated", nullable = false)
     private Boolean isAiGenerated;
 
-    @Column(name = "generated_at", nullable = false)
+    @Column(name = "progress_id")
+    private Long progressId;
+
+    @Column(name = "generated_at", nullable = false, updatable = false)
     private Date generatedAt;
 
     @Column(name = "updated_at", nullable = false)
     private Date updatedAt;
 
+    @PrePersist
+    protected void onCreate() {
+        Date now = new Date();
+        this.generatedAt = now;
+        this.updatedAt = now;
+        if (this.isAiGenerated == null)
+            this.isAiGenerated = true;
+        if (this.language == null)
+            this.language = "vi";
+    }
 
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = new Date();
+    }
 
     // public Long getInsightId(){
-    //     return insightId;
+    // return insightId;
     // }
 
     // public void setInsightId(Long insightId){
-    //     this.insightId = insightId;
+    // this.insightId = insightId;
     // }
 
     // public Long getStudentId(){
-    //     return studentId;
+    // return studentId;
     // }
 
     // public void setStudentId(Long studentId){
-    //     this.studentId = studentId;
+    // this.studentId = studentId;
     // }
 
     // public String getOverallSummary(){
-    //     return overallSummary;
+    // return overallSummary;
     // }
 
     // public void setOverallSummary(String overallSummary){
-    //     this.overallSummary = overallSummary;
+    // this.overallSummary = overallSummary;
     // }
 
     // public String getKeyStrengths(){
-    //     return keyStrengths;    
+    // return keyStrengths;
     // }
 
     // public void setKeyStrengths(String keyStrengths){
-    //     this.keyStrengths = keyStrengths;
+    // this.keyStrengths = keyStrengths;
     // }
 
     // public String getAreasForImprovement(){
-    //     return areasForImprovement;
+    // return areasForImprovement;
     // }
     // public void setAreasForImprovement(String areasForImprovement) {
-    //     this.areasForImprovement = areasForImprovement;
+    // this.areasForImprovement = areasForImprovement;
     // }
 
     // public String getActionPlan() {
-    //     return actionPlan;
+    // return actionPlan;
     // }
 
     // public void setActionPlan(String actionPlan) {
-    //     this.actionPlan = actionPlan;
+    // this.actionPlan = actionPlan;
     // }
 
     // public String getLanguage() {
-    //     return language;
+    // return language;
     // }
 
     // public void setLanguage(String language) {
-    //     this.language = language;
+    // this.language = language;
     // }
 
     // public Boolean getIsAiGenerated() {
-    //     return isAiGenerated;
+    // return isAiGenerated;
     // }
 
     // public void setIsAiGenerated(Boolean isAiGenerated) {
-    //     this.isAiGenerated = isAiGenerated;
+    // this.isAiGenerated = isAiGenerated;
     // }
 
     // public Date getGeneratedAt() {
-    //     return generatedAt;
+    // return generatedAt;
     // }
 
     // public void setGeneratedAt(Date generatedAt) {
-    //     this.generatedAt = generatedAt;
+    // this.generatedAt = generatedAt;
     // }
 
     // public Date getUpdatedAt() {
-    //     return updatedAt;
+    // return updatedAt;
     // }
 
     // public void setUpdatedAt(Date updatedAt) {
-    //     this.updatedAt = updatedAt;
+    // this.updatedAt = updatedAt;
     // }
 }
