@@ -8,8 +8,13 @@ export default function AdminDashboard() {
 
     const fetchUsers = async () => {
         setLoading(true);
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch('http://localhost:8082/api/admin/users');
+            const res = await fetch('http://localhost:8083/api/admin/users', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data);
@@ -27,9 +32,13 @@ export default function AdminDashboard() {
     const handleDelete = async (userId) => {
         if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
 
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Xóa người dùng thành công!');
@@ -44,9 +53,13 @@ export default function AdminDashboard() {
     };
 
     const handleDeactivate = async (userId) => {
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/deactivate`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}/deactivate`, {
                 method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Vô hiệu hóa người dùng thành công!');
@@ -61,9 +74,13 @@ export default function AdminDashboard() {
     };
 
     const handleActivate = async (userId) => {
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/activate`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}/activate`, {
                 method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Kích hoạt người dùng thành công!');
