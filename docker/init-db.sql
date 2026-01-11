@@ -155,3 +155,8 @@ CREATE TABLE IF NOT EXISTS comments (
     content TEXT NOT NULL COMMENT 'Nội dung bình luận',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời gian tạo'
 );
+
+-- ============================================================================
+-- Database cho Course Service
+-- ============================================================================
+CREATE DATABASE IF NOT EXISTS course_db;
