@@ -1,5 +1,11 @@
--- Tạo database cho AI Service
+-- Tạo database cho các Service
+CREATE DATABASE IF NOT EXISTS auth_db;
+CREATE DATABASE IF NOT EXISTS user_db;
+CREATE DATABASE IF NOT EXISTS exam_db;
+CREATE DATABASE IF NOT EXISTS course_db;
 CREATE DATABASE IF NOT EXISTS ai_db;
+CREATE DATABASE IF NOT EXISTS communication_db;
+
 USE ai_db;
 
 -- ============================================================================
@@ -60,12 +66,12 @@ CREATE TABLE IF NOT EXISTS ai_insights (
     action_plan TEXT,
     language VARCHAR(10) DEFAULT 'vi',
     is_ai_generated BOOLEAN DEFAULT TRUE,
+    progress_id BIGINT DEFAULT NULL COMMENT 'ID của bản ghi tiến độ đã tổng hợp phân tích này',
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_student_id (student_id),
-    INDEX idx_generated_at (generated_at),
-    UNIQUE KEY uk_student_id (student_id)
+    INDEX idx_generated_at (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Bảng lưu gợi ý (Recommendation)
@@ -78,12 +84,43 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     learning_path_suggestion TEXT,
     language VARCHAR(10) DEFAULT 'vi',
     is_ai_generated BOOLEAN DEFAULT TRUE,
+    progress_id BIGINT DEFAULT NULL COMMENT 'ID của bản ghi tiến độ đã tổng hợp gợi ý này',
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_student_id (student_id),
-    INDEX idx_generated_at (generated_at),
-    UNIQUE KEY uk_student_id (student_id)
+    INDEX idx_generated_at (generated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng theo dõi tiến độ (Learning Progress)
+CREATE TABLE IF NOT EXISTS ai_learning_progress (
+    progress_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id BIGINT NOT NULL,
+    score_change DOUBLE DEFAULT 0.0 COMMENT 'Độ chênh lệch điểm trung bình',
+    trend_status VARCHAR(20) DEFAULT 'STABLE' COMMENT 'IMPROVING, STABLE, DECLINING',
+    mastered_topics TEXT COMMENT 'Chủ đề đã tiến bộ (JSON)',
+    persistent_weaknesses TEXT COMMENT 'Điểm yếu kéo dài (JSON)',
+    trend_summary TEXT COMMENT 'Tóm tắt xu hướng',
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    INDEX idx_student_id (student_id),
+    INDEX idx_generated_at (generated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ==========================================
+-- BẢNG PHÂN TÍCH NHANH (RULE-BASED - TẦNG 1)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS ai_pre_analysis (
+    pre_analysis_id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id BIGINT NOT NULL,
+    exam_count_since_last_ai INT DEFAULT 0,
+    logic_feedback TEXT,
+    avg_score DOUBLE,
+    key_strengths TEXT, -- JSON array
+    key_weaknesses TEXT, -- JSON array
+    generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_student_id (student_id),
+    INDEX idx_generated_at (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================================
