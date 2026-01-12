@@ -1,7 +1,10 @@
 package com.igcse.user.service;
 
+import com.igcse.user.config.RabbitMQConfig;
+import com.igcse.user.dto.UserEventDTO;
 import com.igcse.user.entity.User;
 import com.igcse.user.repository.UserRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -10,6 +13,9 @@ import java.util.List;
 public class UserService {
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
     public User getUserById(Long id) {
         return userRepository.findById(id).orElse(null);
@@ -22,7 +28,12 @@ public class UserService {
             if (avatar != null) {
                 user.setAvatar(avatar);
             }
-            return userRepository.save(user);
+            User savedUser = userRepository.save(user);
+
+            // Gửi event đồng bộ sang Auth Service
+            sendUserEvent("UPDATE", savedUser);
+
+            return savedUser;
         }
         return null;
     }
@@ -32,14 +43,22 @@ public class UserService {
     }
 
     public void deleteUser(Long id) {
-        userRepository.deleteById(id);
+        User user = getUserById(id);
+        if (user != null) {
+            // Gửi event xóa trước khi xóa khỏi DB
+            sendUserEvent("DELETE", user);
+            userRepository.deleteById(id);
+        }
     }
 
     public void deactivateUser(Long id) {
         User user = getUserById(id);
         if (user != null) {
             user.setActive(false);
-            userRepository.save(user);
+            User savedUser = userRepository.save(user);
+
+            // Gửi event đồng bộ sang Auth Service
+            sendUserEvent("DEACTIVATE", savedUser);
         }
     }
 
@@ -47,7 +66,43 @@ public class UserService {
         User user = getUserById(id);
         if (user != null) {
             user.setActive(true);
-            userRepository.save(user);
+            User savedUser = userRepository.save(user);
+
+            // Gửi event đồng bộ sang Auth Service
+            sendUserEvent("ACTIVATE", savedUser);
+        }
+    }
+
+    public void updateUserRole(Long id, String newRole) {
+        User user = getUserById(id);
+        if (user != null) {
+            user.setRole(newRole);
+            User savedUser = userRepository.save(user);
+
+            // Gửi event đồng bộ sang Auth Service
+            sendUserEvent("UPDATE", savedUser);
+        }
+    }
+
+    // ========== HELPER METHOD ==========
+    private void sendUserEvent(String action, User user) {
+        try {
+            UserEventDTO event = new UserEventDTO(
+                    action,
+                    user.getUserId(),
+                    user.getFullName(),
+                    user.getRole(),
+                    user.isActive());
+
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.USER_UPDATE_EXCHANGE,
+                    RabbitMQConfig.USER_UPDATE_ROUTING_KEY,
+                    event);
+
+            System.out.println(">>> [RabbitMQ] Da gui event " + action + " cho user: " + user.getUserId());
+
+        } catch (Exception e) {
+            System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
         }
     }
 }
