@@ -64,6 +64,29 @@ public class CourseController {
         }
     }
 
+    // API để Hiện khóa học lại
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<?> activateCourse(@PathVariable Long id) {
+        return courseService.activateCourse(id) ? ResponseEntity.ok("Đã hiện khóa học")
+                : ResponseEntity.status(404).body("Lỗi");
+    }
+
+    // 1. API lấy danh sách khóa học CỦA TÔI (Đã đăng ký)
+    @GetMapping("/my-courses")
+    public ResponseEntity<List<Course>> getMyCourses(@RequestParam Long userId) {
+        // Logic: Tìm trong bảng Enrollment xem user này học khóa nào
+        List<Course> courses = courseService.getCoursesByStudentId(userId);
+        return ResponseEntity.ok(courses);
+    }
+
+    // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
+    @GetMapping("/recommended")
+    public ResponseEntity<List<Course>> getRecommendedCourses(@RequestParam Long userId) {
+        // Logic: Lấy tất cả khóa Active TRỪ ĐI các khóa đã học
+        List<Course> courses = courseService.getRecommendedCourses(userId);
+        return ResponseEntity.ok(courses);
+    }
+
     // --- LESSON APIs (Task 2 - Chờ làm) ---
 
     // 1. Lấy danh sách bài học của 1 khóa
@@ -129,14 +152,25 @@ public class CourseController {
         return ResponseEntity.ok(courseService.searchCourses(keyword));
     }
 
-    // 2. API Ghi danh: POST /api/courses/{courseId}/enroll?userId=1
     @PostMapping("/{courseId}/enroll")
-    public ResponseEntity<?> enroll(@PathVariable Long courseId, @RequestParam Long userId) {
-        boolean success = courseService.enrollCourse(courseId, userId);
-        if (success) {
-            return ResponseEntity.ok("Ghi danh thành công!");
-        } else {
-            return ResponseEntity.badRequest().body("Ghi danh thất bại (Khóa học không tồn tại hoặc đã đăng ký rồi)");
+    public ResponseEntity<?> enrollCourse(@PathVariable Long courseId, @RequestParam Long userId) {
+        try {
+            boolean success = courseService.enrollCourse(courseId, userId);
+            if (success) {
+                return ResponseEntity.ok("Đăng ký thành công!");
+            } else {
+                return ResponseEntity.badRequest().body("Bạn đã đăng ký khóa này rồi hoặc khóa học không tồn tại.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/{courseId}/check-enrollment")
+    public ResponseEntity<Boolean> checkEnrollment(@PathVariable Long courseId, @RequestParam Long userId) {
+        // SỬA: Gọi qua Service
+        boolean enrolled = courseService.isStudentEnrolled(courseId, userId);
+
+        return ResponseEntity.ok(enrolled);
     }
 }

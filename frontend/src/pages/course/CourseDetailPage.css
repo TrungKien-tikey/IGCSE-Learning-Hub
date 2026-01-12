@@ -1,0 +1,251 @@
+.detail-page {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.container {
+    max-width: 1150px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.box-shadow {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
+
+/* HEADER */
+.detail-header {
+    background-color: #1c1d1f;
+    color: white;
+    padding: 40px 0;
+}
+
+.badge-cat {
+    background: #eceb98;
+    color: #333;
+    padding: 4px 8px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.header-text h1 {
+    font-size: 2.2rem;
+    margin: 15px 0;
+    font-weight: 800;
+}
+
+.desc {
+    font-size: 1.1rem;
+    max-width: 700px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.meta-info {
+    display: flex;
+    gap: 20px;
+    font-size: 0.9rem;
+    color: #e0e0e0;
+}
+
+/* BODY */
+.detail-body {
+    display: flex;
+    margin-top: -30px;
+    gap: 40px;
+    position: relative;
+    z-index: 10;
+}
+
+.left-col {
+    flex: 2;
+    margin-top: 30px;
+}
+
+.right-col {
+    flex: 1;
+}
+
+/* Section Content */
+.section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+}
+
+.section h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.4rem;
+    color: #333;
+}
+
+.learning-outcomes {
+    list-style: none;
+    padding: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.learning-outcomes li {
+    font-size: 0.95rem;
+    color: #555;
+}
+
+.course-stats-bar {
+    display: flex;
+    gap: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.syllabus-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fff;
+    transition: background 0.2s;
+}
+
+.syllabus-item:hover {
+    background: #fafafa;
+}
+
+.lesson-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.lesson-idx {
+    font-size: 0.8rem;
+    color: #888;
+    font-weight: bold;
+}
+
+.lesson-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.lock-icon {
+    font-size: 1.2rem;
+}
+
+/* CARD MUA HÀNG */
+.enroll-card {
+    background: white;
+    position: sticky;
+    top: 20px;
+    overflow: hidden;
+}
+
+.preview-video {
+    height: 180px;
+    background: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    cursor: pointer;
+    background-image: linear-gradient(45deg, #333, #555);
+}
+
+.play-btn {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    opacity: 0.8;
+}
+
+.card-content {
+    padding: 20px;
+}
+
+.price-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.price-current {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #333;
+}
+
+.price-original {
+    text-decoration: line-through;
+    color: #888;
+    font-size: 1.1rem;
+}
+
+.btn-main {
+    width: 100%;
+    padding: 15px;
+    border: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.btn-buy {
+    background: #a435f0;
+    color: white;
+}
+
+.btn-buy:hover {
+    background: #8710d8;
+}
+
+.btn-learning {
+    background: #28a745;
+    color: white;
+}
+
+/* Màu xanh lá cho nút vào học */
+.btn-learning:hover {
+    background: #218838;
+}
+
+.guarantee-text {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #666;
+    margin-top: 10px;
+    margin-bottom: 20px;
+}
+
+.features-list ul {
+    list-style: none;
+    padding: 0;
+    margin-top: 10px;
+}
+
+.features-list li {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #555;
+    padding-left: 20px;
+    position: relative;
+}
+
+.features-list li::before {
+    content: "•";
+    position: absolute;
+    left: 5px;
+    color: #333;
+    font-weight: bold;
+}

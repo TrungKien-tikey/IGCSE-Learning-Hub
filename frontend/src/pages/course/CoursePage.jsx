@@ -113,6 +113,16 @@ export default function CoursePage() {
       }
     }
   };
+  // 2. THÊM HÀM HIỆN (ACTIVATE)
+  const handleActivate = async (courseId) => {
+    try {
+      await axios.put(`${API_URL}/${courseId}/activate`);
+      alert("Khóa học đã hiển thị công khai!");
+      fetchCourses(); // Load lại danh sách
+    } catch (err) {
+      alert("Lỗi hiện khóa học");
+    }
+  };
 
   // --- HÀM CHUYỂN TRANG SOẠN BÀI (Dùng navigate) ---
   const handleGoToLessonPage = (courseId) => {
@@ -166,13 +176,25 @@ export default function CoursePage() {
                 <button onClick={() => openEditModal(course)} className="btn-action btn-edit">Sửa</button>
 
                 {/* Nút Ẩn */}
-                <button
-                  onClick={() => handleDeactivate(course.courseId)}
-                  className="btn-action"
-                  style={{ backgroundColor: '#ff9800', color: 'white' }}
-                >
-                  Ẩn
-                </button>
+                {course.active ? (
+                  <button
+                    onClick={() => handleDeactivate(course.courseId)}
+                    className="btn-action"
+                    style={{ backgroundColor: '#ff9800', color: 'white' }}
+                    title="Đang hiện -> Bấm để Ẩn"
+                  >
+                    Ẩn
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleActivate(course.courseId)}
+                    className="btn-action"
+                    style={{ backgroundColor: '#4caf50', color: 'white' }} // Màu xanh lá
+                    title="Đang ẩn -> Bấm để Hiện"
+                  >
+                    Hiện
+                  </button>
+                )}
 
                 <button onClick={() => handleDelete(course.courseId)} className="btn-action btn-delete">Xóa</button>
               </div>
