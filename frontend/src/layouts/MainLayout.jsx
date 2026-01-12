@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut, 
-  Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap, 
-  Home, Settings, TrendingUp 
+import {
+  LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
+  Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
+  Home, Settings, TrendingUp, ShoppingCart,
+  PlayCircle
 } from 'lucide-react';
 
 // Giả lập user (Sau này sẽ lấy từ Context/LocalStorage thực tế)
@@ -19,6 +20,10 @@ const menuItems = {
     { title: "Math Modules", icon: Calculator, url: "/modules" },
     { title: "My Progress", icon: BarChart3, url: "/progress" },
     { title: "Practice Exams", icon: GraduationCap, url: "/exams" },
+
+    // --- MỚI THÊM ĐỂ TEST ---
+    { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
+    { title: "Vào Lớp Học (Test)", icon: PlayCircle, url: "/learning/101" },
   ],
   teacher: [
     { title: "Overview", icon: LayoutDashboard, url: "/" },
@@ -46,7 +51,7 @@ const SidebarItem = ({ icon: Icon, text, url, active }) => (
 const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  
+
   // Xác định menu dựa trên role
   const role = mockUser.role || "student";
   const items = menuItems[role] || menuItems["student"];
@@ -66,7 +71,7 @@ const MainLayout = ({ children }) => {
           {/* Logo */}
           <div className="flex items-center space-x-2 mb-8">
             <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
-                <GraduationCap className="w-6 h-6 text-white" />
+              <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold text-gray-800 tracking-tight">IGCSE Hub</span>
           </div>
@@ -77,13 +82,13 @@ const MainLayout = ({ children }) => {
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Main Navigation</p>
               <ul className="space-y-1">
                 {items.map((item) => (
-                    <SidebarItem 
-                        key={item.title}
-                        icon={item.icon} 
-                        text={item.title} 
-                        url={item.url}
-                        active={location.pathname === item.url}
-                    />
+                  <SidebarItem
+                    key={item.title}
+                    icon={item.icon}
+                    text={item.title}
+                    url={item.url}
+                    active={location.pathname === item.url}
+                  />
                 ))}
               </ul>
             </div>
@@ -96,8 +101,8 @@ const MainLayout = ({ children }) => {
           <ul className="space-y-1">
             <SidebarItem icon={User} text="Profile" url="/profile" />
             <li onClick={handleLogout} className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
-                <LogOut size={20} />
-                <span className="font-medium">Logout</span>
+              <LogOut size={20} />
+              <span className="font-medium">Logout</span>
             </li>
           </ul>
         </div>
@@ -107,26 +112,26 @@ const MainLayout = ({ children }) => {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
-           <div className="text-sm font-medium text-gray-500">
-                {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
-           </div>
+          <div className="text-sm font-medium text-gray-500">
+            {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+          </div>
 
           {/* User Info */}
           <div className="flex items-center space-x-4">
-             <div className="text-right hidden sm:block">
-                <p className="text-sm font-bold text-gray-800">{mockUser.name}</p>
-                <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
-             </div>
-             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
-                 {mockUser.username.charAt(0).toUpperCase()}
-             </div>
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-bold text-gray-800">{mockUser.name}</p>
+              <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
+            </div>
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
+              {mockUser.username.charAt(0).toUpperCase()}
+            </div>
           </div>
         </header>
 
         {/* Main Scrollable Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-8">
           <div className="max-w-7xl mx-auto">
-             {children}
+            {children}
           </div>
         </main>
       </div>

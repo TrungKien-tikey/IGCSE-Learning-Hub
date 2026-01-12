@@ -25,6 +25,8 @@ import StudentDashboard from './pages/ai/StudentDashboard';
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
 import LessonPage from './pages/course/LessonPage';
+import CourseDetailPage from './pages/course/CourseDetailPage';
+import AllCoursesPage from './pages/course/AllCoursesPage';
 
 function App() {
   return (
@@ -56,6 +58,8 @@ function App() {
         <Route path="course/courses" element={<CoursePage />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/courses/:courseId/lessons" element={<LessonPage />} />
+        <Route path="/course-detail/:courseId" element={<CourseDetailPage />} />
+        <Route path="/all-courses" element={<AllCoursesPage />} />
 
         {/* --- AI SECTIONS (Dùng để test NiFi integration) --- */}
         <Route path="/ai" element={<AIHomePage />} />
