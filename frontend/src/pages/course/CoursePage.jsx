@@ -1,44 +1,32 @@
 // frontend/src/pages/CoursePage.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import './CoursePage.css'; // <--- QUAN TRỌNG: Import file CSS vừa tạo
-import LessonModal from './LessonModal'; // Import file vừa tạo
+import { useNavigate } from 'react-router-dom'; // Dùng để chuyển trang
+import './CoursePage.css';
+
 export default function CoursePage() {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
+  // State cho Modal Sửa/Thêm Khóa học
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [currentId, setCurrentId] = useState(null);
-  // ... các state cũ ...
-  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
-  const [selectedCourseForLesson, setSelectedCourseForLesson] = useState(null);
-
-  const openLessonModal = (course) => {
-    setSelectedCourseForLesson(course);
-    setIsLessonModalOpen(true);
-  };
 
   const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    price: '',
-    duration: ''
+    title: '', description: '', price: '', duration: ''
   });
 
   const API_URL = 'http://localhost:8082/api/courses';
 
   const fetchCourses = async () => {
-    setLoading(true);
     try {
       const response = await axios.get(API_URL);
-      console.log("Dữ liệu từ Server:", response.data);
       setCourses(response.data);
-      setError('');
     } catch (err) {
       console.error(err);
-      setError('Lỗi kết nối Backend! Hãy kiểm tra server.');
+      alert('Lỗi kết nối Backend! Hãy kiểm tra server.');
     } finally {
       setLoading(false);
     }
@@ -63,29 +51,21 @@ export default function CoursePage() {
   };
 
   const openEditModal = (course) => {
-    console.log("Dữ liệu khóa học được chọn:", course); // <--- Thêm dòng này
-    console.log("ID sẽ lưu:", course.courseId);
     setFormData({
       title: course.title,
       description: course.description,
       price: course.price,
-      duration: course.duration
+      duration: course.duration || ''
     });
     setCurrentId(course.courseId);
     setIsEditing(true);
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-  };
+  const closeModal = () => setIsModalOpen(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title || !formData.duration) {
-      alert("Vui lòng nhập Tên và Thời lượng!");
-      return;
-    }
     try {
       if (isEditing && currentId) {
         await axios.put(`${API_URL}/${currentId}`, formData);
@@ -97,8 +77,7 @@ export default function CoursePage() {
       fetchCourses();
       closeModal();
     } catch (err) {
-      console.error(err);
-      alert("Có lỗi xảy ra! " + (err.response?.data || err.message));
+      alert("Lỗi: " + (err.response?.data || err.message));
     }
   };
 
@@ -106,29 +85,49 @@ export default function CoursePage() {
     if (window.confirm("Bạn chắc chắn xóa khóa học này?")) {
       try {
         await axios.delete(`${API_URL}/${courseId}`);
+        // Cập nhật lại danh sách ngay lập tức
         setCourses(prev => prev.filter(c => c.courseId !== courseId));
         alert("Đã xóa thành công!");
       } catch (err) {
-        console.error(err);
-        alert("Không thể xóa!");
+        alert("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
       }
     }
   };
-  // Thêm hàm này bên dưới hàm handleDelete
+
+  // --- HÀM ẨN KHÓA HỌC ---
   const handleDeactivate = async (courseId) => {
     if (window.confirm("Bạn muốn ẩn khóa học này (Vô hiệu hóa)?")) {
       try {
-        // Gọi API deactivate của Backend
+        // Gọi API deactivate
         await axios.delete(`${API_URL}/${courseId}/deactivate`);
-
-        // Cập nhật lại giao diện (Ví dụ: đổi màu hoặc reload lại)
-        alert("Đã vô hiệu hóa thành công!");
-        fetchCourses(); // Load lại danh sách để thấy trạng thái mới
+        alert("Đã ẩn khóa học thành công!");
+        fetchCourses(); // Load lại để thấy trạng thái "Đã ẩn"
       } catch (err) {
         console.error(err);
-        alert("Lỗi: Không thể vô hiệu hóa.");
+        // Nếu lỗi 404: Nghĩa là Backend chưa có API này -> Cần Restart Server Java
+        if (err.response && err.response.status === 404) {
+          alert("Lỗi: Backend chưa cập nhật API ẩn. Hãy Restart Server Java!");
+        } else {
+          alert("Lỗi: Không thể vô hiệu hóa.");
+        }
       }
     }
+  };
+  // 2. THÊM HÀM HIỆN (ACTIVATE)
+  const handleActivate = async (courseId) => {
+    try {
+      await axios.put(`${API_URL}/${courseId}/activate`);
+      alert("Khóa học đã hiển thị công khai!");
+      fetchCourses(); // Load lại danh sách
+    } catch (err) {
+      alert("Lỗi hiện khóa học");
+    }
+  };
+
+  // --- HÀM CHUYỂN TRANG SOẠN BÀI (Dùng navigate) ---
+  const handleGoToLessonPage = (courseId) => {
+    // Chuyển hướng sang trang LessonPage (Trang mới hoàn toàn)
+    navigate(`/courses/${courseId}/lessons`);
   };
 
   return (
@@ -139,65 +138,72 @@ export default function CoursePage() {
         <div className="page-header">
           <div>
             <h1 className="page-title">Quản Lý Khóa Học</h1>
-            <p style={{ color: '#666', marginTop: '5px' }}>Danh sách các môn học IGCSE</p>
+            <p style={{ color: '#666' }}>Giáo viên: Nguyễn Văn A</p>
           </div>
           <button onClick={openAddModal} className="btn-add">
-            + Thêm Khóa Học
+            + Tạo Khóa Mới
           </button>
         </div>
 
-        {/* Thông báo lỗi */}
-        {error && <div style={{ background: '#ffebee', color: '#c62828', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>{error}</div>}
+        {/* Grid Danh sách */}
+        <div className="course-grid">
+          {courses.map((course) => (
+            <div key={course.courseId} className="course-card">
 
-        {/* Loading */}
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '50px', color: '#666' }}>Đang tải dữ liệu...</div>
-        ) : (
-          /* Grid Danh sách */
-          <div className="course-grid">
-            {courses.length === 0 ? <p>Chưa có dữ liệu.</p> : courses.map((course) => (
-              <div key={course.courseId} className="course-card">
-                <div className="card-body">
-                  <h2 className="course-title" title={course.title}>
-                    {course.title}
-                    {!course.active && <span style={{ color: 'red', fontSize: '0.8em' }}> (Đã ẩn)</span>}
-                  </h2>
-                  <p className="course-desc">
-                    {course.description || "Chưa có mô tả..."}
-                  </p>
-                  <div className="card-meta">
-                    <span className="price-tag">
-                      {course.price ? `$${course.price}` : 'Free'}
-                    </span>
-                    <span className="duration-tag">
-                      ⏱ {course.duration}
-                    </span>
-                  </div>
+              <div className="card-body">
+                <h2 className="course-title" title={course.title}>
+                  {course.title}
+                  {/* Hiển thị trạng thái ẩn nếu có */}
+                  {!course.active && <span style={{ color: 'red', fontSize: '0.8em' }}> (Đã ẩn)</span>}
+                </h2>
+                <p className="course-desc">{course.description}</p>
+                <div className="card-meta">
+                  <span className="price-tag">{course.price ? `$${course.price}` : 'Free'}</span>
+                  <span className="duration-tag">⏱ {course.duration}</span>
                 </div>
-                <div className="card-actions">
-                  <button onClick={() => openEditModal(course)} className="btn-action btn-edit">Sửa</button>
-                  {/* 1. THÊM NÚT VÔ HIỆU HÓA */}
+              </div>
+
+              <div className="card-actions">
+                {/* Nút Soạn bài -> Chuyển trang */}
+                <button
+                  onClick={() => handleGoToLessonPage(course.courseId)}
+                  className="btn-action"
+                  style={{ backgroundColor: '#673ab7', color: 'white', flex: 2 }}
+                >
+                  📚 Soạn Bài
+                </button>
+
+                <button onClick={() => openEditModal(course)} className="btn-action btn-edit">Sửa</button>
+
+                {/* Nút Ẩn */}
+                {course.active ? (
                   <button
                     onClick={() => handleDeactivate(course.courseId)}
-                    className="btn-action btn-warning"
-                    title="Tạm ẩn khóa học"
-                    style={{ backgroundColor: '#ff9800', color: 'white' }} // Style nhanh
+                    className="btn-action"
+                    style={{ backgroundColor: '#ff9800', color: 'white' }}
+                    title="Đang hiện -> Bấm để Ẩn"
                   >
                     Ẩn
                   </button>
-
-                  {/* Sửa lời gọi hàm xóa: truyền courseId */}
-                  <button onClick={() => handleDelete(course.courseId)} className="btn-action btn-delete">Xóa</button>
-                  <button onClick={() => openLessonModal(course)} className="btn-action" style={{ backgroundColor: '#673ab7', color: 'white' }}>
-                    Bài học
+                ) : (
+                  <button
+                    onClick={() => handleActivate(course.courseId)}
+                    className="btn-action"
+                    style={{ backgroundColor: '#4caf50', color: 'white' }} // Màu xanh lá
+                    title="Đang ẩn -> Bấm để Hiện"
+                  >
+                    Hiện
                   </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+                )}
 
-        {/* Modal Popup */}
+                <button onClick={() => handleDelete(course.courseId)} className="btn-action btn-delete">Xóa</button>
+              </div>
+
+            </div>
+          ))}
+        </div>
+
+        {/* Modal Popup (Chỉ dành cho Thêm/Sửa Course) */}
         {isModalOpen && (
           <div className="modal-overlay">
             <div className="modal-content">
@@ -209,16 +215,16 @@ export default function CoursePage() {
                 <div className="modal-body">
                   <div className="form-group">
                     <label>Tên khóa học</label>
-                    <input name="title" value={formData.title} onChange={handleInputChange} className="form-input" placeholder="Nhập tên môn học..." required />
+                    <input name="title" value={formData.title} onChange={handleInputChange} className="form-input" required />
                   </div>
                   <div className="form-group">
                     <label>Mô tả</label>
-                    <textarea name="description" rows="3" value={formData.description} onChange={handleInputChange} className="form-textarea" placeholder="Mô tả nội dung..." />
+                    <textarea name="description" rows="3" value={formData.description} onChange={handleInputChange} className="form-textarea" />
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
                       <label>Giá ($)</label>
-                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="0" />
+                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" />
                     </div>
                     <div className="form-group" style={{ flex: 1 }}>
                       <label>Thời lượng</label>
@@ -234,12 +240,10 @@ export default function CoursePage() {
             </div>
           </div>
         )}
+
+        {/* TUYỆT ĐỐI KHÔNG ĐỂ THẺ <LessonModal> Ở ĐÂY NỮA */}
+
       </div>
-      <LessonModal
-        course={selectedCourseForLesson}
-        isOpen={isLessonModalOpen}
-        onClose={() => setIsLessonModalOpen(false)}
-      />
     </div>
   );
 }
