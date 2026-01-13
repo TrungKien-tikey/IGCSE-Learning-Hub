@@ -14,18 +14,21 @@ import java.util.List;
 @Service
 public class CourseService {
 
-    @Autowired private CourseRepository courseRepository;
-    @Autowired private LessonRepository lessonRepository;
-    @Autowired private EnrollmentRepository enrollmentRepository;
+    @Autowired
+    private CourseRepository courseRepository;
+    @Autowired
+    private LessonRepository lessonRepository;
+    @Autowired
+    private EnrollmentRepository enrollmentRepository;
 
     // ==========================================
     // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
     // ==========================================
 
     // Bỏ chữ "String keyword" trong ngoặc đi
-public List<Course> getAllCourses() {
-    return courseRepository.findAll();
-}
+    public List<Course> getAllCourses() {
+        return courseRepository.findAll();
+    }
 
     public Course getCourseById(Long id) {
         return courseRepository.findById(id).orElse(null);
@@ -39,7 +42,7 @@ public List<Course> getAllCourses() {
         if (course.getPrice() != null && course.getPrice() < 0) {
             throw new RuntimeException("Giá khóa học không được nhỏ hơn 0!");
         }
-        
+
         course.setActive(true);
         return courseRepository.save(course);
     }
@@ -78,6 +81,29 @@ public List<Course> getAllCourses() {
         return false;
     }
 
+    // Trong CourseService.java
+    public boolean activateCourse(Long id) {
+        Course course = getCourseById(id);
+        if (course != null) {
+            course.setActive(true); // Chuyển thành true (Hiện)
+            courseRepository.save(course);
+            return true;
+        }
+        return false;
+    }
+
+    public List<Course> getCoursesByStudentId(Long userId) {
+        return courseRepository.findCoursesByStudentId(userId);
+    }
+
+    public List<Course> getRecommendedCourses(Long userId) {
+        return courseRepository.findRecommendedCourses(userId);
+    }
+
+    public boolean isStudentEnrolled(Long courseId, Long userId) {
+        return enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId);
+    }
+
     // ==========================================
     // PHẦN 2: LESSON MANAGEMENT (Task 2 - Giữ nguyên chờ làm)
     // ==========================================
@@ -100,7 +126,8 @@ public List<Course> getAllCourses() {
         return lessonRepository.findById(lessonId).orElse(null);
     }
 
-    public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl, String resourceUrl) {
+    public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl,
+            String resourceUrl) {
         Lesson lesson = getLessonById(lessonId);
         if (lesson != null) {
             // Gọi hàm update mới bên Entity
@@ -121,7 +148,7 @@ public List<Course> getAllCourses() {
     // ==========================================
     // PHẦN 3: ENROLLMENT (Task 3 - Giữ nguyên chờ làm)
     // ==========================================
-    
+
     // 1. Tìm kiếm khóa học
     public List<Course> searchCourses(String keyword) {
         if (keyword != null && !keyword.trim().isEmpty()) {
@@ -136,7 +163,7 @@ public List<Course> getAllCourses() {
         if (enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId)) {
             return false; // Đã đăng ký rồi thì thôi
         }
-        
+
         // Kiểm tra 2: Khóa học có tồn tại và đang mở không?
         Course course = getCourseById(courseId);
         if (course != null && course.isActive()) {

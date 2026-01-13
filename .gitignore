@@ -11,6 +11,10 @@
 .project
 .factorypath
 .sts4-cache
+.vscode/*
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/settings.json
 
 # Java / Spring Boot / Maven
 target/
@@ -23,6 +27,8 @@ build/
 *.war
 *.ear
 build_log.txt
+replay_pid*.log
+*.log.temp
 
 # Node / React / Frontend
 node_modules/
@@ -37,6 +43,16 @@ yarn-error.log*
 .pnpm-debug.log*
 .eslintcache
 .stylelintcache
+
+AI_Grading_Postman_Collection.json
+create_sample_essay_answer.sql
+AI_GRADING_FLOW.md
+
+.vite/
+**/.vite/
+.next/
+**/.next/
+
 
 # Logs & OS
 logs/
