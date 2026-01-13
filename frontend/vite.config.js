@@ -9,19 +9,17 @@ export default defineConfig({
   },
   server: {
     proxy: {
-
-      // Các request bắt đầu bằng /api/v1/auth sẽ đi tới Auth Service (port 8080)
-      '/api/v1/auth': {
-        target: 'http://localhost:8080',
+      // =================================================================
+      // CẤU HÌNH GATEWAY CHUẨN (Tất cả đi qua Kong Port 8000)
+      // =================================================================
+      
+      // Mọi request bắt đầu bằng /api (gồm cả /auth, /users...) 
+      // sẽ được chuyển hướng sang Kong Gateway.
+      '/api': {
+        target: 'http://localhost:8000', 
         changeOrigin: true,
         secure: false,
-      },
-      // Các request bắt đầu bằng /api/users sẽ đi tới User Service (port 8083)
-      '/api/users': {
-        target: 'http://localhost:8083',
-
-        changeOrigin: true,
-        secure: false,
+        // rewrite: (path) => path.replace(/^\/api/, ''), // Giữ dòng này comment lại (vì Kong Route của bạn đang khớp cả cụm /api/v1/auth)
       },
     },
   },
