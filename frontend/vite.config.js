@@ -21,6 +21,12 @@ export default defineConfig({
         secure: false,
         // rewrite: (path) => path.replace(/^\/api/, ''), // Giữ dòng này comment lại (vì Kong Route của bạn đang khớp cả cụm /api/v1/auth)
       },
+      // Các request bắt đầu bằng /api/exams sẽ đi tới Exam Service (port 8085)
+      '/api/exams': {
+        target: 'http://localhost:8085',
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
 })
