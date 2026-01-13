@@ -23,6 +23,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Các request bắt đầu bằng /api/exams sẽ đi tới Exam Service (port 8085)
+      '/api/exams': {
+        target: 'http://localhost:8085',
+        changeOrigin: true,
+        secure: false,
+      }
     },
   },
 })
