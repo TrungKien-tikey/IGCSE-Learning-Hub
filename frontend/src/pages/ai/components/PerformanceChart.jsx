@@ -6,7 +6,8 @@ import { BarChart3, Star, TrendingUp, AlertCircle } from "lucide-react";
  */
 export default function PerformanceChart({ data }) {
     // data là object { "Môn A": 8.5, "Môn B": 7.2, ... }
-    const subjects = Object.entries(data || {});
+    // Sắp xếp bài mới nhất (Z-A) để bài có ID cao hơn/tên sau hiển thị ở đầu
+    const subjects = Object.entries(data || {}).sort((a, b) => b[0].localeCompare(a[0]));
 
     if (!subjects.length) {
         return (
@@ -87,32 +88,35 @@ export default function PerformanceChart({ data }) {
             </div>
 
             <div className="p-6">
-                {/* Bars */}
-                <div className="space-y-4">
+                {/* Bars - Added scrollable container */}
+                <div className="space-y-4 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar scroll-smooth">
                     {subjects.map(([subject, score]) => {
-                        const percentage = (score / maxScore) * 100;
-                        const info = getScoreInfo(score);
+                        const scoreNum = parseFloat(score);
+                        const percentage = (scoreNum / maxScore) * 100;
+                        const info = getScoreInfo(scoreNum);
                         const Icon = info.icon;
 
                         return (
-                            <div key={subject} className={`p-3 rounded-xl ${info.lightBg}`}>
-                                <div className="flex justify-between items-center mb-2">
+                            <div key={subject} className={`p-4 rounded-2xl ${info.lightBg} transition-all hover:scale-[1.01] hover:shadow-sm border border-transparent hover:border-white/50`}>
+                                <div className="flex justify-between items-center mb-3">
                                     <div className="flex items-center gap-2">
-                                        <Icon className={`w-4 h-4 ${info.color}`} />
-                                        <span className="text-slate-700 font-medium">{subject}</span>
+                                        <div className={`p-1.5 rounded-lg ${info.bgColor} bg-opacity-10`}>
+                                            <Icon className={`w-4 h-4 ${info.color}`} />
+                                        </div>
+                                        <span className="text-slate-700 font-bold">{subject}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className={`text-xs font-medium ${info.color}`}>
+                                    <div className="flex items-center gap-3">
+                                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${info.bgColor} bg-opacity-20 ${info.color}`}>
                                             {info.label}
                                         </span>
-                                        <span className={`font-bold text-lg ${info.color}`}>
-                                            {score.toFixed(1)}
+                                        <span className={`font-black text-xl ${info.color}`}>
+                                            {scoreNum.toFixed(1)}
                                         </span>
                                     </div>
                                 </div>
-                                <div className="h-3 bg-white/80 rounded-full overflow-hidden shadow-inner">
+                                <div className="h-2.5 bg-slate-200/50 rounded-full overflow-hidden shadow-inner border border-slate-100">
                                     <div
-                                        className={`h-full rounded-full ${info.bgColor}`}
+                                        className={`h-full rounded-full ${info.bgColor} shadow-sm transition-all duration-1000 ease-out`}
                                         style={{ width: `${percentage}%` }}
                                     />
                                 </div>

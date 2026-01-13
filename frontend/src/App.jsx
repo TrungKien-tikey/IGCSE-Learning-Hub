@@ -21,6 +21,8 @@ import CreateExamPage from './pages/exams/ExamCreate';
 import AIHomePage from './pages/ai/AIHomePage';
 import AIResultPage from './pages/ai/AIResultPage';
 import StudentDashboard from './pages/ai/StudentDashboard';
+import TeacherDashboard from './pages/ai/TeacherDashboard';
+import AdminDashboardAI from './pages/ai/AdminDashboard'; // Thêm AI để tránh trùng tên với AdminDashboard có sẵn
 
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
@@ -71,6 +73,8 @@ function App() {
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
         <Route path="/ai/dashboard/student" element={<StudentDashboard />} />
+        <Route path="/ai/dashboard/teacher" element={<TeacherDashboard />} />
+        <Route path="/ai/dashboard/admin" element={<AdminDashboardAI />} />
 
         {/* --- XỬ LÝ LỖI --- */}
         {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}

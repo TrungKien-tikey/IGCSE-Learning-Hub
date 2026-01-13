@@ -12,7 +12,7 @@ public interface AIRecommendationRepository extends JpaRepository<AIRecommendati
 
     Optional<AIRecommendation> findTopByStudentIdOrderByGeneratedAtDesc(Long studentId);
 
-    List<AIRecommendation> findTop5ByStudentIdAndProgressIdIsNullOrderByGeneratedAtDesc(Long studentId);
+    Optional<AIRecommendation> findTopByStudentIdAndIsAiGeneratedTrueOrderByGeneratedAtDesc(Long studentId);
 
-    void deleteByStudentId(Long studentId);
+    List<AIRecommendation> findTop5ByStudentIdOrderByGeneratedAtDesc(Long studentId);
 }

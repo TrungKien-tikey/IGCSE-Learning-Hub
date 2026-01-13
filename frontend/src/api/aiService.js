@@ -3,7 +3,7 @@
  * Centralized API calls for AI module
  */
 
-const AI_SERVICE_BASE_URL = "http://localhost:8082/api/ai";
+const AI_SERVICE_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
 
 /**
  * Custom error class for API errors

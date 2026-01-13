@@ -1,11 +1,18 @@
 package com.igcse.ai.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.util.Date;
 
 /**
  * Lớp AIResult lưu trữ kết quả chấm điểm do AI Service tạo ra
  */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "ai_results")
 public class AIResult {
@@ -39,6 +46,9 @@ public class AIResult {
     @Column
     private Long examId; // ID bài thi
 
+    @Column
+    private Long classId; // ID lớp học
+
     @Column(columnDefinition = "TEXT")
     private String details; // JSON chi tiết kết quả chấm từng câu
 
@@ -48,9 +58,13 @@ public class AIResult {
     @Column(name = "answers_hash", length = 64)
     private String answersHash; // MD5 hash của answers JSON để validate cache
 
-    // ===== Constructor =====
-    public AIResult() {
-    }
+    @Column(name = "multiple_choice_score")
+    private Double multipleChoiceScore; // Điểm phần trắc nghiệm
+
+    @Column(name = "essay_score")
+    private Double essayScore; // Điểm phần tự luận
+
+
 
     public AIResult(Long attemptId, Double score, String feedback) {
         this.attemptId = attemptId;
@@ -68,103 +82,6 @@ public class AIResult {
         this.gradedAt = new Date();
         this.language = language;
         this.confidence = confidence;
-    }
-
-    // ===== Getter & Setter =====
-    public Long getResultId() {
-        return resultId;
-    }
-
-    public void setResultId(Long resultId) {
-        this.resultId = resultId;
-    }
-
-    public Long getAttemptId() {
-        return attemptId;
-    }
-
-    public void setAttemptId(Long attemptId) {
-        this.attemptId = attemptId;
-    }
-
-    public Double getScore() {
-        return score;
-    }
-
-    public void setScore(Double score) {
-        this.score = score;
-    }
-
-    public String getFeedback() {
-        return feedback;
-    }
-
-    public void setFeedback(String feedback) {
-        this.feedback = feedback;
-    }
-
-    public Date getGradedAt() {
-        return gradedAt;
-    }
-
-    public void setGradedAt(Date gradedAt) {
-        this.gradedAt = gradedAt;
-    }
-
-    public String getLanguage() {
-        return language;
-    }
-
-    public void setLanguage(String language) {
-        this.language = language;
-    }
-
-    public Double getConfidence() {
-        return confidence;
-    }
-
-    public void setConfidence(Double confidence) {
-        this.confidence = confidence;
-    }
-
-    public Long getStudentId() {
-        return studentId;
-    }
-
-    public void setStudentId(Long studentId) {
-        this.studentId = studentId;
-    }
-
-    public Long getExamId() {
-        return examId;
-    }
-
-    public void setExamId(Long examId) {
-        this.examId = examId;
-    }
-
-    public String getDetails() {
-        return details;
-    }
-
-    public void setDetails(String details) {
-        this.details = details;
-    }
-
-    public String getEvaluationMethod() {
-        return evaluationMethod;
-    }
-
-    public void setEvaluationMethod(String evaluationMethod) {
-        this.evaluationMethod = evaluationMethod;
-    }
-
-    public String getAnswersHash() {
-        return answersHash;
-    }
-
-    public void setAnswersHash(String answersHash) {
-        this.answersHash = answersHash;
     }
 
     /**
