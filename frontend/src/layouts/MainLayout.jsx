@@ -23,7 +23,7 @@ const menuItems = {
 
     // --- MỚI THÊM ĐỂ TEST ---
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
-    { title: "Vào Lớp Học (Test)", icon: PlayCircle, url: "/learning/101" },
+    { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
   ],
   teacher: [
     { title: "Overview", icon: LayoutDashboard, url: "/" },
