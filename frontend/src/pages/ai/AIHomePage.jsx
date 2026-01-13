@@ -24,7 +24,8 @@ export default function AIHomePage() {
         setError("");
 
         try {
-            const res = await fetch(`http://localhost:8082/api/ai/result/${attemptId}`);
+            const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
+            const res = await fetch(`${aiServiceUrl}/result/${attemptId}`);
             if (!res.ok) {
                 throw new Error("Không tìm thấy kết quả với Attempt ID này");
             }

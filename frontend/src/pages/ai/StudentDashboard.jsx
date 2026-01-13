@@ -190,12 +190,71 @@ export default function StudentDashboard() {
                 )}
 
                 {/* Charts & Recommendations */}
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-2 gap-6 mb-10">
                     {statistics?.subjectPerformance && (
                         <PerformanceChart data={statistics.subjectPerformance} />
                     )}
                     {recommendations && <RecommendationPanel data={recommendations} />}
                 </div>
+
+                {/* SECTION: Exam History Table */}
+                {statistics?.recentExams && statistics.recentExams.length > 0 && (
+                    <section className="mt-10">
+                        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                            <span className="w-8 h-0.5 bg-indigo-400 rounded" />
+                            Lịch sử bài thi chi tiết
+                        </h2>
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200">
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Mã bài thi</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Ngày nộp</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Trắc nghiệm</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Tự luận</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Tổng điểm</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {statistics.recentExams.map((exam) => (
+                                            <tr key={exam.attemptId} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-slate-800">
+                                                    #{exam.attemptId}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                    {new Date(exam.date).toLocaleDateString("vi-VN")}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold border border-blue-100">
+                                                        {exam.mcScore != null ? exam.mcScore.toFixed(1) : "-"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="px-2 py-1 bg-violet-50 text-violet-600 rounded-lg text-sm font-semibold border border-violet-100">
+                                                        {exam.essayScore != null ? exam.essayScore.toFixed(1) : "-"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span
+                                                        className={`text-lg font-bold ${exam.totalScore >= 8
+                                                            ? "text-emerald-500"
+                                                            : exam.totalScore >= 5
+                                                                ? "text-indigo-500"
+                                                                : "text-orange-500"
+                                                            }`}
+                                                    >
+                                                        {exam.totalScore?.toFixed(1) || "0.0"}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </div>
         </div>
     );

@@ -10,21 +10,13 @@ public interface InsightAiService {
 
         @SystemMessage("""
                         You are an experienced IGCSE (Cambridge) academic advisor.
-
-                        You analyze student performance specifically for the IGCSE level (ages 14–16),
-                        aligning feedback with:
-                        - IGCSE subject expectations
-                        - Assessment Objectives (AO)
-                        - Exam-style skills and mark scheme awareness
+                        You analyze student performance specifically for the IGCSE level (ages 14–16).
 
                         You must output a structured JSON object matching the AIInsightDTO class:
                         - overallSummary: Clear, age-appropriate summary referencing IGCSE performance.
                         - keyStrengths: 3–5 strengths relevant to IGCSE skills.
                         - areasForImprovement: 3–5 weaknesses linked to exam performance.
-                        - actionPlan: Practical, IGCSE-focused actions (past papers, exam techniques, skills practice).
-
-                        Keep the tone encouraging, clear, and suitable for IGCSE students.
-                        Use the requested language.
+                        - actionPlan: Practical, IGCSE-focused actions.
 
                         IMPORTANT: You MUST provide the final report ONLY in the specified language: {{language}}.
                         Do NOT mix languages.
@@ -32,10 +24,9 @@ public interface InsightAiService {
 
         @UserMessage("""
                         Data Summary: {{dataSummary}}
-
                         Language: {{language}}
 
-                        Generate the insight report now.
+                        Generate the personalized insight report now.
                         """)
         AIInsightDTO generateInsight(
                         @V("dataSummary") String dataSummary,

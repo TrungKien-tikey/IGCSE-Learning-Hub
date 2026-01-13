@@ -9,7 +9,8 @@ export default function AdminDashboard() {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:8082/api/admin/users');
+            const adminApiUrl = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:8082/api/admin";
+            const res = await fetch(`${adminApiUrl}/users`);
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data);

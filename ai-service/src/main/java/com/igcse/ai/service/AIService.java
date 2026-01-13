@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AIService {
@@ -243,6 +244,22 @@ public class AIService {
         } catch (Exception e) {
             logger.error("Error calculating hash for answers", e);
             return null;
+        }
+    }
+
+    @Transactional
+    public void updateComponentScores(Long attemptId, Double mcScore, Double essayScore, Long classId) {
+        logger.info("Updating component scores for attemptId: {}, MC: {}, Essay: {}, Class: {}",
+                attemptId, mcScore, essayScore, classId);
+        Optional<AIResult> resultOpt = aiResultRepository.findByAttemptId(attemptId);
+        if (resultOpt.isPresent()) {
+            AIResult result = resultOpt.get();
+            result.setMultipleChoiceScore(mcScore);
+            result.setEssayScore(essayScore);
+            if (classId != null) {
+                result.setClassId(classId);
+            }
+            aiResultRepository.save(result);
         }
     }
 }
