@@ -1,26 +1,23 @@
-package com.igcse.ai.controller.thongKe;
+package com.igcse.ai.controller.aiChamDiem;
 
 import com.igcse.ai.dto.thongKe.ClassStatisticsDTO;
 import com.igcse.ai.dto.thongKe.StudentStatisticsDTO;
 import com.igcse.ai.service.ass.thongKe.IStatisticsService;
-
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai/statistics")
+@RequiredArgsConstructor
+@CrossOrigin(originPatterns = "*")
 public class StatisticsController {
-
+    private static final Logger logger = LoggerFactory.getLogger(StatisticsController.class);
     private final IStatisticsService statisticsService;
-
-    public StatisticsController(IStatisticsService statisticsService) {
-        this.statisticsService = statisticsService;
-    }
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<StudentStatisticsDTO> getStudentStatistics(@PathVariable Long studentId) {
@@ -29,6 +26,7 @@ public class StatisticsController {
 
     @GetMapping("/class/{classId}")
     public ResponseEntity<ClassStatisticsDTO> getClassStatistics(@PathVariable Long classId) {
+        logger.info("Teacher Dashboard: Fetching stats for class {}", classId);
         return ResponseEntity.ok(statisticsService.getClassStatistics(classId));
     }
 

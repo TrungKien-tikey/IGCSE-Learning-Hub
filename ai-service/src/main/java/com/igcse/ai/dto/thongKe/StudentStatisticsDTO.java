@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.Map;
+import java.util.List;
+import java.util.Date;
 
 /**
  * DTO cho thống kê học sinh
@@ -20,4 +22,18 @@ public class StudentStatisticsDTO {
     private double lowestScore;
     private Map<String, Double> subjectPerformance; // Môn học -> Điểm TB
     private double improvementRate; // Tỉ lệ cải thiện so với tháng trước
+
+    private List<ExamStat> recentExams; // Danh sách các bài thi gần nhất
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ExamStat {
+        private Long attemptId;
+        private String examName;
+        private Double totalScore;
+        private Double mcScore;
+        private Double essayScore;
+        private Date date;
+    }
 }

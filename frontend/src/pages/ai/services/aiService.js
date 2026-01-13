@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:8082/api/ai";
+const API_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
 
 export const getAttemptInsight = async (attemptId) => {
     try {
