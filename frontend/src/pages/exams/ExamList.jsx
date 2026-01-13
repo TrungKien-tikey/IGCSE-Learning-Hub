@@ -3,23 +3,24 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const CURRENT_USER_ID = 1;
+const CURRENT_USER_ID = 1; // Giả định user ID = 1
 const CURRENT_USER_ROLE = "TEACHER";
 
 export default function ExamListPage() {
-  // 1. Tách biệt danh sách gốc (allExams) và danh sách hiển thị (filteredExams)
   const [allExams, setAllExams] = useState([]); 
   const [filteredExams, setFilteredExams] = useState([]);
   
-  // 2. State cho bộ lọc
-  const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL', 'OPEN', 'EXPIRED'
+  // 1. [MỚI] State để lưu số lần đã làm của từng bài thi { examId: số_lần }
+  const [userAttempts, setUserAttempts] = useState({});
+
+  const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
 
   const [role, setRole] = useState(CURRENT_USER_ROLE);
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
 
-  // Effect 1: Tải dữ liệu và đồng hồ
+  // Effect 1: Tải danh sách bài thi
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60000);
     
@@ -30,10 +31,9 @@ export default function ExamListPage() {
       })
       .then((data) => {
         if (Array.isArray(data)) {
-          // Chỉ lấy các bài thi Active (không bị xóa mềm)
           const activeExams = data.filter((exam) => exam.isActive === true);
           setAllExams(activeExams);
-          setFilteredExams(activeExams); // Mặc định hiển thị hết
+          setFilteredExams(activeExams);
         } else {
           setAllExams([]);
           setFilteredExams([]);
@@ -46,11 +46,35 @@ export default function ExamListPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Effect 2: Logic Lọc dữ liệu (Chạy mỗi khi search, đổi filter, hoặc thời gian trôi qua)
+  // 2. [MỚI] Effect tải lịch sử làm bài để đếm số lượt
+  useEffect(() => {
+    // Gọi API lấy lịch sử (Endpoint này bạn đã thêm ở bước trước)
+    fetch(`/api/exams/history?userId=${CURRENT_USER_ID}`)
+      .then(res => {
+        if(res.ok) return res.json();
+        return [];
+      })
+      .then(data => {
+        // Chuyển mảng lịch sử thành Map đếm: { 101: 2, 102: 1 } (ExamId: Số lần)
+        const counts = {};
+        if (Array.isArray(data)) {
+            data.forEach(attempt => {
+                // Lấy ID bài thi từ object attempt (tuỳ cấu trúc JSON trả về)
+                const eId = attempt.exam?.examId || attempt.examId;
+                if (eId) {
+                    counts[eId] = (counts[eId] || 0) + 1;
+                }
+            });
+        }
+        setUserAttempts(counts);
+      })
+      .catch(err => console.error("Lỗi tải lịch sử:", err));
+  }, []);
+
+  // Effect 3: Logic Lọc dữ liệu
   useEffect(() => {
     let result = [...allExams];
 
-    // Lọc theo từ khóa tìm kiếm
     if (searchTerm) {
       result = result.filter(exam => 
         exam.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -58,14 +82,13 @@ export default function ExamListPage() {
       );
     }
 
-    // Lọc theo trạng thái (Đang mở / Hết hạn)
     if (filterStatus !== "ALL") {
       result = result.filter(exam => {
         const hasEndTime = !!exam.endTime;
         const isExpired = hasEndTime && new Date(exam.endTime) < now;
         
-        if (filterStatus === "OPEN") return !isExpired;     // Lấy cái chưa hết hạn
-        if (filterStatus === "EXPIRED") return isExpired;   // Lấy cái đã hết hạn
+        if (filterStatus === "OPEN") return !isExpired;
+        if (filterStatus === "EXPIRED") return isExpired;
         return true;
       });
     }
@@ -88,7 +111,7 @@ export default function ExamListPage() {
       const data = await res.json();
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
     } catch (error) {
-      alert(error.message || "Lỗi khi bắt đầu bài thi. Vui lòng thử lại!");
+      alert(error.message || "Lỗi khi bắt đầu bài thi.");
     }
   };
 
@@ -114,9 +137,7 @@ export default function ExamListPage() {
         )}
       </div>
 
-      {/* --- PHẦN BỘ LỌC VÀ TÌM KIẾM MỚI --- */}
       <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-        {/* Ô tìm kiếm */}
         <div className="w-full md:w-1/2 relative">
             <input 
                 type="text" 
@@ -127,43 +148,26 @@ export default function ExamListPage() {
             />
         </div>
 
-        {/* Các nút lọc trạng thái */}
         <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button 
-                onClick={() => setFilterStatus("ALL")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "ALL" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Tất cả
-            </button>
-            <button 
-                onClick={() => setFilterStatus("OPEN")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "OPEN" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Đang mở
-            </button>
-            <button 
-                onClick={() => setFilterStatus("EXPIRED")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "EXPIRED" ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Đã kết thúc
-            </button>
+            <button onClick={() => setFilterStatus("ALL")} className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "ALL" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>Tất cả</button>
+            <button onClick={() => setFilterStatus("OPEN")} className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "OPEN" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>Đang mở</button>
+            <button onClick={() => setFilterStatus("EXPIRED")} className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "EXPIRED" ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}>Đã kết thúc</button>
         </div>
       </div>
-      {/* ----------------------------------- */}
-
-      {filteredExams.length === 0 && (
-        <div className="text-center py-10 bg-gray-50 rounded border-2 border-dashed">
-          <p className="text-gray-500">
-             {allExams.length === 0 ? "Hiện không có bài kiểm tra nào." : "Không tìm thấy kết quả phù hợp."}
-          </p>
-        </div>
-      )}
 
       <div className="space-y-4">
         {filteredExams.map((exam, index) => {
           const hasEndTime = !!exam.endTime;
           const isExpired = hasEndTime && new Date(exam.endTime) < now;
+          
+          // 3. [MỚI] Logic kiểm tra số lượt
+          const attemptsMade = userAttempts[exam.examId] || 0;
+          const maxAttempts = exam.maxAttempts || 1; 
+          const isLimitReached = attemptsMade >= maxAttempts;
+          
+          // Điều kiện được phép làm bài: Chưa hết hạn VÀ Chưa hết lượt
           const isOpen = !isExpired;
+          const canTakeExam = isOpen && !isLimitReached;
 
           return (
             <div
@@ -180,9 +184,12 @@ export default function ExamListPage() {
                     <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded border border-blue-100">
                       {exam.duration} phút
                     </span>
-                    <span className="text-purple-600 font-medium bg-purple-50 px-2 py-1 rounded border border-purple-100">
-                      {exam.maxAttempts || 1} lượt làm
+                    
+                    {/* 4. [MỚI] Hiển thị số lượt đã làm */}
+                    <span className={`font-medium px-2 py-1 rounded border ${isLimitReached ? 'bg-red-50 text-red-600 border-red-200' : 'text-purple-600 bg-purple-50 border-purple-100'}`}>
+                      {attemptsMade} / {maxAttempts} lượt
                     </span>
+
                     {hasEndTime && (
                       <span className={`px-2 py-1 rounded border ${isExpired ? 'bg-red-50 text-red-600 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
                         {isExpired ? 'Hết hạn: ' : 'Hạn chót: '} {formatDate(exam.endTime)}
@@ -193,14 +200,19 @@ export default function ExamListPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* 5. [MỚI] Nút bấm đổi màu theo trạng thái */}
                 <button
                   onClick={() => startExam(exam.examId || 0)}
-                  disabled={!isOpen}
+                  disabled={!canTakeExam}
                   className={`px-5 py-2 rounded transition font-medium min-w-[120px] shadow-sm
-                        ${isOpen ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'}
+                        ${canTakeExam 
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' // Nút Xanh (Được làm)
+                            : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'   // Nút Đen (Bị khoá)
+                        }
                     `}
                 >
-                  {isOpen ? 'Làm bài' : 'Hết hạn'}
+                  {isLimitReached ? 'Hết lượt' : (isOpen ? 'Làm bài' : 'Hết hạn')}
                 </button>
               </div>
             </div>
