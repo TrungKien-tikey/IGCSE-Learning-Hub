@@ -8,9 +8,13 @@ export default function AdminDashboard() {
 
     const fetchUsers = async () => {
         setLoading(true);
+        const token = localStorage.getItem('accessToken');
         try {
-            const adminApiUrl = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:8082/api/admin";
-            const res = await fetch(`${adminApiUrl}/users`);
+            const res = await fetch('http://localhost:8083/api/admin/users', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (!res.ok) throw new Error('Failed to fetch users');
             const data = await res.json();
             setUsers(data);
@@ -28,9 +32,13 @@ export default function AdminDashboard() {
     const handleDelete = async (userId) => {
         if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
 
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}`, {
                 method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Xóa người dùng thành công!');
@@ -45,9 +53,13 @@ export default function AdminDashboard() {
     };
 
     const handleDeactivate = async (userId) => {
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/deactivate`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}/deactivate`, {
                 method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Vô hiệu hóa người dùng thành công!');
@@ -62,9 +74,13 @@ export default function AdminDashboard() {
     };
 
     const handleActivate = async (userId) => {
+        const token = localStorage.getItem('accessToken');
         try {
-            const res = await fetch(`http://localhost:8082/api/admin/users/${userId}/activate`, {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}/activate`, {
                 method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
             });
             if (res.ok) {
                 alert('Kích hoạt người dùng thành công!');
@@ -74,6 +90,29 @@ export default function AdminDashboard() {
             }
         } catch (error) {
             console.error('Error activating user:', error);
+            alert('Không thể kết nối đến server.');
+        }
+    };
+
+    const handleUpdateRole = async (userId, newRole) => {
+        const token = localStorage.getItem('accessToken');
+        try {
+            const res = await fetch(`http://localhost:8083/api/admin/users/${userId}/role`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ role: newRole })
+            });
+            if (res.ok) {
+                alert('Cập nhật quyền thành công!');
+                fetchUsers();
+            } else {
+                alert('Lỗi khi cập nhật quyền!');
+            }
+        } catch (error) {
+            console.error('Error updating role:', error);
             alert('Không thể kết nối đến server.');
         }
     };
@@ -156,9 +195,17 @@ export default function AdminDashboard() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.fullName}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{user.email}</td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                                {user.role}
-                                            </span>
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => handleUpdateRole(user.userId, e.target.value)}
+                                                className="block w-full pl-3 pr-10 py-1 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md bg-blue-50 text-blue-800 font-semibold"
+                                            >
+                                                <option value="ADMIN">ADMIN</option>
+                                                <option value="STUDENT">STUDENT</option>
+                                                <option value="TEACHER">TEACHER</option>
+                                                <option value="MANAGER">MANAGER</option>
+                                                <option value="PARENT">PARENT</option>
+                                            </select>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'

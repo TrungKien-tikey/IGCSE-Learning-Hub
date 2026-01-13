@@ -61,7 +61,7 @@
   background: white;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   border: 1px solid #e1e4e8;
   display: flex;
@@ -70,7 +70,7 @@
 
 .course-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
   border-color: #007bff;
 }
 
@@ -94,7 +94,8 @@
   line-height: 1.5;
   margin-bottom: 20px;
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Giới hạn 3 dòng */
+  -webkit-line-clamp: 3;
+  /* Giới hạn 3 dòng */
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -147,19 +148,28 @@
   background-color: #fffbeb;
   border-color: #fcd34d;
 }
-.btn-edit:hover { background-color: #fef3c7; }
+
+.btn-edit:hover {
+  background-color: #fef3c7;
+}
 
 .btn-delete {
   color: #dc3545;
   background-color: #fff5f5;
   border-color: #f8d7da;
 }
-.btn-delete:hover { background-color: #ffebeb; }
+
+.btn-delete:hover {
+  background-color: #ffebeb;
+}
 
 /* MODAL (Popup) */
 .modal-overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
@@ -188,16 +198,26 @@
   align-items: center;
 }
 
-.modal-header h3 { margin: 0; font-size: 18px; }
-
-.btn-close {
-  background: none; border: none; color: white;
-  font-size: 24px; cursor: pointer;
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
 }
 
-.modal-body { padding: 20px; }
+.btn-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+}
 
-.form-group { margin-bottom: 15px; }
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
 
 .form-group label {
   display: block;
@@ -207,7 +227,8 @@
   font-size: 14px;
 }
 
-.form-input, .form-textarea {
+.form-input,
+.form-textarea {
   width: 100%;
   padding: 10px;
   border: 1px solid #d1d5db;
@@ -215,10 +236,12 @@
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
-  box-sizing: border-box; /* Quan trọng để không bị vỡ layout */
+  box-sizing: border-box;
+  /* Quan trọng để không bị vỡ layout */
 }
 
-.form-input:focus, .form-textarea:focus {
+.form-input:focus,
+.form-textarea:focus {
   border-color: #007bff;
   box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
 }
@@ -251,5 +274,24 @@
 }
 
 /* Animation */
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

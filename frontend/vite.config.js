@@ -9,8 +9,17 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': {
-        target: 'http://localhost:8085', // Chuyển hướng các request /api sang Backend 8080
+
+      // Các request bắt đầu bằng /api/v1/auth sẽ đi tới Auth Service (port 8080)
+      '/api/v1/auth': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      // Các request bắt đầu bằng /api/users sẽ đi tới User Service (port 8083)
+      '/api/users': {
+        target: 'http://localhost:8083',
+
         changeOrigin: true,
         secure: false,
       },
