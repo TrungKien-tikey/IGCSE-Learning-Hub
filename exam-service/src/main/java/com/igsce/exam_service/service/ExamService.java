@@ -53,6 +53,10 @@ public class ExamService {
                 .orElseThrow();
     }
 
+    public List<ExamAttempt> getAttemptsByUserId(Long userId) {
+        return attemptRepository.findByUserId(userId);
+    }
+
     @Transactional(readOnly = true)
     public ExamAttempt getExamAttempt(Long attemptId) {
         System.out.println(">>> [ExamService] API GET /attempt/" + attemptId + " called.");

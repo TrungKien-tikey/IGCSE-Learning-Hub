@@ -12,7 +12,7 @@ import java.util.List;
 @RequestMapping("/api/exams")
 @RequiredArgsConstructor
 // Vẫn giữ CrossOrigin để phòng hờ, nhưng Proxy đã giải quyết vấn đề này
-@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:5174" }) 
+@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:5174" })
 public class ExamController {
 
     private final ExamService examService;
@@ -45,6 +45,15 @@ public class ExamController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/history")
+    public ResponseEntity<?> getUserExamHistory(@RequestParam Long userId) {
+        try {
+            return ResponseEntity.ok(examService.getAttemptsByUserId(userId));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Lỗi lấy lịch sử: " + e.getMessage());
         }
     }
 
