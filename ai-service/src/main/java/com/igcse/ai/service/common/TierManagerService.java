@@ -4,6 +4,8 @@ import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIRecommendation;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.repository.AIRecommendationRepository;
+import com.igcse.ai.repository.StudyContextRepository;
+import com.igcse.ai.entity.StudyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +21,7 @@ public class TierManagerService {
     private static final Logger logger = LoggerFactory.getLogger(TierManagerService.class);
 
     private final AIRecommendationRepository aiRecommendationRepository;
+    private final StudyContextRepository studyContextRepository;
     private final JsonService jsonService;
 
     @Value("${ai.analysis.tier2.exam-threshold:3}")
@@ -28,8 +31,10 @@ public class TierManagerService {
     private double scoreDropThreshold;
 
     public TierManagerService(AIRecommendationRepository aiRecommendationRepository,
+            StudyContextRepository studyContextRepository,
             JsonService jsonService) {
         this.aiRecommendationRepository = aiRecommendationRepository;
+        this.studyContextRepository = studyContextRepository;
         this.jsonService = jsonService;
     }
 
@@ -50,10 +55,9 @@ public class TierManagerService {
      * DTO chứa metadata từ NiFi
      */
     public record AnalysisMetadata(
-            String studentName,
-            String persona) {
+            String studentName) {
         public static AnalysisMetadata defaultMetadata() {
-            return new AnalysisMetadata("Học sinh", "default");
+            return new AnalysisMetadata("Học sinh");
         }
     }
 
@@ -126,35 +130,61 @@ public class TierManagerService {
 
     /**
      * Trích xuất metadata (Tên, Persona) từ chuỗi JSON NiFi gửi sang.
+     * LUỒNG ƯU TIÊN:
+     * 1. Kiểm tra bảng `study_contexts` (Dữ liệu đã được lưu bền vững).
+     * 2. Nếu không có, thử parse trực tiếp từ `nifiData` truyền vào (Dữ liệu tạm
+     * thời).
+     * 3. Nếu vẫn không có, lấy từ bản ghi AIRecommendation gần nhất.
      */
     public AnalysisMetadata extractMetadata(Long studentId, String nifiData) {
-        if (nifiData == null || nifiData.isEmpty()) {
-            return AnalysisMetadata.defaultMetadata();
+        // Ưu tiên 1: Lấy từ bảng study_contexts (Đã được lưu từ AIController trước khi
+        // trigger)
+        Optional<StudyContext> storedContext = studyContextRepository.findByStudentId(studentId);
+        if (storedContext.isPresent()) {
+            logger.debug("Sử dụng bối cảnh đã lưu từ database cho student: {}", studentId);
+            return new AnalysisMetadata(storedContext.get().getStudentName());
         }
 
-        try {
-            List<Map<String, Object>> records = jsonService.getObjectMapper().readValue(
-                    nifiData, new TypeReference<List<Map<String, Object>>>() {
-                    });
-            for (Map<String, Object> record : records) {
-                Object sid = record.get("user_id");
-                if (sid == null)
-                    sid = record.get("studentId");
+        // Ưu tiên 2: Fallback parse từ nifiData truyền trực tiếp (nếu DB chưa kịp
+        // update hoặc lỗi)
+        if (nifiData != null && !nifiData.isEmpty()) {
+            logger.debug("Không tìm thấy bối cảnh trong DB, thử parse trực tiếp nifiData cho student: {}", studentId);
+            try {
+                List<Map<String, Object>> records = jsonService.getObjectMapper().readValue(
+                        nifiData, new TypeReference<List<Map<String, Object>>>() {
+                        });
+                for (Map<String, Object> record : records) {
+                    Object sid = record.get("user_id");
+                    if (sid == null)
+                        sid = record.get("studentId");
 
-                if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
-                    String persona = "default";
-                    if (record.containsKey("mode"))
-                        persona = record.get("mode").toString();
-                    else if (record.containsKey("persona"))
-                        persona = record.get("persona").toString();
+                    if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
+                        String studentName = "Học sinh";
+                        if (record.containsKey("student_name"))
+                            studentName = record.get("student_name").toString();
+                        else if (record.containsKey("name"))
+                            studentName = record.get("name").toString();
 
-                    return new AnalysisMetadata("Học sinh", persona);
+                        return new AnalysisMetadata(studentName);
+                    }
                 }
+            } catch (Exception e) {
+                logger.warn("Could not parse nifiData for metadata: {}", e.getMessage());
             }
-        } catch (Exception e) {
-            logger.warn("Could not parse nifiData for metadata: {}", e.getMessage());
         }
-        return AnalysisMetadata.defaultMetadata();
+
+        // Ưu tiên 3: Lấy từ bản ghi phân tích cũ nhất trong DB
+        return findLatestMetadata(studentId);
+    }
+
+    /**
+     * Tìm metadata gần nhất từ database cho học sinh
+     */
+    private AnalysisMetadata findLatestMetadata(Long studentId) {
+        return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
+                .map(r -> new AnalysisMetadata(
+                        r.getStudentName() != null ? r.getStudentName() : "Học sinh"))
+                .orElse(AnalysisMetadata.defaultMetadata());
     }
 
     /**

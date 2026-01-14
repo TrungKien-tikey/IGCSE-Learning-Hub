@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS ai_results (
     exam_id BIGINT COMMENT 'ID bài thi (từ exam_db.exams.exam_id)',
     details TEXT COMMENT 'JSON chứa chi tiết điểm từng câu (tham chiếu đến exam_db.exam_answers)',
     evaluation_method VARCHAR(50) DEFAULT 'LOCAL_RULE_BASED' COMMENT 'Phương pháp chấm: AI_GPT4_LANGCHAIN hoặc LOCAL_RULE_BASED',
+    student_name VARCHAR(255) COMMENT 'Tên học sinh (đồng bộ từ auth_db)',
     INDEX idx_attempt_id (attempt_id),
     INDEX idx_student_id (student_id),
     INDEX idx_exam_id (exam_id),
@@ -64,6 +65,7 @@ CREATE TABLE IF NOT EXISTS ai_insights (
     key_strengths TEXT COMMENT 'JSON array',
     areas_for_improvement TEXT COMMENT 'JSON array',
     action_plan TEXT,
+    student_name VARCHAR(255),
     language VARCHAR(10) DEFAULT 'vi',
     is_ai_generated BOOLEAN DEFAULT TRUE,
     total_exams_analyzed INT,
@@ -83,6 +85,7 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     strong_topics TEXT COMMENT 'JSON array',
     recommended_resources TEXT COMMENT 'JSON array',
     learning_path_suggestion TEXT,
+    student_name VARCHAR(255),
     language VARCHAR(10) DEFAULT 'vi',
     is_ai_generated BOOLEAN DEFAULT TRUE,
     total_exams_analyzed INT,
@@ -93,6 +96,23 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     INDEX idx_student_id (student_id),
     INDEX idx_generated_at (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Bảng lưu trữ bối cảnh học tập (Study Context) từ NiFi
+CREATE TABLE IF NOT EXISTS study_contexts (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    student_id BIGINT NOT NULL UNIQUE,
+    student_name VARCHAR(255),
+    class_id BIGINT,
+    context_data TEXT COMMENT 'Dữ liệu JSON chi tiết từ NiFi (persona, chuyên cần...)',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_student_id (student_id),
+    INDEX idx_updated_at (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Đảm bảo auth_db.users có cột persona
+USE auth_db;
+USE ai_db;
 
 
 -- ============================================================================

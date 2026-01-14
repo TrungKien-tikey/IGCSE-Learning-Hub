@@ -23,6 +23,7 @@ public interface InsightAiService {
                         """)
 
         @UserMessage("""
+                        Student Name: {{studentName}}
                         Data Summary: {{dataSummary}}
                         Language: {{language}}
 
@@ -30,5 +31,6 @@ public interface InsightAiService {
                         """)
         AIInsightDTO generateInsight(
                         @V("dataSummary") String dataSummary,
+                        @V("studentName") String studentName,
                         @V("language") String language);
 }

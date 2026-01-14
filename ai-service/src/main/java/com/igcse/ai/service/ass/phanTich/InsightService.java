@@ -91,6 +91,9 @@ public class InsightService implements IInsightService {
         AIInsightDTO synthesisResult = null;
 
         try {
+            // ✅ Trích xuất Metadata (Tên, Persona)
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+
             // Lấy các bản phân tích cũ làm ngữ cảnh so sánh
             List<AIInsight> recentLogics = aiInsightRepository
                     .findTop5ByStudentIdOrderByGeneratedAtDesc(studentId);
@@ -112,12 +115,13 @@ public class InsightService implements IInsightService {
                     "\n\nHãy so sánh sự tiến bộ dựa trên bối cảnh cũ và các mẩu phân tích mới để đưa ra đánh giá đúc kết sâu sắc.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            synthesisResult = insightAiService.generateInsight(dataSummary, aiLanguageName);
+            synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                    aiLanguageName);
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
                 // Lưu kết quả AI kèm snapshot dữ liệu
-                AIInsight aiEntity = saveInsightToCacheInternal(synthesisResult, true, analysis);
+                AIInsight aiEntity = saveInsightToCacheInternal(synthesisResult, true, analysis, metadata);
 
                 return convertToDTO(aiEntity);
             }
@@ -132,13 +136,18 @@ public class InsightService implements IInsightService {
      * Lưu kết quả phân tích AI vào cơ sở dữ liệu làm cache.
      */
     private AIInsight saveInsightToCacheInternal(AIInsightDTO dto, boolean isAiGenerated,
-            TierManagerService.AnalysisData analysis) {
+            TierManagerService.AnalysisData analysis, TierManagerService.AnalysisMetadata metadata) {
         AIInsight entity = new AIInsight();
         entity.setStudentId(dto.getStudentId());
         entity.setOverallSummary(dto.getOverallSummary());
         entity.setActionPlan(dto.getActionPlan());
         entity.setIsAiGenerated(isAiGenerated);
         entity.setGeneratedAt(new Date());
+
+        // Lưu Metadata
+        if (metadata != null) {
+            entity.setStudentName(metadata.studentName());
+        }
 
         // Lưu snapshot dữ liệu bài thi được dùng để phân tích
         if (analysis != null) {
@@ -188,8 +197,11 @@ public class InsightService implements IInsightService {
             // Append explicit attempt info
             dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
 
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
+
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            insight = insightAiService.generateInsight(dataSummary, aiLanguageName);
+            insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                    aiLanguageName);
 
             if (insight != null) {
                 insight.setStudentId(studentId);
