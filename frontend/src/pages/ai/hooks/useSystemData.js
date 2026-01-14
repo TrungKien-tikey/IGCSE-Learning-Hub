@@ -10,7 +10,12 @@ export const useSystemData = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const response = await axios.get('http://localhost:8082/api/ai/statistics/system');
+                const token = localStorage.getItem('accessToken');
+                const response = await axios.get('/api/ai/statistics/system', {
+                    headers: {
+                        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                    }
+                });
                 setData(response.data);
                 setError(null);
             } catch (err) {

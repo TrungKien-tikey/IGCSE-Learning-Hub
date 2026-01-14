@@ -22,14 +22,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExamAttemptNotFound(
             ExamAttemptNotFoundException ex, WebRequest request) {
         logger.warn("Exam attempt not found: {}", ex.getDetails());
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.NOT_FOUND.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.NOT_FOUND.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -37,14 +36,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAIResultNotFound(
             AIResultNotFoundException ex, WebRequest request) {
         logger.warn("AI result not found: {}", ex.getDetails());
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.NOT_FOUND.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.NOT_FOUND.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
@@ -52,14 +50,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidLanguage(
             InvalidLanguageException ex, WebRequest request) {
         logger.warn("Invalid language parameter: {}", ex.getDetails());
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -67,37 +64,35 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExamGradingException(
             ExamGradingException ex, WebRequest request) {
         logger.error("Exam grading failed: {}", ex.getDetails(), ex);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationExceptions(
             MethodArgumentNotValidException ex, WebRequest request) {
-        
+
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        
+
         logger.warn("Validation failed: {}", errors);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.BAD_REQUEST.value(),
-            "VALIDATION_ERROR",
-            "Validation failed for input parameters",
-            errors.toString(),
-            LocalDateTime.now()
-        );
+                HttpStatus.BAD_REQUEST.value(),
+                "VALIDATION_ERROR",
+                "Validation failed for input parameters",
+                errors.toString(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -105,14 +100,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExamServiceConnectionException(
             ExamServiceConnectionException ex, WebRequest request) {
         logger.error("Exam Service connection error: {}", ex.getDetails(), ex);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.SERVICE_UNAVAILABLE.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
     }
 
@@ -120,15 +114,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExamServiceClientException(
             ExamServiceClientException ex, WebRequest request) {
         logger.warn("Exam Service client error: {}", ex.getDetails());
-        
+
         HttpStatus status = ex.getHttpStatus() != null ? ex.getHttpStatus() : HttpStatus.BAD_REQUEST;
         ErrorResponse errorResponse = new ErrorResponse(
-            status.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                status.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, status);
     }
 
@@ -136,15 +129,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleExamServiceServerException(
             ExamServiceServerException ex, WebRequest request) {
         logger.error("Exam Service server error: {}", ex.getDetails(), ex);
-        
+
         HttpStatus status = ex.getHttpStatus() != null ? ex.getHttpStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
         ErrorResponse errorResponse = new ErrorResponse(
-            status.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                status.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, status);
     }
 
@@ -152,14 +144,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleInvalidResponseException(
             InvalidResponseException ex, WebRequest request) {
         logger.error("Invalid response error: {}", ex.getDetails(), ex);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.BAD_GATEWAY.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.BAD_GATEWAY.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_GATEWAY);
     }
 
@@ -167,29 +158,42 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleAIServiceException(
             AIServiceException ex, WebRequest request) {
         logger.error("AI Service error: {}", ex.getDetails(), ex);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            ex.getErrorCode(),
-            ex.getMessage(),
-            ex.getDetails(),
-            LocalDateTime.now()
-        );
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ex.getErrorCode(),
+                ex.getMessage(),
+                ex.getDetails(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(
+            org.springframework.web.servlet.resource.NoResourceFoundException ex, WebRequest request) {
+        // Log at debug level to avoid cluttering logs for common 404s
+        logger.debug("Resource not found: {}", ex.getResourcePath());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                "RESOURCE_NOT_FOUND",
+                "The requested resource was not found",
+                ex.getResourcePath(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(
             Exception ex, WebRequest request) {
         logger.error("Unexpected error occurred", ex);
-        
+
         ErrorResponse errorResponse = new ErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            "INTERNAL_SERVER_ERROR",
-            "An unexpected error occurred",
-            ex.getMessage(),
-            LocalDateTime.now()
-        );
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "INTERNAL_SERVER_ERROR",
+                "An unexpected error occurred",
+                ex.getMessage(),
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -229,4 +233,3 @@ public class GlobalExceptionHandler {
         }
     }
 }
-

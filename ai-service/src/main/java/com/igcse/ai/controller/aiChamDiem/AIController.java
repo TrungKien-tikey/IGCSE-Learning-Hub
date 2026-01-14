@@ -7,10 +7,12 @@ import com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.service.AIService;
 import com.igcse.ai.service.common.JsonService;
+import com.igcse.ai.service.common.StudyContextService;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -18,7 +20,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
-@CrossOrigin(originPatterns = "*")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
 
@@ -26,6 +28,7 @@ public class AIController {
     private final IRecommendationService recommendationService;
     private final IInsightService insightService;
     private final JsonService jsonService;
+    private final StudyContextService studyContextService;
 
     @GetMapping("/result/{attemptId}")
     public ResponseEntity<AIResultResponse> getResult(@PathVariable Long attemptId) {
@@ -48,6 +51,9 @@ public class AIController {
     @PostMapping("/ingest-context")
     public ResponseEntity<Map<String, String>> ingestContext(@RequestBody List<Map<String, Object>> records) {
         logger.info(">>> [NiFi-to-AI] Received {} records from NiFi", records.size());
+
+        // BƯỚC 1: Lưu dữ liệu vào Database ngay lập tức (Persistence)
+        studyContextService.saveContextFromNiFi(records);
 
         Set<Long> studentIds = new HashSet<>();
         for (Map<String, Object> record : records) {

@@ -13,6 +13,8 @@ export default function AIHomePage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
+    const userRole = localStorage.getItem("userRole");
+
     const handleViewResult = async (e) => {
         e.preventDefault();
         if (!attemptId.trim()) {
@@ -24,10 +26,15 @@ export default function AIHomePage() {
         setError("");
 
         try {
-            const aiServiceUrl = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
-            const res = await fetch(`${aiServiceUrl}/result/${attemptId}`);
+            const token = localStorage.getItem('accessToken');
+            const res = await fetch(`/api/ai/result/${attemptId}`, {
+                headers: {
+                    ...(token ? { "Authorization": `Bearer ${token}` } : {})
+                }
+            });
             if (!res.ok) {
-                throw new Error("Không tìm thấy kết quả với Attempt ID này");
+                if (res.status === 403) throw new Error("Bạn không có quyền xem kết quả này");
+                throw new Error("Không tìm thấy kết quả với Attempt ID này hoặc lỗi hệ thống");
             }
             navigate(`/ai/results/${attemptId}`);
         } catch (err) {
@@ -38,11 +45,17 @@ export default function AIHomePage() {
     };
 
     const handleViewDashboard = () => {
-        if (!studentId.trim()) {
-            setError("Vui lòng nhập Student ID");
-            return;
+        if (userRole === 'ADMIN') {
+            navigate('/ai/dashboard/admin');
+        } else if (userRole === 'TEACHER') {
+            navigate('/ai/dashboard/teacher?classId=1'); // Default test class
+        } else {
+            if (!studentId.trim()) {
+                setError("Vui lòng nhập Student ID");
+                return;
+            }
+            navigate(`/ai/dashboard/student?studentId=${studentId}`);
         }
-        navigate(`/ai/dashboard/student?studentId=${studentId}`);
     };
 
     return (
@@ -128,24 +141,32 @@ export default function AIHomePage() {
                             <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
                                 <BarChart3 className="w-6 h-6 text-emerald-600" />
                             </div>
-                            <h2 className="text-xl font-semibold text-slate-800">Dashboard học sinh</h2>
+                            <h2 className="text-xl font-semibold text-slate-800">
+                                {userRole === 'ADMIN' ? 'Dashboard Admin' : userRole === 'TEACHER' ? 'Dashboard Giáo viên' : 'Dashboard học sinh'}
+                            </h2>
                         </div>
                         <p className="text-slate-600 text-sm mb-4">
-                            Xem thống kê tổng quan và gợi ý học tập cá nhân hóa
+                            {userRole === 'ADMIN'
+                                ? 'Xem thống kê toàn hệ thống và hiệu suất học tập'
+                                : userRole === 'TEACHER'
+                                    ? 'Quản lý lớp học và theo dõi tiến độ học sinh'
+                                    : 'Xem thống kê tổng quan và gợi ý học tập cá nhân hóa'}
                         </p>
 
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                                Student ID
-                            </label>
-                            <input
-                                type="number"
-                                value={studentId}
-                                onChange={(e) => setStudentId(e.target.value)}
-                                placeholder="Ví dụ: 1"
-                                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition bg-white text-slate-800 placeholder:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            />
-                        </div>
+                        {!['ADMIN', 'TEACHER'].includes(userRole) && (
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                                    Student ID
+                                </label>
+                                <input
+                                    type="number"
+                                    value={studentId}
+                                    onChange={(e) => setStudentId(e.target.value)}
+                                    placeholder="Ví dụ: 1"
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition bg-white text-slate-800 placeholder:text-slate-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                />
+                            </div>
+                        )}
                         <button
                             onClick={handleViewDashboard}
                             className="w-full bg-emerald-600 text-white py-2.5 px-4 rounded-xl font-medium hover:bg-emerald-700 transition flex items-center justify-center gap-2"

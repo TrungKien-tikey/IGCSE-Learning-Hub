@@ -22,6 +22,9 @@ public class AIRecommendation {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
+    @Column(name = "student_name")
+    private String studentName;
+
     @Column(name = "weak_topics", columnDefinition = "TEXT")
     private String weakTopics; // JSON array
 

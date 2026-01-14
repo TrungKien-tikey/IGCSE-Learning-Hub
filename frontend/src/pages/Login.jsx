@@ -19,19 +19,25 @@ function Login() {
 
   const handleSubmit = async (e) => { // Thêm async
     e.preventDefault();
-    
+
     try {
       // 1. Gọi API Đăng nhập
       const response = await authService.login(formData);
-      
+
       // 2. Lấy Token từ kết quả trả về
       // (Cấu trúc response.data phụ thuộc vào Backend trả về gì, 
       // nhưng thường là response.data.accessToken hoặc response.data.token)
       const token = response.data.token || response.data.accessToken;
 
-      // 3. Lưu Token vào "túi" (localStorage) của trình duyệt
+      // 3. Lưu thông tin vào "túi" (localStorage) của trình duyệt
       localStorage.setItem('accessToken', token);
-      
+      if (response.data.role) {
+        localStorage.setItem('userRole', response.data.role); // Lưu role để phân quyền Frontend
+      }
+      if (response.data.userId) {
+        localStorage.setItem('userId', response.data.userId);
+      }
+
       // 4. Thông báo và chuyển về trang chủ
       console.log("Đăng nhập thành công:", response.data);
       alert("Đăng nhập thành công!");
@@ -50,29 +56,29 @@ function Login() {
         <form onSubmit={handleSubmit}>
           <div className="input-group">
             <label>Email</label>
-            <input 
-              type="email" 
-              name="email" 
+            <input
+              type="email"
+              name="email"
               placeholder="email@example.com"
-              value={formData.email} 
-              onChange={handleChange} 
+              value={formData.email}
+              onChange={handleChange}
             />
           </div>
 
           <div className="input-group">
             <label>Mật khẩu</label>
-            <input 
-              type="password" 
-              name="password" 
+            <input
+              type="password"
+              name="password"
               placeholder="******"
-              value={formData.password} 
-              onChange={handleChange} 
+              value={formData.password}
+              onChange={handleChange}
             />
           </div>
 
           <button type="submit" className="btn-submit">Đăng Nhập</button>
         </form>
-        
+
         <p className="redirect-text">
           Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link>
         </p>
