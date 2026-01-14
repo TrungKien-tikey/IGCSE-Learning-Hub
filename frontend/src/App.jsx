@@ -8,6 +8,7 @@ import ChatPage from "./pages/ChatPage";
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import ProtectedRoute from './components/ProtectedRoute'; // <--- Quan trọng: Import file bảo vệ
+import RoleProtectedRoute from './components/RoleProtectedRoute';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -69,12 +70,36 @@ function App() {
         <Route path="/my-courses" element={<MyCoursesPage />} />
         <Route path="/learning/:courseId" element={<StudentLearningPage />} />
 
-        {/* --- AI SECTIONS (Dùng để test NiFi integration) --- */}
+        {/* --- AI SECTIONS --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
-        <Route path="/ai/dashboard/student" element={<StudentDashboard />} />
-        <Route path="/ai/dashboard/teacher" element={<TeacherDashboard />} />
-        <Route path="/ai/dashboard/admin" element={<AdminDashboardAI />} />
+
+        <Route
+          path="/ai/dashboard/student"
+          element={
+            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN']}>
+              <StudentDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/teacher"
+          element={
+            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/admin"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
 
         {/* --- XỬ LÝ LỖI --- */}
         {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}

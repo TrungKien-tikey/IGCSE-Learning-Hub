@@ -15,6 +15,7 @@ import com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO;
 import com.igcse.ai.service.aiChamDiem.IGradingService;
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
+import com.igcse.ai.service.common.TierManagerService;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -26,21 +27,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AIService {
     private static final Logger logger = LoggerFactory.getLogger(AIService.class);
-    private static final double PASSING_SCORE = 5.0;
     private final JsonService jsonService;
     private final AIResultRepository aiResultRepository;
     private final IGradingService gradingService;
     private final ILanguageService languageService;
+    private final TierManagerService tierManagerService;
 
     public AIService(
             JsonService jsonService,
             AIResultRepository aiResultRepository,
             IGradingService gradingService,
-            ILanguageService languageService) {
+            ILanguageService languageService,
+            TierManagerService tierManagerService) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
         this.languageService = languageService;
+        this.tierManagerService = tierManagerService;
     }
 
     /**
@@ -126,6 +129,9 @@ public class AIService {
             }
         }
 
+        // ✅ Trích xuất Metadata
+        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
+
         // Lưu DB
         AIResult result = existingResult.orElse(new AIResult(attemptId, score, feedback, lang, confidence));
         result.setScore(score);
@@ -139,6 +145,11 @@ public class AIService {
         result.setAnswersHash(currentAnswersHash);
         result.setDetails(jsonService.toJson(gradingResults));
 
+        // Lưu Metadata vào AIResult
+        if (metadata != null) {
+            result.setStudentName(metadata.studentName());
+        }
+
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
@@ -148,30 +159,6 @@ public class AIService {
 
         return new DetailedGradingResultDTO(
                 attemptId, score, maxScore, feedback, confidence, lang, gradingResults);
-    }
-
-    public String analyzeAnswers(Long attemptId, String language, ExamAnswersDTO attemptDTO) {
-        logger.info("Analyzing answers for attemptId: {}", attemptId);
-
-        Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
-
-        AIResult result = aiResultRepository.findByAttemptId(attemptId).orElse(null);
-
-        if (result != null) {
-            logger.debug("Returning cached feedback for attemptId: {}", attemptId);
-            return result.getFeedback();
-        }
-
-        logger.debug("Evaluating exam from provided DTO for attemptId: {}", attemptId);
-        if (attemptDTO == null) {
-            throw new ExamGradingException("Cannot analyze answers: DTO is missing and legacy pull is disabled",
-                    attemptId);
-        }
-        evaluateExamFromDTO(attemptDTO);
-        result = aiResultRepository.findByAttemptId(attemptId)
-                .orElseThrow(() -> new ExamGradingException("Failed to grade exam", attemptId));
-
-        return result.getFeedback();
     }
 
     public AIResult getResult(Long attemptId) {
@@ -210,13 +197,6 @@ public class AIService {
         return LanguageService.ENGLISH.equals(language) ||
                 LanguageService.VIETNAMESE.equals(language) ||
                 LanguageService.AUTO.equals(language);
-    }
-
-    /**
-     * Lấy điểm đạt tối thiểu
-     */
-    public double getPassingScore() {
-        return PASSING_SCORE;
     }
 
     /**
