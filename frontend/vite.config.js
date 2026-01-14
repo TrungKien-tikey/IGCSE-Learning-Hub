@@ -13,24 +13,13 @@ export default defineConfig({
       // CẤU HÌNH GATEWAY CHUẨN (Tất cả đi qua Kong Port 8000)
       // =================================================================
       
-      // Các request bắt đầu bằng /api/exams sẽ đi thẳng tới Exam Service (8085)
-      '/api/exams': {
-        target: 'http://localhost:8085',
-        changeOrigin: true,
-        secure: false,
-      },
-      // Các request bắt đầu bằng /api/ai sẽ đi thẳng tới AI Service (8082)
-      '/api/ai': {
-        target: 'http://localhost:8082',
-        changeOrigin: true,
-        secure: false,
-      },
-      // Các request bắt đầu bằng /api (như auth, users...) sẽ đi tới Auth Service (8080)
+      // Chuyển toàn bộ các request /api qua Kong Gateway
+      // Kong sẽ dựa vào Path (ví dụ /api/ai, /api/exams) để định tuyến vào đúng Service
       '/api': {
-        target: 'http://localhost:8080', 
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
-      }
+      },
     },
   },
 })
