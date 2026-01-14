@@ -1,8 +1,13 @@
-const API_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
+const API_BASE_URL = "/api/ai";
 
 export const getAttemptInsight = async (attemptId) => {
+    const token = localStorage.getItem('accessToken');
     try {
-        const response = await fetch(`${API_BASE_URL}/insights/attempt/${attemptId}`);
+        const response = await fetch(`${API_BASE_URL}/insights/attempt/${attemptId}`, {
+            headers: {
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            }
+        });
         if (!response.ok) {
             throw new Error("Failed to fetch insight");
         }
@@ -14,8 +19,13 @@ export const getAttemptInsight = async (attemptId) => {
 };
 
 export const getResultDetails = async (attemptId) => {
+    const token = localStorage.getItem('accessToken');
     try {
-        const response = await fetch(`${API_BASE_URL}/result/${attemptId}/details`);
+        const response = await fetch(`${API_BASE_URL}/result/${attemptId}/details`, {
+            headers: {
+                ...(token ? { "Authorization": `Bearer ${token}` } : {})
+            }
+        });
         if (!response.ok) {
             throw new Error("Không thể tải kết quả chấm điểm");
         }

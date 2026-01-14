@@ -101,6 +101,9 @@ public class RecommendationService implements IRecommendationService {
         LearningRecommendationDTO synthesisResult = null;
 
         try {
+            // ✅ Trích xuất Metadata (Tên, Persona)
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+
             // Lấy các bản gợi ý cũ làm ngữ cảnh
             List<AIRecommendation> recentLogics = aiRecommendationRepository
                     .findTop5ByStudentIdOrderByGeneratedAtDesc(studentId);
@@ -123,12 +126,13 @@ public class RecommendationService implements IRecommendationService {
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
             synthesisResult = recommendationAiService.generateRecommendation(
-                    combinedSummary, aiLanguageName);
+                    combinedSummary, metadata.studentName(), aiLanguageName);
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
                 // Lưu kết quả AI kèm snapshot dữ liệu để theo dõi thay đổi sau này
-                AIRecommendation aiEntity = saveRecommendationToCacheInternal(synthesisResult, true, analysis);
+                AIRecommendation aiEntity = saveRecommendationToCacheInternal(synthesisResult, true, analysis,
+                        metadata);
 
                 return convertToDTO(aiEntity);
             }
@@ -143,13 +147,18 @@ public class RecommendationService implements IRecommendationService {
      * Lưu thông tin gợi ý AI vào cơ sở dữ liệu làm bộ nhớ đệm (Cache).
      */
     private AIRecommendation saveRecommendationToCacheInternal(LearningRecommendationDTO dto, boolean isAiGenerated,
-            TierManagerService.AnalysisData analysis) {
+            TierManagerService.AnalysisData analysis, TierManagerService.AnalysisMetadata metadata) {
         AIRecommendation entity = new AIRecommendation();
         entity.setStudentId(dto.getStudentId());
         entity.setLearningPathSuggestion(dto.getLearningPathSuggestion());
         entity.setIsAiGenerated(isAiGenerated);
         entity.setLanguage("vi");
         entity.setGeneratedAt(new Date());
+
+        // Lưu Metadata
+        if (metadata != null) {
+            entity.setStudentName(metadata.studentName());
+        }
 
         // Lưu snapshot dữ liệu bài thi được dùng để phân tích
         if (analysis != null) {
