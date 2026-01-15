@@ -20,7 +20,7 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // 1. Health Check (Giữ nguyên để test Gateway)
+    // 1. Health Check
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Auth Service is connecting to Gateway successfully!");
@@ -29,7 +29,6 @@ public class AuthController {
     // 2. Đăng ký
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        System.out.println(">>> REGISTER REQUEST: " + request.getEmail());
         return ResponseEntity.ok(authService.register(request));
     }
 
@@ -39,19 +38,44 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // 4. Verify Token (Dùng cho các service khác gọi sang check)
+    // 4. Verify Token
     @PostMapping("/verify-token")
     public ResponseEntity<Boolean> verifyToken(@RequestParam String token) {
         return ResponseEntity.ok(authService.verifyToken(token));
     }
 
-    // 5. Đổi mật khẩu (ĐÃ CẬP NHẬT LOGIC BẢO MẬT)
+    // 5. Đổi mật khẩu
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(
             @RequestBody ChangePasswordRequest request,
-            Principal connectedUser // <--- QUAN TRỌNG: Lấy user từ Token
+            Principal connectedUser
     ) {
         authService.changePassword(request, connectedUser);
         return ResponseEntity.ok("Doi mat khau thanh cong!");
+    }
+
+    // 6. [MỚI] Quên mật khẩu (Gửi email)
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        try {
+            authService.forgotPassword(email);
+            return ResponseEntity.ok("Link dat lai mat khau da duoc gui vao email cua ban.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
+    }
+
+    // 7. [MỚI] Đặt lại mật khẩu (Reset)
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token, 
+            @RequestParam String newPassword
+    ) {
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok("Mat khau da duoc dat lai thanh cong! Ban co the dang nhap ngay.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
     }
 }

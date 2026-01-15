@@ -46,6 +46,8 @@ public class SecurityConfig {
                     "/api/v1/auth/login",
                     "/api/v1/auth/verify-token", // Service khác gọi
                     "/api/v1/auth/health",       // Gateway check
+                    "/api/v1/auth/forgot-password", 
+                    "/api/v1/auth/reset-password",
                     "/v3/api-docs/**",           // Swagger
                     "/swagger-ui/**",            // Swagger
                     "/swagger-ui.html"
