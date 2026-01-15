@@ -17,8 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
-import java.time.LocalDateTime; // Import thời gian
-import java.util.UUID;        // Import tạo mã ngẫu nhiên
+import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -28,12 +28,11 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
-    private final EmailService emailService; // [MỚI] Inject EmailService
+    private final EmailService emailService;
 
-    // Cập nhật Constructor để thêm EmailService
-    public AuthService(UserRepository userRepository, 
-                       PasswordEncoder passwordEncoder, 
-                       JwtUtils jwtUtils, 
+    public AuthService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       JwtUtils jwtUtils,
                        AuthenticationManager authenticationManager,
                        RabbitTemplate rabbitTemplate,
                        EmailService emailService) {
@@ -55,29 +54,29 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        
+
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
         if ("PARENT".equals(requestedRole)) {
             user.setRole("PARENT");
         } else {
             user.setRole("STUDENT");
         }
-        
+
         user.setActive(true);
         User savedUser = userRepository.save(user);
 
         // RabbitMQ Sync
         try {
             UserSyncDTO syncData = new UserSyncDTO(
-                savedUser.getId(), 
-                savedUser.getEmail(), 
-                savedUser.getFullName(), 
-                savedUser.getRole()
+                    savedUser.getId(),
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    savedUser.getRole()
             );
             rabbitTemplate.convertAndSend(
-                RabbitMQConfig.USER_EXCHANGE,
-                RabbitMQConfig.USER_SYNC_ROUTING_KEY,
-                syncData
+                    RabbitMQConfig.USER_EXCHANGE,
+                    RabbitMQConfig.USER_SYNC_ROUTING_KEY,
+                    syncData
             );
             System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail());
         } catch (Exception e) {
@@ -90,7 +89,7 @@ public class AuthService {
     // 2. Đăng nhập
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
         );
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -105,10 +104,12 @@ public class AuthService {
         return jwtUtils.validateToken(token);
     }
 
-    // 4. Đổi mật khẩu (Change Password)
+    // 4. Đổi mật khẩu (ĐÃ SỬA: Dùng Principal chuẩn)
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
-        var authUser = (org.springframework.security.core.userdetails.User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
-        User user = userRepository.findByEmail(authUser.getUsername())
+        // Lấy email trực tiếp từ Principal (An toàn, không cần ép kiểu)
+        String userEmail = connectedUser.getName();
+        
+        User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
@@ -123,24 +124,19 @@ public class AuthService {
         System.out.println(">>> User " + user.getEmail() + " da doi mat khau thanh cong.");
     }
 
-    // 5. [MỚI] Xử lý Quên mật khẩu (Forgot Password)
+    // 5. Quên mật khẩu
     public void forgotPassword(String email) {
-        // Tìm user theo email
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Khong tim thay user voi email: " + email));
 
-        // Tạo Token ngẫu nhiên (UUID)
         String token = UUID.randomUUID().toString();
 
-        // Lưu Token vào DB (Hết hạn sau 15 phút)
         user.setResetPasswordToken(token);
         user.setTokenExpirationTime(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
-        // Gửi Email
-        // Lưu ý: Link này trỏ về Frontend (localhost:5173), Frontend sẽ lấy token từ URL để gọi lại Backend
         String resetLink = "http://localhost:5173/reset-password?token=" + token;
-        
+
         String emailBody = "Xin chao " + user.getFullName() + ",\n\n"
                 + "Ban da yeu cau dat lai mat khau.\n"
                 + "Day la ma Token cua ban: " + token + "\n\n"
@@ -150,24 +146,19 @@ public class AuthService {
         emailService.sendEmail(user.getEmail(), "Yeu cau dat lai mat khau - IGCSE Hub", emailBody);
     }
 
-    // 6. [MỚI] Đặt lại mật khẩu mới (Reset Password)
+    // 6. Đặt lại mật khẩu
     public void resetPassword(String token, String newPassword) {
-        // Tìm user có token này
         User user = userRepository.findByResetPasswordToken(token)
                 .orElseThrow(() -> new RuntimeException("Ma Token khong hop le hoac khong ton tai"));
 
-        // Kiểm tra hết hạn
         if (user.getTokenExpirationTime().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Ma Token da het han! Vui long yeu cau lai.");
         }
 
-        // Cập nhật mật khẩu mới
         user.setPasswordHash(passwordEncoder.encode(newPassword));
-        
-        // Xóa Token đi (để không dùng lại được nữa)
         user.setResetPasswordToken(null);
         user.setTokenExpirationTime(null);
-        
+
         userRepository.save(user);
     }
 }

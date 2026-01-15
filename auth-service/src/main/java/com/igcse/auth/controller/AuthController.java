@@ -44,17 +44,22 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyToken(token));
     }
 
-    // 5. Đổi mật khẩu
+    // 5. Đổi mật khẩu (ĐÃ SỬA: Thêm try-catch để bắt lỗi sai pass)
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(
             @RequestBody ChangePasswordRequest request,
             Principal connectedUser
     ) {
-        authService.changePassword(request, connectedUser);
-        return ResponseEntity.ok("Doi mat khau thanh cong!");
+        try {
+            authService.changePassword(request, connectedUser);
+            return ResponseEntity.ok("Doi mat khau thanh cong!");
+        } catch (Exception e) {
+            // Trả về lỗi 400 nếu mật khẩu cũ sai hoặc confirm không khớp
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
     }
 
-    // 6. [MỚI] Quên mật khẩu (Gửi email)
+    // 6. Quên mật khẩu (Gửi email)
     @PostMapping("/forgot-password")
     public ResponseEntity<String> forgotPassword(@RequestParam String email) {
         try {
@@ -65,10 +70,10 @@ public class AuthController {
         }
     }
 
-    // 7. [MỚI] Đặt lại mật khẩu (Reset)
+    // 7. Đặt lại mật khẩu (Reset)
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(
-            @RequestParam String token, 
+            @RequestParam String token,
             @RequestParam String newPassword
     ) {
         try {
