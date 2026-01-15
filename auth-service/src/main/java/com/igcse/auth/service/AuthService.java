@@ -17,6 +17,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.security.Principal;
+import java.time.LocalDateTime; // Import thời gian
+import java.util.UUID;        // Import tạo mã ngẫu nhiên
 
 @Service
 public class AuthService {
@@ -26,20 +28,24 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
+    private final EmailService emailService; // [MỚI] Inject EmailService
 
+    // Cập nhật Constructor để thêm EmailService
     public AuthService(UserRepository userRepository, 
                        PasswordEncoder passwordEncoder, 
                        JwtUtils jwtUtils, 
                        AuthenticationManager authenticationManager,
-                       RabbitTemplate rabbitTemplate) {
+                       RabbitTemplate rabbitTemplate,
+                       EmailService emailService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.rabbitTemplate = rabbitTemplate;
+        this.emailService = emailService;
     }
 
-    // 1. Đăng ký (Đã tích hợp Security & RabbitMQ)
+    // 1. Đăng ký
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email nay da ton tai!");
@@ -50,21 +56,17 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         
-        // --- LOGIC BẢO MẬT ROLE MỚI ---
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
-
         if ("PARENT".equals(requestedRole)) {
             user.setRole("PARENT");
         } else {
-            user.setRole("STUDENT"); // Mặc định tất cả trường hợp khác là STUDENT
+            user.setRole("STUDENT");
         }
         
         user.setActive(true);
-
-        // Lưu vào DB
         User savedUser = userRepository.save(user);
 
-        // --- BẮT ĐẦU: Gửi tin nhắn sang RabbitMQ (Sync User) ---
+        // RabbitMQ Sync
         try {
             UserSyncDTO syncData = new UserSyncDTO(
                 savedUser.getId(), 
@@ -72,19 +74,15 @@ public class AuthService {
                 savedUser.getFullName(), 
                 savedUser.getRole()
             );
-
             rabbitTemplate.convertAndSend(
                 RabbitMQConfig.USER_EXCHANGE,
                 RabbitMQConfig.USER_SYNC_ROUTING_KEY,
                 syncData
             );
-            
             System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail());
-
         } catch (Exception e) {
             System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
         }
-        // --- KẾT THÚC RabbitMQ ---
 
         return "Dang ky thanh cong!";
     }
@@ -98,9 +96,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
-        // Generate Token có chứa userId và role
         String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
-
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
 
@@ -109,29 +105,69 @@ public class AuthService {
         return jwtUtils.validateToken(token);
     }
 
-    // 4. Đổi mật khẩu (Phiên bản Bảo mật & Chuẩn logic)
+    // 4. Đổi mật khẩu (Change Password)
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
-        // A. Lấy user hiện tại từ Token (Tránh việc hacker đổi pass của người khác)
         var authUser = (org.springframework.security.core.userdetails.User) ((UsernamePasswordAuthenticationToken) connectedUser).getPrincipal();
-        
-        // B. Tìm user trong DB
         User user = userRepository.findByEmail(authUser.getUsername())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
-        // C. Kiểm tra logic confirm password
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new IllegalStateException("Mat khau xac nhan khong khop!");
         }
-
-        // D. Kiểm tra mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new IllegalStateException("Mat khau cu khong chinh xac!");
         }
 
-        // E. Cập nhật mật khẩu mới (Mã hóa trước khi lưu)
         user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        
         System.out.println(">>> User " + user.getEmail() + " da doi mat khau thanh cong.");
+    }
+
+    // 5. [MỚI] Xử lý Quên mật khẩu (Forgot Password)
+    public void forgotPassword(String email) {
+        // Tìm user theo email
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay user voi email: " + email));
+
+        // Tạo Token ngẫu nhiên (UUID)
+        String token = UUID.randomUUID().toString();
+
+        // Lưu Token vào DB (Hết hạn sau 15 phút)
+        user.setResetPasswordToken(token);
+        user.setTokenExpirationTime(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        // Gửi Email
+        // Lưu ý: Link này trỏ về Frontend (localhost:5173), Frontend sẽ lấy token từ URL để gọi lại Backend
+        String resetLink = "http://localhost:5173/reset-password?token=" + token;
+        
+        String emailBody = "Xin chao " + user.getFullName() + ",\n\n"
+                + "Ban da yeu cau dat lai mat khau.\n"
+                + "Day la ma Token cua ban: " + token + "\n\n"
+                + "Hoac bam vao link sau de dat lai mat khau ngay:\n" + resetLink + "\n\n"
+                + "Link nay se het han sau 15 phut.";
+
+        emailService.sendEmail(user.getEmail(), "Yeu cau dat lai mat khau - IGCSE Hub", emailBody);
+    }
+
+    // 6. [MỚI] Đặt lại mật khẩu mới (Reset Password)
+    public void resetPassword(String token, String newPassword) {
+        // Tìm user có token này
+        User user = userRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> new RuntimeException("Ma Token khong hop le hoac khong ton tai"));
+
+        // Kiểm tra hết hạn
+        if (user.getTokenExpirationTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Ma Token da het han! Vui long yeu cau lai.");
+        }
+
+        // Cập nhật mật khẩu mới
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        
+        // Xóa Token đi (để không dùng lại được nữa)
+        user.setResetPasswordToken(null);
+        user.setTokenExpirationTime(null);
+        
+        userRepository.save(user);
     }
 }
