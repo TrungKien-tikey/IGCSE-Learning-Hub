@@ -12,7 +12,7 @@ export default function StudentLearningPage() {
   const [currentLesson, setCurrentLesson] = useState(null);
   const [courseTitle, setCourseTitle] = useState("Đang tải...");
 
-  const API_URL = 'http://localhost:8082/api/courses';
+  const API_URL = 'http://localhost:8079/api/courses';
 
   useEffect(() => {
     fetchCourseAndLessons();

@@ -14,7 +14,7 @@ export default function LessonPage() {
     title: '', content: '', videoUrl: '', orderIndex: 1
   });
 
-  const API_URL = 'http://localhost:8082/api/courses';
+  const API_URL = 'http://localhost:8079/api/courses';
 
   useEffect(() => {
     fetchLessons();
