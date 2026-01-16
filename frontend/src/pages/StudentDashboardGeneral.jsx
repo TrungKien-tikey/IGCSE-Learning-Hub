@@ -7,10 +7,10 @@ import {
 import MainLayout from '../layouts/MainLayout';
 import { useNavigate } from 'react-router-dom';
 
-// Dữ liệu User (Lấy từ localStorage nếu đã đăng nhập)
+// Dữ liệu User (Lấy từ sessionStorage nếu đã đăng nhập)
 const user = {
-    name: "User", // Bạn có thể lưu tên vào localStorage lúc Login nếu muốn
-    role: localStorage.getItem("userRole")?.toLowerCase() || "student"
+    name: "User", // Bạn có thể lưu tên vào sessionStorage lúc Login nếu muốn
+    role: sessionStorage.getItem("userRole")?.toLowerCase() || "student"
 };
 
 // Component thẻ thống kê (Đã chuẩn hóa Tailwind)
