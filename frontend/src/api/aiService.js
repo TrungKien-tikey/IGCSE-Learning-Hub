@@ -3,7 +3,7 @@
  * Centralized API calls for AI module
  */
 
-const AI_SERVICE_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL || "http://localhost:8082/api/ai";
+const AI_SERVICE_BASE_URL = "/api/ai";
 
 /**
  * Custom error class for API errors
@@ -25,11 +25,13 @@ class ApiError extends Error {
  */
 async function fetchApi(endpoint, options = {}) {
   const url = `${AI_SERVICE_BASE_URL}${endpoint}`;
+  const token = localStorage.getItem('accessToken');
   
   try {
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...options.headers,
       },
       ...options,

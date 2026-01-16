@@ -27,12 +27,14 @@ public interface RecommendationAiService {
                         """)
 
         @UserMessage("""
+                        Student Name: {{studentName}}
                         Performance Data Summary: {{dataSummary}}
                         Language: {{language}}
 
-                        Generate the personalized learning recommendation report now.
+                        Generate the personalized learning recommendation report now, addressing the student by name if appropriate.
                         """)
         LearningRecommendationDTO generateRecommendation(
                         @V("dataSummary") String dataSummary,
+                        @V("studentName") String studentName,
                         @V("language") String language);
 }
