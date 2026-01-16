@@ -28,14 +28,14 @@ function Login() {
       // (Dự phòng cả 2 trường hợp tên biến backend trả về)
       const token = response.data.token || response.data.accessToken;
 
-      // 3. Lưu thông tin vào localStorage
-      localStorage.setItem('accessToken', token);
+      // 3. Lưu thông tin vào sessionStorage
+      sessionStorage.setItem('accessToken', token);
       
       if (response.data.role) {
-        localStorage.setItem('userRole', response.data.role);
+        sessionStorage.setItem('userRole', response.data.role);
       }
       if (response.data.userId) {
-        localStorage.setItem('userId', response.data.userId);
+        sessionStorage.setItem('userId', response.data.userId);
       }
 
       // 4. Thông báo và chuyển hướng
