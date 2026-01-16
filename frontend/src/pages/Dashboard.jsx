@@ -2,6 +2,7 @@ import React from 'react';
 import StudentDashboardGeneral from './StudentDashboardGeneral';
 import TeacherDashboard from './TeacherDashboard';
 import GeneralAdminDashboard from './GeneralAdminDashboard';
+import AdminCourseApprovalPage from './admin/AdminCourseApprovalPage';
 
 /**
  * Dashboard (Dispatcher)
@@ -16,6 +17,8 @@ const Dashboard = () => {
     switch (userRole) {
         case 'ADMIN':
             return <GeneralAdminDashboard />;
+        case 'MANAGER': 
+            return <AdminCourseApprovalPage />;
         case 'TEACHER':
             return <TeacherDashboard />;
         case 'STUDENT':
