@@ -4,13 +4,12 @@ import com.igcse.ai.dto.phanTich.AIInsightDTO;
 import com.igcse.ai.service.ass.phanTich.IInsightService;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/ai/insights")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
 public class InsightController {
 
     private final IInsightService insightService;

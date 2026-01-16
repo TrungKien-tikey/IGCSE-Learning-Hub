@@ -43,6 +43,9 @@ public class AIResult {
     @Column
     private Long studentId; // ID học sinh
 
+    @Column(name = "student_name")
+    private String studentName;
+
     @Column
     private Long examId; // ID bài thi
 
@@ -63,8 +66,6 @@ public class AIResult {
 
     @Column(name = "essay_score")
     private Double essayScore; // Điểm phần tự luận
-
-
 
     public AIResult(Long attemptId, Double score, String feedback) {
         this.attemptId = attemptId;
