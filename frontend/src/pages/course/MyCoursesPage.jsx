@@ -8,7 +8,7 @@ export default function MyCoursesPage() {
   const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
   const userId = 1; // Giả lập ID user
-  const API_URL = 'http://localhost:8082/api/courses';
+  const API_URL = 'http://localhost:8079/api/courses';
 
   useEffect(() => {
     const fetchMyCourses = async () => {
