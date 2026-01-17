@@ -110,8 +110,7 @@ CREATE TABLE IF NOT EXISTS study_contexts (
     INDEX idx_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Đảm bảo auth_db.users có cột persona
-USE auth_db;
+
 USE ai_db;
 
 
