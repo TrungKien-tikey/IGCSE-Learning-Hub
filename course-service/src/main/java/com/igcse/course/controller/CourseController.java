@@ -6,7 +6,7 @@ import com.igcse.course.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
+import com.igcse.course.util.JwtUtils;
 import java.util.List;
 
 @RestController
@@ -16,6 +16,19 @@ public class CourseController {
 
     @Autowired
     private CourseService courseService;
+    @Autowired
+    private JwtUtils jwtUtils;
+
+    // --- Helper method để lấy ID từ Header ---
+    private Long getUserIdFromHeader(String tokenHeader) {
+        if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
+            String token = tokenHeader.substring(7); // Cắt bỏ chữ "Bearer "
+            if (jwtUtils.validateToken(token)) {
+                return jwtUtils.extractUserId(token); // Giải mã lấy ID
+            }
+        }
+        return null; // Token lỗi hoặc không có
+    }
 
     // --- COURSE APIs (Task 1 - CRUD Cơ bản) ---
 
@@ -73,16 +86,27 @@ public class CourseController {
 
     // 1. API lấy danh sách khóa học CỦA TÔI (Đã đăng ký)
     @GetMapping("/my-courses")
-    public ResponseEntity<List<Course>> getMyCourses(@RequestParam Long userId) {
-        // Logic: Tìm trong bảng Enrollment xem user này học khóa nào
+    public ResponseEntity<?> getMyCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        // Nếu token lỗi hoặc hết hạn -> Trả về 401 Unauthorized
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
+        }
+
         List<Course> courses = courseService.getCoursesByStudentId(userId);
         return ResponseEntity.ok(courses);
     }
 
     // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
     @GetMapping("/recommended")
-    public ResponseEntity<List<Course>> getRecommendedCourses(@RequestParam Long userId) {
-        // Logic: Lấy tất cả khóa Active TRỪ ĐI các khóa đã học
+    public ResponseEntity<?> getRecommendedCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
         List<Course> courses = courseService.getRecommendedCourses(userId);
         return ResponseEntity.ok(courses);
     }
@@ -153,7 +177,16 @@ public class CourseController {
     }
 
     @PostMapping("/{courseId}/enroll")
-    public ResponseEntity<?> enrollCourse(@PathVariable Long courseId, @RequestParam Long userId) {
+    public ResponseEntity<?> enrollCourse(
+            @PathVariable Long courseId,
+            @RequestHeader("Authorization") String tokenHeader // Đổi @RequestParam thành @RequestHeader
+    ) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
+        }
+
         try {
             boolean success = courseService.enrollCourse(courseId, userId);
             if (success) {
@@ -167,10 +200,17 @@ public class CourseController {
     }
 
     @GetMapping("/{courseId}/check-enrollment")
-    public ResponseEntity<Boolean> checkEnrollment(@PathVariable Long courseId, @RequestParam Long userId) {
-        // SỬA: Gọi qua Service
-        boolean enrolled = courseService.isStudentEnrolled(courseId, userId);
+    public ResponseEntity<Boolean> checkEnrollment(
+            @PathVariable Long courseId,
+            @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
 
+        // Nếu chưa đăng nhập thì coi như chưa đăng ký -> trả về false
+        if (userId == null) {
+            return ResponseEntity.ok(false);
+        }
+
+        boolean enrolled = courseService.isStudentEnrolled(courseId, userId);
         return ResponseEntity.ok(enrolled);
     }
 }
