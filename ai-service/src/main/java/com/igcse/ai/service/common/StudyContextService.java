@@ -46,9 +46,9 @@ public class StudyContextService {
                 if (sid != null) {
                     Long studentId = Long.valueOf(sid.toString());
 
-                    // Trích xuất các thông tin Metadata khác
-                    String studentName = extractString(record, "student_name", "name", "full_name");
-                    Long classId = extractLong(record, "class_id");
+                    // Trích xuất các thông tin Metadata khác (dùng full_name và course_id)
+                    String studentName = extractString(record, "full_name", "student_name", "name");
+                    Long courseId = extractLong(record, "course_id");
 
                     // Lưu trữ toàn bộ record dưới dạng JSON để AI có thể đọc mọi thông tin phụ trợ
                     String fullContextJson = jsonService.toJson(record);
@@ -60,8 +60,8 @@ public class StudyContextService {
                     context.setStudentId(studentId);
                     if (studentName != null)
                         context.setStudentName(studentName);
-                    if (classId != null)
-                        context.setClassId(classId);
+                    if (courseId != null)
+                        context.setClassId(courseId); // Lưu course_id vào class_id field (giữ tên cũ để tương thích)
                     context.setContextData(fullContextJson);
                     context.setUpdatedAt(new Date());
 
