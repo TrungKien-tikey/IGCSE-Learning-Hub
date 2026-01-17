@@ -49,6 +49,7 @@ public class AIController {
     }
 
     @PostMapping("/ingest-context")
+    @PreAuthorize("permitAll()") // Override class-level @PreAuthorize để cho phép NiFi gọi không cần auth
     public ResponseEntity<Map<String, String>> ingestContext(@RequestBody List<Map<String, Object>> records) {
         logger.info(">>> [NiFi-to-AI] Received {} records from NiFi", records.size());
 
@@ -65,19 +66,17 @@ public class AIController {
                 Long studentId = Long.valueOf(sid.toString());
                 studentIds.add(studentId);
 
-                // Cập nhật điểm thành phần vào Database nếu có
+                // Cập nhật course_id vào Database nếu có (không cần update điểm vì exam_attempts đã có total_score)
                 Object aid = record.get("attempt_id");
                 if (aid != null) {
                     Long attemptId = Long.valueOf(aid.toString());
-                    Double mcScore = record.get("mc_score") != null ? Double.valueOf(record.get("mc_score").toString())
+                    Long courseId = record.get("course_id") != null
+                            ? Long.valueOf(record.get("course_id").toString())
                             : null;
-                    Double essayScore = record.get("essay_score") != null
-                            ? Double.valueOf(record.get("essay_score").toString())
-                            : null;
-                    Long classId = record.get("class_id") != null
-                            ? Long.valueOf(record.get("class_id").toString())
-                            : null;
-                    aiService.updateComponentScores(attemptId, mcScore, essayScore, classId);
+                    // Chỉ update courseId vào AIResult nếu có
+                    if (courseId != null) {
+                        aiService.updateComponentScores(attemptId, null, null, courseId);
+                    }
                 }
             }
         }

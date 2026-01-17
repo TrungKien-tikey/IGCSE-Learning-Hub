@@ -1,10 +1,12 @@
-import { BarChart3, Star, TrendingUp, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { BarChart3, Star, TrendingUp, AlertCircle, Eye } from "lucide-react";
 
 /**
  * PerformanceChart - Hiệu suất theo môn học
  * Thiết kế thân thiện với học sinh, có feedback động viên
  */
-export default function PerformanceChart({ data }) {
+export default function PerformanceChart({ data, recentExams = [] }) {
+    const navigate = useNavigate();
     // data là object { "Môn A": 8.5, "Môn B": 7.2, ... }
     // Sắp xếp bài mới nhất (Z-A) để bài có ID cao hơn/tên sau hiển thị ở đầu
     const subjects = Object.entries(data || {}).sort((a, b) => b[0].localeCompare(a[0]));
@@ -69,6 +71,21 @@ export default function PerformanceChart({ data }) {
         };
     };
 
+    // Hàm lấy attemptId mới nhất cho môn học (Giả sử exam data chứa subject name)
+    const getLatestAttemptId = (subjectName) => {
+        // 1. Thử trích xuất số từ tên (ví dụ: "Exam 2" -> 2)
+        const match = subjectName.match(/Exam\s+(\d+)/i);
+        if (match && match[1]) return match[1];
+
+        // 2. Thử tìm trong recentExams
+        if (!recentExams || recentExams.length === 0) return null;
+        const found = recentExams.find(e => e.subjectName === subjectName);
+        if (found) return found.attemptId;
+
+        // 3. Fallback: lấy bài mới nhất (nếu là biểu đồ chung)
+        return recentExams[0]?.attemptId;
+    };
+
     // Tính trung bình
     const avgScore = subjects.reduce((sum, [_, score]) => sum + score, 0) / subjects.length;
     const avgInfo = getScoreInfo(avgScore);
@@ -79,7 +96,7 @@ export default function PerformanceChart({ data }) {
             <div className="bg-teal-500 px-6 py-4">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <BarChart3 className="w-5 h-5" />
-                    Hiệu suất theo môn học
+                    Hiệu suất học tập
                 </h3>
                 <p className="text-teal-100 text-sm mt-1">
                     Điểm trung bình: <span className="font-bold text-white">{avgScore.toFixed(1)}/10</span>
@@ -95,9 +112,14 @@ export default function PerformanceChart({ data }) {
                         const percentage = (scoreNum / maxScore) * 100;
                         const info = getScoreInfo(scoreNum);
                         const Icon = info.icon;
+                        const latestAttemptId = getLatestAttemptId(subject);
 
                         return (
-                            <div key={subject} className={`p-4 rounded-2xl ${info.lightBg} transition-all hover:scale-[1.01] hover:shadow-sm border border-transparent hover:border-white/50`}>
+                            <div
+                                key={subject}
+                                onClick={() => latestAttemptId && navigate(`/ai/results/${latestAttemptId}`)}
+                                className={`p-4 rounded-2xl ${info.lightBg} transition-all hover:scale-[1.01] hover:shadow-md border border-transparent hover:border-white/50 relative group cursor-pointer`}
+                            >
                                 <div className="flex justify-between items-center mb-3">
                                     <div className="flex items-center gap-2">
                                         <div className={`p-1.5 rounded-lg ${info.bgColor} bg-opacity-10`}>
@@ -105,7 +127,7 @@ export default function PerformanceChart({ data }) {
                                         </div>
                                         <span className="text-slate-700 font-bold">{subject}</span>
                                     </div>
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
                                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${info.bgColor} bg-opacity-20 ${info.color}`}>
                                             {info.label}
                                         </span>
@@ -119,6 +141,14 @@ export default function PerformanceChart({ data }) {
                                         className={`h-full rounded-full ${info.bgColor} shadow-sm transition-all duration-1000 ease-out`}
                                         style={{ width: `${percentage}%` }}
                                     />
+                                </div>
+
+                                {/* Link indicator */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                    {/* <div className="bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform">
+                                        <Eye className="w-3.5 h-3.5 text-teal-600" />
+                                        <span className="text-[11px] font-bold text-teal-600 uppercase tracking-wider">Xem chi tiết bài thi</span>
+                                    </div> */}
                                 </div>
                             </div>
                         );

@@ -16,7 +16,7 @@ import InsightCard from "./components/InsightCard";
 export default function StudentDashboard() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const studentId = searchParams.get("studentId") || "1";
+    const studentId = searchParams.get("studentId") || localStorage.getItem("userId") || "1";
 
     const { statistics, recommendations, insights, loading, error, retry } =
         useStudentData(studentId);
@@ -192,7 +192,10 @@ export default function StudentDashboard() {
                 {/* Charts & Recommendations */}
                 <div className="grid md:grid-cols-2 gap-6 mb-10">
                     {statistics?.subjectPerformance && (
-                        <PerformanceChart data={statistics.subjectPerformance} />
+                        <PerformanceChart
+                            data={statistics.subjectPerformance}
+                            recentExams={statistics.recentExams}
+                        />
                     )}
                     {recommendations && <RecommendationPanel data={recommendations} />}
                 </div>
@@ -214,6 +217,7 @@ export default function StudentDashboard() {
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Trắc nghiệm</th>
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Tự luận</th>
                                             <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Tổng điểm</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Hành động</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -246,6 +250,14 @@ export default function StudentDashboard() {
                                                     >
                                                         {exam.totalScore?.toFixed(1) || "0.0"}
                                                     </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        onClick={() => navigate(`/ai/results/${exam.attemptId}`)}
+                                                        className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100"
+                                                    >
+                                                        Xem kết quả
+                                                    </button>
                                                 </td>
                                             </tr>
                                         ))}
