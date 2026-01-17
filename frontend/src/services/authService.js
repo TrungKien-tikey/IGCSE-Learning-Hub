@@ -10,6 +10,11 @@ const authService = {
     // Gọi API đăng nhập: POST /auth/login
     return axiosClient.post('/auth/login', data);
   },
+
+  changePassword: (data) => {
+    // Gọi API đổi mật khẩu: POST /auth/change-password
+    return axiosClient.post('/auth/change-password', data);
+  },
 };
 
 export default authService;
