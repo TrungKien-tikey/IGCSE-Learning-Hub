@@ -7,12 +7,6 @@ import {
   PlayCircle
 } from 'lucide-react';
 
-// Giả lập user (Sau này sẽ lấy từ Context/LocalStorage thực tế)
-const mockUser = {
-  name: "An Nguyen",
-  role: "student", // Thử đổi thành 'teacher', 'admin' để xem giao diện khác
-  username: "an2005"
-};
 
 const menuItems = {
   student: [
@@ -52,14 +46,22 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Lấy thông tin user từ localStorage (Đưa vào trong để cập nhật khi re-render)
+  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  const mockUser = {
+    name: storedUser.fullName || "User",
+    role: (localStorage.getItem("userRole") || "student").toLowerCase(),
+    username: storedUser.email?.split('@')[0] || "user"
+  };
+
   // Xác định menu dựa trên role
   const role = mockUser.role || "student";
   const items = menuItems[role] || menuItems["student"];
 
   const handleLogout = () => {
-    // Xử lý logout giả lập
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
+    localStorage.removeItem("userRole");
     navigate("/login");
   };
 
@@ -99,7 +101,7 @@ const MainLayout = ({ children }) => {
         <div className="mt-auto p-6 border-t border-gray-100">
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Account</p>
           <ul className="space-y-1">
-            <SidebarItem icon={User} text="Profile" url="/profile" />
+            <SidebarItem icon={User} text="Profile" url="/profile" active={location.pathname === "/profile"} />
             <li onClick={handleLogout} className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
               <LogOut size={20} />
               <span className="font-medium">Logout</span>
@@ -122,8 +124,12 @@ const MainLayout = ({ children }) => {
               <p className="text-sm font-bold text-gray-800">{mockUser.name}</p>
               <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200">
-              {mockUser.username.charAt(0).toUpperCase()}
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden">
+              {storedUser.avatar ? (
+                <img src={storedUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                mockUser.name.charAt(0).toUpperCase()
+              )}
             </div>
           </div>
         </header>

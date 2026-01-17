@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import Link và useNavigate
-import authService from '../../services/authService'; // Import service (đảm bảo đường dẫn đúng)
-import './Login.css'; // File CSS của bạn
+import { Link } from 'react-router-dom';
+import authService from '../../services/authService';
+import './Login.css';
 
 function Login() {
-  const navigate = useNavigate(); // Hook để chuyển trang
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -21,34 +20,35 @@ function Login() {
     e.preventDefault();
 
     try {
-      // 1. Gọi API Đăng nhập
+      // 1. Gọi API
       const response = await authService.login(formData);
+      const serverData = response.data;
+      const token = serverData.token;
 
-      // 2. Lấy Token từ kết quả trả về
-      // (Dự phòng cả 2 trường hợp tên biến backend trả về)
-      const token = response.data.token || response.data.accessToken;
+      // Kiểm tra an toàn
+      if (!token) {
+        throw new Error("Lỗi: Không tìm thấy Token!");
+      }
 
-      // 3. Lưu thông tin vào sessionStorage
-      sessionStorage.setItem('accessToken', token);
+      // 2. Lưu thông tin vào localStorage (Dùng local để giữ đăng nhập lâu dài)
+      localStorage.setItem('accessToken', token);
       
-      if (response.data.role) {
-        sessionStorage.setItem('userRole', response.data.role);
+      if (serverData.role) {
+        localStorage.setItem('userRole', serverData.role);
       }
-      if (response.data.userId) {
-        sessionStorage.setItem('userId', response.data.userId);
+      if (serverData.userId || serverData.id) {
+        localStorage.setItem('userId', serverData.userId || serverData.id);
       }
 
-      // 4. Thông báo và chuyển hướng
-      console.log("Đăng nhập thành công:", response.data);
+      // 3. Thông báo và chuyển hướng
       alert("Đăng nhập thành công!");
       
-      // Chuyển về trang Dashboard (hoặc trang chủ)
-      navigate('/'); 
+      // Dùng window.location.href để đảm bảo tải lại trang và cập nhật trạng thái đăng nhập
+      window.location.href = '/';
 
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
-      // Hiển thị lỗi chi tiết hơn nếu có
-      const errorMsg = error.response?.data?.message || "Đăng nhập thất bại! Kiểm tra lại email hoặc mật khẩu.";
+      const errorMsg = error.response?.data?.message || "Đăng nhập thất bại! Kiểm tra lại thông tin.";
       alert(errorMsg);
     }
   };
@@ -82,7 +82,6 @@ function Login() {
             />
           </div>
 
-          {/* --- 👇 PHẦN MỚI THÊM: QUÊN MẬT KHẨU 👇 --- */}
           <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-10px' }}>
             <Link 
               to="/forgot-password" 
@@ -91,7 +90,6 @@ function Login() {
               Quên mật khẩu?
             </Link>
           </div>
-          {/* --------------------------------------------- */}
 
           <button type="submit" className="btn-submit">Đăng Nhập</button>
         </form>
