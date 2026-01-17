@@ -67,7 +67,7 @@ const RecentExamsCompact = ({ exams }) => {
     );
 };
 
-// Dữ liệu User (Lấy từ localStorage nếu đã đăng nhập)
+// Dữ liệu User (Lấy từ sessionStorage nếu đã đăng nhập)
 const user = {
     name: localStorage.getItem("userName") || "User",
     role: localStorage.getItem("userRole")?.toLowerCase() || "student"
