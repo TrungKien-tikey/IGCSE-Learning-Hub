@@ -142,7 +142,8 @@ public class TierManagerService {
         Optional<StudyContext> storedContext = studyContextRepository.findByStudentId(studentId);
         if (storedContext.isPresent()) {
             logger.debug("Sử dụng bối cảnh đã lưu từ database cho student: {}", studentId);
-            return new AnalysisMetadata(storedContext.get().getStudentName());
+            String storedName = storedContext.get().getStudentName();
+            return new AnalysisMetadata(storedName != null ? storedName : "Học sinh");
         }
 
         // Ưu tiên 2: Fallback parse từ nifiData truyền trực tiếp (nếu DB chưa kịp
@@ -160,7 +161,9 @@ public class TierManagerService {
 
                     if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
                         String studentName = "Học sinh";
-                        if (record.containsKey("student_name"))
+                        if (record.containsKey("full_name"))
+                            studentName = record.get("full_name").toString();
+                        else if (record.containsKey("student_name"))
                             studentName = record.get("student_name").toString();
                         else if (record.containsKey("name"))
                             studentName = record.get("name").toString();
