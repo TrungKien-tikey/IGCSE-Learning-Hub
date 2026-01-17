@@ -27,7 +27,7 @@ const menuItems = {
   ],
   admin: [
     { title: "System Health", icon: Home, url: "/" },
-    { title: "User Management", icon: Users, url: "/users" },
+    { title: "User Management", icon: Users, url: "/admin/dashboard" },
     { title: "System Logs", icon: ShieldCheck, url: "/logs" },
     { title: "Global Settings", icon: Settings, url: "/settings" },
   ],
