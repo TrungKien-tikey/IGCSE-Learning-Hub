@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // [UPDATED] Thêm useEffect
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
@@ -7,6 +7,11 @@ import {
   PlayCircle
 } from 'lucide-react';
 
+// [UPDATED] Import các thư viện cần thiết cho Notification
+import { requestForToken, onMessageListener } from '../firebase'; // Đảm bảo đường dẫn đúng tới file firebase.ts/.js của bạn
+import axiosClient from '../api/axiosClient';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const menuItems = {
   student: [
@@ -14,8 +19,6 @@ const menuItems = {
     { title: "Math Modules", icon: Calculator, url: "/modules" },
     { title: "My Progress", icon: BarChart3, url: "/progress" },
     { title: "Practice Exams", icon: GraduationCap, url: "/exams" },
-
-    // --- MỚI THÊM ĐỂ TEST ---
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
   ],
@@ -46,7 +49,7 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Lấy thông tin user từ localStorage (Đưa vào trong để cập nhật khi re-render)
+  // Lấy thông tin user từ localStorage
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
   const mockUser = {
     name: storedUser.fullName || "User",
@@ -65,8 +68,64 @@ const MainLayout = ({ children }) => {
     navigate("/login");
   };
 
+  // --- [UPDATED] LOGIC NOTIFICATION BẮT ĐẦU TẠI ĐÂY ---
+  useEffect(() => {
+    // 1. Hàm đăng ký token với Backend
+    const registerFCMToken = async () => {
+      try {
+        // Lấy Device Token từ Firebase
+        const fcmToken = await generateToken();
+        
+        // Lấy UserID (Cần đảm bảo storedUser có trường id hoặc userId)
+        // Thông thường storedUser lấy từ JWT decode hoặc response login sẽ có id
+        const userId = storedUser.id || storedUser.userId; 
+
+        if (fcmToken && userId) {
+          // Gọi API Backend để lưu cặp (userId, fcmToken)
+          // Đường dẫn này phải khớp với NotificationController bên Spring Boot
+          await axiosClient.post(`/notifications/register-token?userId=${userId}&token=${fcmToken}`);
+          console.log("FCM Token registered with backend successfully");
+        }
+      } catch (error) {
+        console.error("Error registering FCM token:", error);
+      }
+    };
+
+    // Chỉ chạy nếu user đã đăng nhập
+    if (storedUser && (storedUser.id || storedUser.userId)) {
+      registerFCMToken();
+    }
+
+    // 2. Lắng nghe thông báo khi App đang mở (Foreground)
+    onMessageListener()
+      .then((payload) => {
+        console.log('Foreground notification received:', payload);
+        // Hiển thị Toast thông báo đẹp mắt
+        toast.info(
+          <div>
+            <h4 className="font-bold">{payload.notification.title}</h4>
+            <p className="text-sm">{payload.notification.body}</p>
+          </div>,
+          {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          }
+        );
+      })
+      .catch((err) => console.log('Failed to listen to messages: ', err));
+
+  }, []); // Chỉ chạy 1 lần khi component mount
+  // --- [UPDATED] KẾT THÚC LOGIC NOTIFICATION ---
+
   return (
     <div className="flex h-screen bg-gray-50 font-sans">
+      {/* [UPDATED] Thêm ToastContainer để hiển thị thông báo */}
+      <ToastContainer />
+
       {/* --- LEFT SIDEBAR --- */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
         <div className="p-6">
