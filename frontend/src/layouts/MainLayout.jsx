@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
   Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
-  Home, Settings, TrendingUp, ShoppingCart,
+  Home, Settings, TrendingUp, ShoppingCart,Bell,
   PlayCircle
 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ const menuItems = {
     { title: "Practice Exams", icon: GraduationCap, url: "/exams" },
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
+    { title: "Thông báo", icon: Bell, url: "/notifications" },
   ],
   teacher: [
     { title: "Overview", icon: LayoutDashboard, url: "/" },
