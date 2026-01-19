@@ -3,17 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
 import './Register.css';
 
+// 👇 1. Import Icon
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+
 function Register() {
   const navigate = useNavigate();
 
-  // 1. Thêm 'role' vào state, mặc định là STUDENT
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'STUDENT' // <--- Mới thêm
+    role: 'STUDENT'
   });
+
+  // 👇 2. State quản lý ẩn/hiện cho 2 ô mật khẩu riêng biệt
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -32,12 +38,11 @@ function Register() {
     }
 
     try {
-      // 2. Gửi thêm trường 'role' xuống Backend
       const response = await authService.register({
         fullName: formData.fullName,
         email: formData.email,
         password: formData.password,
-        role: formData.role // <--- Quan trọng: Gửi role đã chọn
+        role: formData.role
       });
 
       console.log("Đăng ký thành công:", response.data);
@@ -46,7 +51,7 @@ function Register() {
 
     } catch (error) {
       console.error("Lỗi đăng ký:", error);
-      const message = error.response?.data || "Đăng ký thất bại. Vui lòng thử lại!";
+      const message = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại!";
       alert(message);
     }
   };
@@ -83,7 +88,7 @@ function Register() {
             />
           </div>
 
-          {/* 3. Phần chọn Vai trò (Dropdown) - MỚI THÊM */}
+          {/* Chọn Vai trò */}
           <div className="input-group">
             <label>Bạn là ai?</label>
             <select
@@ -103,30 +108,46 @@ function Register() {
             </select>
           </div>
 
-          {/* Nhập Mật khẩu */}
+          {/* 👇 3. Nhập Mật khẩu (Có icon mắt) */}
           <div className="input-group">
             <label>Mật khẩu</label>
-            <input 
-              type="password" 
-              name="password" 
-              placeholder="******"
-              value={formData.password} 
-              onChange={handleChange} 
-              required
-            />
+            <div className="password-input-wrapper">
+              <input 
+                type={showPassword ? "text" : "password"} // Type động
+                name="password" 
+                placeholder="******"
+                value={formData.password} 
+                onChange={handleChange} 
+                required
+              />
+              <span 
+                className="password-toggle-icon"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
           </div>
           
-          {/* Nhập lại Mật khẩu */}
+          {/* 👇 4. Nhập lại Mật khẩu (Có icon mắt riêng) */}
           <div className="input-group">
             <label>Nhập lại mật khẩu</label>
-            <input 
-              type="password" 
-              name="confirmPassword" 
-              placeholder="******"
-              value={formData.confirmPassword} 
-              onChange={handleChange} 
-              required
-            />
+            <div className="password-input-wrapper">
+              <input 
+                type={showConfirmPassword ? "text" : "password"} // Type động
+                name="confirmPassword" 
+                placeholder="******"
+                value={formData.confirmPassword} 
+                onChange={handleChange} 
+                required
+              />
+              <span 
+                className="password-toggle-icon"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
           </div>
 
           <button type="submit" className="btn-submit">Đăng Ký Ngay</button>
