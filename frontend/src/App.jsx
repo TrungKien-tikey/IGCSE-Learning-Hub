@@ -15,6 +15,7 @@ import ChatPage from "./pages/ChatPage";
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
+import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -115,6 +116,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN']}>
               <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/course-approval"
+          element={
+            <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
+              <AdminCourseApprovalPage />
             </RoleProtectedRoute>
           }
         />
