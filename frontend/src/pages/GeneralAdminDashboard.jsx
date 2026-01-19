@@ -1,18 +1,43 @@
-import React from 'react';
+import { useSystemData } from './ai/hooks/useSystemData';
 import {
-    Users, Shield, Server, Activity,
+    Users, Shield, Server, Activity, Clock, CheckCircle,
     Settings, Database, AlertCircle, FileText, MessageSquare
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
 
 export default function GeneralAdminDashboard() {
     const adminName = localStorage.getItem("userName") || "Quản trị viên";
+    const { data } = useSystemData();
 
     const stats = [
-        { title: "Tổng người dùng", value: "1,240", icon: Users, color: "text-blue-600", bg: "bg-blue-100" },
-        { title: "Service hoạt động", value: "8/8", icon: Server, color: "text-emerald-600", bg: "bg-emerald-100" },
-        { title: "Lỗi hệ thống (24h)", value: "2", icon: AlertCircle, color: "text-red-600", bg: "bg-red-100" },
-        { title: "Yêu cầu hỗ trợ", value: "5", icon: MessageSquare, color: "text-amber-600", bg: "bg-amber-100" },
+        {
+            title: "Tổng bài đã chấm",
+            value: data?.totalGraded?.toLocaleString() || "0",
+            icon: CheckCircle,
+            color: "text-indigo-600",
+            bg: "bg-indigo-100"
+        },
+        {
+            title: "Độ chính xác AI",
+            value: `${data?.averageAccuracy?.toFixed(1) || "0.0"}%`,
+            icon: Shield,
+            color: "text-emerald-600",
+            bg: "bg-emerald-100"
+        },
+        {
+            title: "Thời gian tiết kiệm",
+            value: `${data?.hoursSaved?.toFixed(0) || 0} giờ`,
+            icon: Clock,
+            color: "text-orange-600",
+            bg: "bg-orange-100"
+        },
+        {
+            title: "Tổng người dùng",
+            value: "1,240",
+            icon: Users,
+            color: "text-blue-600",
+            bg: "bg-blue-100"
+        },
     ];
 
     return (

@@ -66,7 +66,8 @@ public class AIController {
                 Long studentId = Long.valueOf(sid.toString());
                 studentIds.add(studentId);
 
-                // Cập nhật course_id vào Database nếu có (không cần update điểm vì exam_attempts đã có total_score)
+                // Cập nhật course_id vào Database nếu có (không cần update điểm vì
+                // exam_attempts đã có total_score)
                 Object aid = record.get("attempt_id");
                 if (aid != null) {
                     Long attemptId = Long.valueOf(aid.toString());
@@ -95,6 +96,7 @@ public class AIController {
     }
 
     @GetMapping("/health")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Map<String, Object>> healthCheck() {
         Map<String, Object> health = new HashMap<>();
         health.put("status", "UP");
