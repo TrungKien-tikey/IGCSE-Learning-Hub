@@ -20,8 +20,9 @@ public class Notification {
     private String message;
     @Column(name = "notification_type") 
     private String type;
-    private boolean isRead;
-    private LocalDateTime createdAt;
-    
+    @Column(name = "exam_id")
+    private Long examId;
+    private boolean isRead = false; // Mặc định là chưa đọc (false)
+    private LocalDateTime createdAt = LocalDateTime.now();
     // Loại bỏ courseId
 }

@@ -29,9 +29,7 @@ public class NotificationListener {
 
         try {
             // 1. Lưu thông báo vào DB
-            // Vì đây là thông báo chung (không có courseId), ta có thể lưu 1 bản ghi dạng "SYSTEM"
-            // Hoặc nếu muốn hiển thị cho user cụ thể, cần logic lấy danh sách user. 
-            // Ở đây mình lưu 1 bản ghi đại diện (userId = 0 hoặc null) để hiển thị ở bảng tin chung.
+ 
             Notification notification = new Notification();
             notification.setUserId(0L); // 0L đại diện cho 'All Students'
             notification.setTitle("Bài thi mới: " + event.getExamTitle());
@@ -39,6 +37,7 @@ public class NotificationListener {
             notification.setType("EXAM_ALERT");
             notification.setRead(false);
             notification.setCreatedAt(LocalDateTime.now());
+            notification.setExamId(event.getExamId());
             
             notificationRepository.save(notification);
 
