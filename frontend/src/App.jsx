@@ -11,7 +11,7 @@ import Profile from './pages/Profile';
 
 // --- CÁC TRANG KHÁC (Giữ nguyên) ---
 import Dashboard from './pages/Dashboard';
-import ChatPage from "./pages/ChatPage";
+
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
@@ -42,6 +42,7 @@ import StudentLearningPage from './pages/course/StudentLearningPage';
 
 //Comunication page
 import NotificationsPage from './pages/communication/NotificationsPage';
+import ChatPage from "./pages/communication/ChatPage";
 
 function App() {
   return (
@@ -66,7 +67,6 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* --- CÁC TRANG CÔNG KHAI KHÁC --- */}
-        <Route path="/chat" element={<ChatPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/profile" element={<Profile />} />
 
@@ -92,6 +92,7 @@ function App() {
         
         {/* --- Comunication ROUTES --- */}
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
 
         <Route
           path="/ai/dashboard/student"
