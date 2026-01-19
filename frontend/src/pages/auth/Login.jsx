@@ -33,10 +33,11 @@ function Login() {
 
       // 2. Lưu thông tin vào localStorage (Dùng local để giữ đăng nhập lâu dài)
       localStorage.setItem('accessToken', token);
-      
+    
       if (serverData.role) {
         localStorage.setItem('userRole', serverData.role);
       }
+
       if (serverData.userId || serverData.id) {
         localStorage.setItem('userId', serverData.userId || serverData.id);
       }
@@ -50,7 +51,7 @@ function Login() {
             
             // Gọi API backend để subscribe token này vào topic 'students'
             // YÊU CẦU: Backend phải có API @PostMapping("/subscribe") như đã hướng dẫn
-            await axiosClient.post('http://localhost:8089/api/notifications/subscribe', { 
+            await axiosClient.post('/notifications/subscribe', { 
               token: fcmToken 
             });
             console.log("-->  Đã gửi Token về server thành công!");

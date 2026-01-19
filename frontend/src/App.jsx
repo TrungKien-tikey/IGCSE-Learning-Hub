@@ -39,6 +39,9 @@ import AllCoursesPage from './pages/course/AllCoursesPage';
 import MyCoursesPage from './pages/course/MyCoursesPage';
 import StudentLearningPage from './pages/course/StudentLearningPage';
 
+//Comunication page
+import NotificationsPage from './pages/communication/NotificationsPage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -85,6 +88,9 @@ function App() {
         {/* --- AI ROUTES --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
+        
+        {/* --- Comunication ROUTES --- */}
+        <Route path="/notifications" element={<NotificationsPage />} />
 
         <Route
           path="/ai/dashboard/student"
