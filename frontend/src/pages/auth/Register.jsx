@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import authService from '../../services/authService';
 import './Register.css';
 
-// 👇 1. Import Icon
+// 1. Import Icon
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Register() {
@@ -17,20 +17,53 @@ function Register() {
     role: 'STUDENT'
   });
 
-  // 👇 2. State quản lý ẩn/hiện cho 2 ô mật khẩu riêng biệt
+  // 2. State quản lý ẩn/hiện mật khẩu
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 👇 3. State quản lý lỗi Email trùng
+  const [emailError, setEmailError] = useState('');
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+
+    // 👇 Nếu người dùng sửa lại email, tạm thời xóa lỗi đi để họ nhập tiếp
+    if (e.target.name === 'email') {
+      setEmailError('');
+    }
+  };
+
+  // 👇 4. Hàm gọi API check email khi người dùng nhập xong (Sự kiện onBlur)
+  const handleCheckEmail = async () => {
+    // Nếu chưa nhập gì thì thôi không check
+    if (!formData.email) return;
+
+    try {
+      const response = await authService.checkEmail(formData.email);
+      // Backend trả về true nghĩa là Email ĐÃ TỒN TẠI
+      if (response.data === true) {
+        setEmailError('Email này đã được sử dụng! Vui lòng chọn email khác.');
+      } else {
+        setEmailError(''); // Email hợp lệ
+      }
+    } catch (error) {
+      console.error("Lỗi kiểm tra email:", error);
+      // Nếu API lỗi (ví dụ mất mạng), tạm thời không chặn user, để họ bấm Đăng ký rồi Backend xử lý sau
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // 👇 Chặn không cho gửi nếu đang có lỗi Email
+    if (emailError) {
+      alert("Vui lòng sửa lỗi Email trước khi đăng ký!");
+      return;
+    }
+
     // Kiểm tra mật khẩu nhập lại
     if (formData.password !== formData.confirmPassword) {
       alert("Mật khẩu nhập lại không khớp!");
@@ -75,7 +108,7 @@ function Register() {
             />
           </div>
 
-          {/* Nhập Email */}
+          {/* Nhập Email (Có tính năng Check trùng) */}
           <div className="input-group">
             <label>Email</label>
             <input 
@@ -84,8 +117,12 @@ function Register() {
               placeholder="email@example.com"
               value={formData.email} 
               onChange={handleChange} 
+              onBlur={handleCheckEmail} // 👈 Kích hoạt check khi bấm ra ngoài
               required
+              style={emailError ? { border: '1px solid red' } : {}} // Viền đỏ nếu lỗi
             />
+            {/* Hiển thị dòng thông báo lỗi */}
+            {emailError && <span style={{ color: 'red', fontSize: '12px', marginTop: '5px', display: 'block' }}>{emailError}</span>}
           </div>
 
           {/* Chọn Vai trò */}
@@ -108,12 +145,12 @@ function Register() {
             </select>
           </div>
 
-          {/* 👇 3. Nhập Mật khẩu (Có icon mắt) */}
+          {/* Nhập Mật khẩu */}
           <div className="input-group">
             <label>Mật khẩu</label>
             <div className="password-input-wrapper">
               <input 
-                type={showPassword ? "text" : "password"} // Type động
+                type={showPassword ? "text" : "password"}
                 name="password" 
                 placeholder="******"
                 value={formData.password} 
@@ -129,12 +166,12 @@ function Register() {
             </div>
           </div>
           
-          {/* 👇 4. Nhập lại Mật khẩu (Có icon mắt riêng) */}
+          {/* Nhập lại Mật khẩu */}
           <div className="input-group">
             <label>Nhập lại mật khẩu</label>
             <div className="password-input-wrapper">
               <input 
-                type={showConfirmPassword ? "text" : "password"} // Type động
+                type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword" 
                 placeholder="******"
                 value={formData.confirmPassword} 
@@ -150,7 +187,15 @@ function Register() {
             </div>
           </div>
 
-          <button type="submit" className="btn-submit">Đăng Ký Ngay</button>
+          {/* Nút Đăng ký (Disable nếu có lỗi) */}
+          <button 
+            type="submit" 
+            className="btn-submit"
+            disabled={!!emailError} // Khóa nút nếu có lỗi
+            style={emailError ? { backgroundColor: '#ccc', cursor: 'not-allowed' } : {}}
+          >
+            Đăng Ký Ngay
+          </button>
         </form>
         
         <p className="redirect-text">
