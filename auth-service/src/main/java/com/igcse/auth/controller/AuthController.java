@@ -83,4 +83,10 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
         }
     }
+
+    // 8. API Check trùng Email
+    @GetMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
+        return ResponseEntity.ok(authService.checkEmailExists(email));
+    }
 }
