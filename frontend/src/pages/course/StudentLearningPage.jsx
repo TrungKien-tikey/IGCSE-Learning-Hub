@@ -14,7 +14,7 @@ export default function StudentLearningPage() {
 
     // Lấy role hoặc tên user từ storage để hiển thị (cho xịn)
     // Giả sử bạn lưu userId, sau này có thể lưu thêm userName
-    const userRole = sessionStorage.getItem('userRole') || "Student";
+    const userRole = localStorage.getItem('userRole') || "Student";
 
     const API_URL = 'http://localhost:8079/api/courses';
 
@@ -24,7 +24,7 @@ export default function StudentLearningPage() {
 
     const fetchCourseAndLessons = async () => {
         // Lấy Token
-        const token = sessionStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        const token = localStoragegetItem('accessToken') || localStorage.getItem('accessToken');
 
         // Nếu không có token -> Đuổi về Login
         if (!token) {

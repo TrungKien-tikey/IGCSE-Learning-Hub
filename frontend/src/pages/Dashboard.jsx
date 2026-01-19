@@ -2,7 +2,7 @@ import React from 'react';
 import StudentDashboardGeneral from './StudentDashboardGeneral';
 import TeacherDashboard from './TeacherDashboard';
 import GeneralAdminDashboard from './GeneralAdminDashboard';
-import AdminCourseApprovalPage from './admin/AdminCourseApprovalPage';
+import AdminCourseApprovalPage from './AdminCourseApprovalPage';
 
 /**
  * Dashboard (Dispatcher)

@@ -11,9 +11,9 @@ export default function AdminCourseApprovalPage() {
 
   const API_URL = 'http://localhost:8079/api/courses';
 
-  // Hàm lấy Header chứa Token (Dùng sessionStorage hoặc localStorage như bạn đã chốt)
+  // Hàm lấy Header chứa Token (Dùng localStorage hoặc localStorage như bạn đã chốt)
   const getAuthConfig = () => {
-    const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('accessToken');
     return {
       headers: {
         Authorization: `Bearer ${token}`
