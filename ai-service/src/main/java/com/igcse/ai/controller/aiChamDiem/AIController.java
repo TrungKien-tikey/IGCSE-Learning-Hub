@@ -20,7 +20,7 @@ import java.util.*;
 @RestController
 @RequestMapping("/api/ai")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')")
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
 

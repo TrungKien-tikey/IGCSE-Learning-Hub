@@ -98,6 +98,19 @@ public class CourseController {
         return ResponseEntity.ok(courses);
     }
 
+    // 1b. API lấy danh sách khóa học DO TÔI DẠY (Dành cho Giáo viên)
+    @GetMapping("/teacher-courses")
+    public ResponseEntity<?> getTeacherCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
+        }
+
+        List<Course> courses = courseService.getCoursesByTeacherId(userId);
+        return ResponseEntity.ok(courses);
+    }
+
     // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
     @GetMapping("/recommended")
     public ResponseEntity<?> getRecommendedCourses(@RequestHeader("Authorization") String tokenHeader) {
