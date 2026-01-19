@@ -1,13 +1,19 @@
 package com.igcse.course.controller;
 
 import com.igcse.course.entity.Course;
+import com.igcse.course.entity.Enrollment;
 import com.igcse.course.entity.Lesson;
+import com.igcse.course.repository.CourseRepository;
+import com.igcse.course.repository.EnrollmentRepository;
 import com.igcse.course.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.igcse.course.util.JwtUtils;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
+;
 
 @RestController
 @RequestMapping("/api/courses")
@@ -18,6 +24,10 @@ public class CourseController {
     private CourseService courseService;
     @Autowired
     private JwtUtils jwtUtils;
+    @Autowired
+    private CourseRepository courseRepository; 
+    @Autowired
+    private EnrollmentRepository enrollmentRepositor;
 
     // --- Helper method để lấy ID từ Header ---
     private Long getUserIdFromHeader(String tokenHeader) {
@@ -212,5 +222,26 @@ public class CourseController {
 
         boolean enrolled = courseService.isStudentEnrolled(courseId, userId);
         return ResponseEntity.ok(enrolled);
+    }
+   @GetMapping("/{id}/participants")
+    public ResponseEntity<List<Long>> getCourseParticipants(@PathVariable Long id) {
+        // 1. Tìm khóa học để lấy ID giáo viên (createdBy)
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+        
+        // 2. Lấy danh sách học viên từ bảng Enrollment
+        List<Enrollment> enrollments = enrollmentRepositor.findByCourseCourseId(id);
+        
+        List<Long> participantIds = enrollments.stream()
+                .map(Enrollment::getUserId)
+                .collect(Collectors.toList());
+                
+        // 3. Thêm giáo viên vào danh sách (nếu chưa có)
+        // Lưu ý: Đảm bảo createdBy không null trong DB
+        if (course.getCreatedBy() != null && !participantIds.contains(course.getCreatedBy())) {
+            participantIds.add(course.getCreatedBy());
+        }
+        
+        return ResponseEntity.ok(participantIds);
     }
 }

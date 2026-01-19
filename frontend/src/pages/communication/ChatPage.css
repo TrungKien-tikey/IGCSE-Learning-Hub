@@ -1,0 +1,137 @@
+.chat-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #f5f7fa;
+}
+
+.chat-header-bar {
+    height: 60px;
+    background: white;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 15px;
+}
+
+.chat-body {
+    flex: 1;
+    display: flex;
+    overflow: hidden; /* Ngăn cuộn cả trang */
+}
+
+/* SIDEBAR */
+.user-list-sidebar {
+    width: 300px;
+    background: white;
+    border-right: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-title {
+    padding: 15px;
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+}
+
+.ul-scroll {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.user-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+    transition: 0.2s;
+}
+
+.user-item:hover { background: #f0f8ff; }
+.user-item.active { background: #e6f7ff; border-left: 4px solid #1890ff; }
+
+.u-avatar { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; }
+.u-info { flex: 1; }
+.u-name { font-weight: 500; font-size: 14px; }
+.u-role { font-size: 12px; color: #888; }
+.u-status { color: #52c41a; font-size: 10px; }
+
+/* CHAT WINDOW */
+.chat-window {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+}
+
+.cw-header {
+    height: 50px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    background: #fff;
+}
+
+.cw-messages {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.msg-row { display: flex; }
+.my-msg { justify-content: flex-end; }
+.their-msg { justify-content: flex-start; }
+
+.msg-bubble {
+    max-width: 70%;
+    padding: 10px 15px;
+    border-radius: 15px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.my-msg .msg-bubble { background: #1890ff; color: white; border-bottom-right-radius: 2px; }
+.their-msg .msg-bubble { background: white; border: 1px solid #ddd; border-bottom-left-radius: 2px; }
+
+.cw-input {
+    height: 60px;
+    border-top: 1px solid #ddd;
+    padding: 10px 20px;
+    display: flex;
+    gap: 10px;
+    background: white;
+}
+
+.cw-input input {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
+}
+
+.cw-input button {
+    padding: 0 20px;
+    background: #1890ff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.empty-chat {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #999;
+}
