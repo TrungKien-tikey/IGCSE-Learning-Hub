@@ -13,12 +13,12 @@ export default function MyCoursesPage() {
   useEffect(() => {
     const fetchMyCourses = async () => {
       // --- SỬA Ở ĐÂY: Đổi 'token' thành 'accessToken' ---
-      const token = sessionStorage.getItem('accessToken');
+      const token = localStorage.getItem('accessToken');
       // --------------------------------------------------
 
       // Nếu không có token -> Đẩy về trang Login
       if (!token) {
-        console.log("Không tìm thấy token trong sessionStorage");
+        console.log("Không tìm thấy token trong localStorage");
         navigate('/login');
         return;
       }
@@ -37,9 +37,9 @@ export default function MyCoursesPage() {
         // Nếu Backend trả về 401 (Unauthorized) -> Token hết hạn hoặc sai Key
         if (err.response && err.response.status === 401) {
           alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
-          sessionStorage.removeItem('accessToken'); // Xóa token cũ
-          sessionStorage.removeItem('userRole');
-          sessionStorage.removeItem('userId');
+          localStorage.removeItem('accessToken'); // Xóa token cũ
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userId');
           navigate('/login');
         }
       }
