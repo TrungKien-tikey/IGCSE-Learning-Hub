@@ -112,43 +112,18 @@ public class StatisticsService implements IStatisticsService {
                 logger.info("Getting statistics for classId: {}", classId);
                 Objects.requireNonNull(classId, "Class ID cannot be null");
 
-                // Lấy tất cả examId của lớp (giả định cần gọi exam-service để lấy danh sách)
-                // Hiện tại query tất cả results và group theo examId
-                List<AIResult> allResults = aiResultRepository.findAll();
-
                 ClassStatisticsDTO stats = new ClassStatisticsDTO();
                 stats.setClassId(classId);
                 stats.setClassName("Class " + classId);
 
-                // Group theo examId để tính statistics cho từng exam
-                Map<Long, List<AIResult>> resultsByExam = allResults.stream()
-                                .filter(r -> r.getExamId() != null)
-                                .collect(Collectors.groupingBy(AIResult::getExamId));
+                // ✅ Tối ưu: Dùng aggregation queries thay vì findAll()
+                Long totalStudents = aiResultRepository.countDistinctStudentsByClassId(classId);
+                Double averageScore = aiResultRepository.getAverageScoreByClassId(classId);
+                Long completedAssignments = aiResultRepository.countByClassId(classId);
 
-                if (resultsByExam.isEmpty()) {
-                        logger.debug("No results found for classId: {}", classId);
-                        stats.setTotalStudents(0);
-                        stats.setClassAverageScore(0.0);
-                        stats.setCompletedAssignments(0);
-                        return stats;
-                }
-
-                // Tính số học sinh unique
-                Set<Long> uniqueStudents = allResults.stream()
-                                .filter(r -> r.getStudentId() != null)
-                                .map(AIResult::getStudentId)
-                                .collect(Collectors.toSet());
-                stats.setTotalStudents(uniqueStudents.size());
-
-                // Tính điểm trung bình của lớp
-                double classAverage = allResults.stream()
-                                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                .average()
-                                .orElse(0.0);
-                stats.setClassAverageScore(Math.round(classAverage * 100.0) / 100.0);
-
-                // Số bài đã hoàn thành = số results
-                stats.setCompletedAssignments(allResults.size());
+                stats.setTotalStudents(totalStudents != null ? totalStudents.intValue() : 0);
+                stats.setClassAverageScore(averageScore != null ? Math.round(averageScore * 100.0) / 100.0 : 0.0);
+                stats.setCompletedAssignments(completedAssignments != null ? completedAssignments.intValue() : 0);
 
                 logger.debug("Class statistics calculated for classId: {}, totalStudents: {}, averageScore: {}",
                                 classId, stats.getTotalStudents(), stats.getClassAverageScore());
@@ -161,19 +136,15 @@ public class StatisticsService implements IStatisticsService {
                 logger.info("Getting system statistics");
 
                 Map<String, Object> stats = new HashMap<>();
+
+                // ✅ Tối ưu: Dùng count() thay vì findAll().size()
                 long totalGraded = aiResultRepository.count();
                 stats.put("totalGraded", totalGraded);
 
-                // Tính average accuracy dựa trên confidence score
-                List<AIResult> allResults = aiResultRepository.findAll();
-                if (!allResults.isEmpty()) {
-                        double avgConfidence = allResults.stream()
-                                        .filter(r -> r.getConfidence() != null)
-                                        .mapToDouble(AIResult::getConfidence)
-                                        .average()
-                                        .orElse(0.0);
-                        stats.put("averageAccuracy", Math.round(avgConfidence * 10000.0) / 100.0); // Convert to
-                                                                                                   // percentage
+                // ✅ Tối ưu: Dùng aggregation query thay vì load toàn bộ data
+                Double avgConfidence = aiResultRepository.getAverageConfidence();
+                if (avgConfidence != null) {
+                        stats.put("averageAccuracy", Math.round(avgConfidence * 10000.0) / 100.0);
                 } else {
                         stats.put("averageAccuracy", 0.0);
                 }
