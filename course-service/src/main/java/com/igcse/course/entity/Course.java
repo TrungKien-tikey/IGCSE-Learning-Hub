@@ -12,6 +12,8 @@ public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long courseId;
+    @Column(name = "created_by")
+    private Long createdBy;
 
     private String title;
     
@@ -23,6 +25,7 @@ public class Course {
     private Date createdAt = new Date();
     @Column(name = "duration")
     private String duration;
+
 
     // Quan hệ 1-Nhiều với Lesson
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
@@ -66,4 +69,7 @@ public class Course {
     public void setLessons(List<Lesson> lessons) { this.lessons = lessons; }
     public String getDuration() { return duration; }
     public void setDuration(String duration) { this.duration = duration; }
+    public Long getCreatedBy() {
+        return createdBy;
+    }
 }
