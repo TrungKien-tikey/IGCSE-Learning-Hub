@@ -161,4 +161,9 @@ public class AuthService {
 
         userRepository.save(user);
     }
+
+    // 7. Kiểm tra email tồn tại
+    public boolean checkEmailExists(String email) {
+        return userRepository.existsByEmail(email); 
+    }
 }
