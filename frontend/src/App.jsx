@@ -11,7 +11,6 @@ import Profile from './pages/Profile';
 
 // --- CÁC TRANG KHÁC (Giữ nguyên) ---
 import Dashboard from './pages/Dashboard';
-import TestNotificationPage from './pages/TestNotifyPage'
 import ChatPage from "./pages/ChatPage";
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -40,6 +39,9 @@ import AllCoursesPage from './pages/course/AllCoursesPage';
 import MyCoursesPage from './pages/course/MyCoursesPage';
 import StudentLearningPage from './pages/course/StudentLearningPage';
 
+//Comunication page
+import NotificationsPage from './pages/communication/NotificationsPage';
+
 function App() {
   return (
     <BrowserRouter>
@@ -63,7 +65,6 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* --- CÁC TRANG CÔNG KHAI KHÁC --- */}
-        <Route path="/testnotify" element={<TestNotificationPage />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/profile" element={<Profile />} />
@@ -87,6 +88,9 @@ function App() {
         {/* --- AI ROUTES --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
+        
+        {/* --- Comunication ROUTES --- */}
+        <Route path="/notifications" element={<NotificationsPage />} />
 
         <Route
           path="/ai/dashboard/student"

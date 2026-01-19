@@ -1,4 +1,4 @@
-package com.igcse.communication.dto;
+package com.igsce.exam_service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
