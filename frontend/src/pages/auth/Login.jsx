@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import authService from '../../services/authService';
 import './Login.css';
-
+import { requestForToken } from "../../firebase";
+import axiosClient from "../../api/axiosClient"
 function Login() {
   const [formData, setFormData] = useState({
     email: '',
@@ -32,14 +33,34 @@ function Login() {
 
       // 2. Lưu thông tin vào localStorage (Dùng local để giữ đăng nhập lâu dài)
       localStorage.setItem('accessToken', token);
-      
+    
       if (serverData.role) {
         localStorage.setItem('userRole', serverData.role);
       }
+
       if (serverData.userId || serverData.id) {
         localStorage.setItem('userId', serverData.userId || serverData.id);
       }
-
+     if (serverData.role === 'STUDENT') {
+        try {
+          console.log("--> Bắt đầu lấy FCM Token...");
+          const fcmToken = await requestForToken();
+          
+          if (fcmToken) {
+            console.log("--> FCM Token lấy được:", fcmToken);
+            
+            // Gọi API backend để subscribe token này vào topic 'students'
+            // YÊU CẦU: Backend phải có API @PostMapping("/subscribe") như đã hướng dẫn
+            await axiosClient.post('/notifications/subscribe', { 
+              token: fcmToken 
+            });
+            console.log("-->  Đã gửi Token về server thành công!");
+          }
+        } catch (fcmError) {
+          // Chỉ log lỗi ra console, KHÔNG hiện alert để tránh làm phiền user
+          console.error(" Lỗi đăng ký FCM (Không ảnh hưởng đăng nhập):", fcmError);
+        }
+      }
       // 3. Thông báo và chuyển hướng
       alert("Đăng nhập thành công!");
       

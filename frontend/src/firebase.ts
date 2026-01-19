@@ -14,7 +14,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-export const requestPermission = async () => {
+export const requestForToken = async () => {
   try {
     const messaging = getMessaging(app);
     // VapidKey: Bạn lấy ở tab "Cloud Messaging" -> "Web configuration" trong Firebase Console
