@@ -96,6 +96,10 @@ public class CourseService {
         return courseRepository.findCoursesByStudentId(userId);
     }
 
+    public List<Course> getCoursesByTeacherId(Long teacherId) {
+        return courseRepository.findByTeacherId(teacherId);
+    }
+
     public List<Course> getRecommendedCourses(Long userId) {
         return courseRepository.findRecommendedCourses(userId);
     }

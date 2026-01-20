@@ -7,10 +7,10 @@ import com.igcse.ai.strategy.GradingStrategyFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-
+import org.springframework.beans.factory.annotation.Qualifier;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.concurrent.CompletableFuture;
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
 
@@ -25,7 +25,7 @@ public class AnswerGradingService implements IGradingService {
     public AnswerGradingService(
             ILanguageService languageService,
             GradingStrategyFactory gradingStrategyFactory,
-            @org.springframework.beans.factory.annotation.Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor) {
+            @Qualifier("taskExecutor") java.util.concurrent.Executor taskExecutor) {
         this.languageService = languageService;
         this.gradingStrategyFactory = gradingStrategyFactory;
         this.taskExecutor = taskExecutor;
@@ -46,10 +46,10 @@ public class AnswerGradingService implements IGradingService {
         logger.info("Grading {} answers", answers.size());
 
         try {
-            List<java.util.concurrent.CompletableFuture<GradingResult>> futures = new ArrayList<>();
+            List<CompletableFuture<GradingResult>> futures = new ArrayList<>();
 
             for (AnswerDTO answer : answers) {
-                java.util.concurrent.CompletableFuture<GradingResult> future = java.util.concurrent.CompletableFuture
+                CompletableFuture<GradingResult> future = CompletableFuture
                         .supplyAsync(() -> {
                             try {
                                 return gradeAnswer(answer, lang);
@@ -70,11 +70,10 @@ public class AnswerGradingService implements IGradingService {
             }
 
             // Wait for all to complete
-            java.util.concurrent.CompletableFuture.allOf(futures.toArray(new java.util.concurrent.CompletableFuture[0]))
-                    .join();
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
             // Collect results
-            for (java.util.concurrent.CompletableFuture<GradingResult> future : futures) {
+            for (CompletableFuture<GradingResult> future : futures) {
                 try {
                     results.add(future.get());
                 } catch (Exception e) {
