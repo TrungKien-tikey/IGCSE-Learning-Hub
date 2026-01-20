@@ -15,7 +15,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ai/statistics")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')")
 public class StatisticsController {
     private static final Logger logger = LoggerFactory.getLogger(StatisticsController.class);
     private final IStatisticsService statisticsService;

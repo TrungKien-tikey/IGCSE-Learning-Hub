@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/ai/recommendations")
-@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')")
 public class RecommendationController {
 
     private final IRecommendationService recommendationService;
