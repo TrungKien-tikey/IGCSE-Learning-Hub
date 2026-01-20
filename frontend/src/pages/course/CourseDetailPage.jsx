@@ -12,7 +12,7 @@ export default function CourseDetailPage() {
     const [isEnrolled, setIsEnrolled] = useState(false); // Trạng thái: Đã mua hay chưa?
     const [loading, setLoading] = useState(true);
 
-    // GIẢ LẬP ID USER (Sau này lấy từ sessionStorage)
+    // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
     const currentUserId = 1;
     const API_URL = 'http://localhost:8079/api/courses';
 
@@ -29,7 +29,7 @@ export default function CourseDetailPage() {
 
                 // 3. Kiểm tra đăng ký (CẦN TOKEN)
                 // --- SỬA ĐOẠN NÀY ---
-                const token = sessionStoragegetItem('accessToken');
+                const token = localStoragegetItem('accessToken');
                 if (token) {
                     try {
                         // Gọi API check-enrollment kiểu mới (Header)
@@ -56,7 +56,7 @@ export default function CourseDetailPage() {
     // Xử lý khi bấm nút Đăng Ký
     const handleEnroll = async () => {
         // 1. Lấy Token
-        const token = sessionStorage.getItem('accessToken');
+        const token = localStorage.getItem('accessToken');
 
         if (!token) {
             alert("Vui lòng đăng nhập để mua khóa học!");

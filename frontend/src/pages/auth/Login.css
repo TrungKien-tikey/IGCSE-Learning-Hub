@@ -10,7 +10,7 @@
 
 .login-box {
   background: white;
-  padding: 40px 30px; /* Padding dày hơn chút cho đẹp */
+  padding: 40px 30px;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   width: 400px;
@@ -68,4 +68,36 @@
 .redirect-text a {
   color: #007bff;
   text-decoration: none;
+}
+
+/* --- 👇 PHẦN MỚI CHO ICON MẮT (Show/Hide Password) 👇 --- */
+
+/* Wrapper để định vị icon tương đối so với input */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Chỉnh lại input trong wrapper để chữ không bị icon che mất */
+.password-input-wrapper input {
+  padding-right: 40px; /* Chừa khoảng trống bên phải */
+}
+
+/* Định vị icon con mắt nằm đè lên bên phải input */
+.password-toggle-icon {
+  position: absolute;
+  right: 12px;      
+  top: 50%;       
+  transform: translateY(-50%); 
+  cursor: pointer; 
+  color: #666;      
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.password-toggle-icon:hover {
+  color: #007bff;   
 }
