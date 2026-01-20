@@ -162,8 +162,25 @@ public class AuthService {
         userRepository.save(user);
     }
 
+
     // 7. Kiểm tra email tồn tại
     public boolean checkEmailExists(String email) {
         return userRepository.existsByEmail(email); 
     }
+
+
+    public UserSyncDTO getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay User ID: " + id));
+        
+        // Trả về DTO chứa thông tin public (Tên, Email, Role)
+        return new UserSyncDTO(
+            user.getId(),
+            user.getEmail(),
+            user.getFullName(),
+            user.getRole()
+        );
+    }
 }
+    
+
