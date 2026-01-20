@@ -11,6 +11,7 @@ import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.enums.QuestionType;
 import com.igsce.exam_service.dto.*;
+import com.igsce.exam_service.dto.ExamCreatedEvent;
 
 @Service
 public class ExamService {
@@ -233,6 +234,19 @@ public class ExamService {
             System.out.println("Saving exam to database...");
             Exam savedExam = examRepository.save(exam);
             System.out.println("Exam saved successfully with ID: " + savedExam.getExamId());
+            try {
+                ExamCreatedEvent event = new ExamCreatedEvent(
+                    savedExam.getExamId(), 
+                    savedExam.getTitle(),
+                    savedExam.getDescription()
+                );
+                
+                // Sử dụng Exchange chuyên cho notification (khai báo bên dưới)
+                rabbitTemplate.convertAndSend("exam.notification.exchange", "exam.created", event);
+                System.out.println(">>> Đã gửi sự kiện tạo Exam sang RabbitMQ: " + savedExam.getTitle());
+            } catch (Exception ex) {
+                System.err.println("Lỗi gửi RabbitMQ (không ảnh hưởng transaction chính): " + ex.getMessage());
+            }
 
             return savedExam;
         } catch (Exception e) {

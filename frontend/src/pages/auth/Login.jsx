@@ -1,14 +1,21 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom'; // Import Link và useNavigate
-import authService from '../../services/authService'; // Import service (đảm bảo đường dẫn đúng)
-import './Login.css'; // File CSS của bạn
+import { Link } from 'react-router-dom';
+import authService from '../../services/authService';
+import './Login.css';
+import { requestForToken } from "../../firebase";
+import axiosClient from "../../api/axiosClient";
+
+// 👇 Import Icon Mắt và Mắt gạch chéo
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Login() {
-  const navigate = useNavigate(); // Hook để chuyển trang
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+
+  // 👇 State quản lý việc hiện/ẩn mật khẩu
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -17,38 +24,63 @@ function Login() {
     });
   };
 
+  // 👇 Hàm đảo ngược trạng thái mật khẩu
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      // 1. Gọi API Đăng nhập
+      // 1. Gọi API
       const response = await authService.login(formData);
+      const serverData = response.data;
+      const token = serverData.token;
 
-      // 2. Lấy Token từ kết quả trả về
-      // (Dự phòng cả 2 trường hợp tên biến backend trả về)
-      const token = response.data.token || response.data.accessToken;
-
-      // 3. Lưu thông tin vào sessionStorage
-      sessionStorage.setItem('accessToken', token);
-      
-      if (response.data.role) {
-        sessionStorage.setItem('userRole', response.data.role);
-      }
-      if (response.data.userId) {
-        sessionStorage.setItem('userId', response.data.userId);
+      // Kiểm tra an toàn
+      if (!token) {
+        throw new Error("Lỗi: Không tìm thấy Token!");
       }
 
-      // 4. Thông báo và chuyển hướng
-      console.log("Đăng nhập thành công:", response.data);
+      // 2. Lưu thông tin vào localStorage
+      localStorage.setItem('accessToken', token);
+    
+      if (serverData.role) {
+        localStorage.setItem('userRole', serverData.role);
+      }
+
+      if (serverData.userId || serverData.id) {
+        localStorage.setItem('userId', serverData.userId || serverData.id);
+      }
+
+      // --- LOGIC FCM (Giữ nguyên) ---
+      if (serverData.role === 'STUDENT') {
+        try {
+          console.log("--> Bắt đầu lấy FCM Token...");
+          const fcmToken = await requestForToken();
+          
+          if (fcmToken) {
+            console.log("--> FCM Token lấy được:", fcmToken);
+            await axiosClient.post('/notifications/subscribe', { 
+              token: fcmToken 
+            });
+            console.log("--> Đã gửi Token về server thành công!");
+          }
+        } catch (fcmError) {
+          console.error(" Lỗi đăng ký FCM (Không ảnh hưởng đăng nhập):", fcmError);
+        }
+      }
+      // -----------------------------
+
+      // 3. Thông báo và chuyển hướng
       alert("Đăng nhập thành công!");
       
-      // Chuyển về trang Dashboard (hoặc trang chủ)
-      navigate('/'); 
+      window.location.href = '/';
 
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
-      // Hiển thị lỗi chi tiết hơn nếu có
-      const errorMsg = error.response?.data?.message || "Đăng nhập thất bại! Kiểm tra lại email hoặc mật khẩu.";
+      const errorMsg = error.response?.data?.message || "Đăng nhập thất bại! Kiểm tra lại thông tin.";
       alert(errorMsg);
     }
   };
@@ -72,17 +104,26 @@ function Login() {
 
           <div className="input-group">
             <label>Mật khẩu</label>
-            <input
-              type="password"
-              name="password"
-              placeholder="******"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
+            {/* 👇 Cấu trúc mới: Wrapper bọc Input + Icon */}
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"} // Thay đổi type dựa trên state
+                name="password"
+                placeholder="******"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+              {/* Icon Toggle */}
+              <span 
+                className="password-toggle-icon" 
+                onClick={togglePasswordVisibility}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
           </div>
 
-          {/* --- 👇 PHẦN MỚI THÊM: QUÊN MẬT KHẨU 👇 --- */}
           <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-10px' }}>
             <Link 
               to="/forgot-password" 
@@ -91,7 +132,6 @@ function Login() {
               Quên mật khẩu?
             </Link>
           </div>
-          {/* --------------------------------------------- */}
 
           <button type="submit" className="btn-submit">Đăng Nhập</button>
         </form>
