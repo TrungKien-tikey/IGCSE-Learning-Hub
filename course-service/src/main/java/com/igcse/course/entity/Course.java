@@ -16,10 +16,10 @@ public class Course {
     private Long createdBy;
 
     private String title;
-    
+
     @Column(length = 1000) // Mô tả có thể dài
     private String description;
-    
+
     private Double price;
     private boolean isActive = true;
     private Date createdAt = new Date();
@@ -38,14 +38,19 @@ public class Course {
     private List<Enrollment> enrollments;
 
     // --- Constructor ---
-    public Course() {}
+    public Course() {
+    }
 
     // --- Business Methods (Logic nghiệp vụ tại Entity) ---
     public void updateCourse(String title, String description, Double price, String duration) {
-        if (title != null && !title.isEmpty()) this.title = title;
-        if (description != null) this.description = description;
-        if (price != null) this.price = price;
-        if (duration != null && !duration.isEmpty()) this.duration = duration;
+        if (title != null && !title.isEmpty())
+            this.title = title;
+        if (description != null)
+            this.description = description;
+        if (price != null)
+            this.price = price;
+        if (duration != null && !duration.isEmpty())
+            this.duration = duration;
     }
 
     public void deactivate() {

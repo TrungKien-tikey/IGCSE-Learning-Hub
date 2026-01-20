@@ -48,6 +48,7 @@ public class SecurityConfig {
                     "/api/v1/auth/health",       // Gateway check
                     "/api/v1/auth/forgot-password", 
                     "/api/v1/auth/reset-password",
+                    "/api/v1/auth/check-email",
                     "/v3/api-docs/**",           // Swagger
                     "/swagger-ui/**",            // Swagger
                     "/swagger-ui.html"
