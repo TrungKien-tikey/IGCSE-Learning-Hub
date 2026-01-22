@@ -4,7 +4,7 @@ import com.igcse.ai.dto.thongKe.ClassStatisticsDTO;
 import com.igcse.ai.dto.thongKe.StudentStatisticsDTO;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.repository.AIResultRepository;
-
+import com.igcse.ai.service.common.TierManagerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -20,9 +20,12 @@ public class StatisticsService implements IStatisticsService {
         private static final Logger logger = LoggerFactory.getLogger(StatisticsService.class);
 
         private final AIResultRepository aiResultRepository;
+        private final TierManagerService tierManagerService;
 
-        public StatisticsService(AIResultRepository aiResultRepository) {
+        public StatisticsService(AIResultRepository aiResultRepository,
+                        TierManagerService tierManagerService) {
                 this.aiResultRepository = aiResultRepository;
+                this.tierManagerService = tierManagerService;
         }
 
         @Override
@@ -43,8 +46,17 @@ public class StatisticsService implements IStatisticsService {
                         stats.setLowestScore(0.0);
                         stats.setImprovementRate(0.0);
                         stats.setSubjectPerformance(new HashMap<>());
+                        String studentName = tierManagerService.extractMetadata(studentId, null).studentName();
+                        stats.setStudentName(studentName);
                         return stats;
                 }
+
+                String studentName = results.stream()
+                                .map(AIResult::getStudentName)
+                                .filter(Objects::nonNull)
+                                .findFirst()
+                                .orElseGet(() -> tierManagerService.extractMetadata(studentId, null).studentName());
+                stats.setStudentName(studentName);
 
                 // Tính toán các thống kê cơ bản
                 stats.setTotalExams(results.size());
@@ -65,15 +77,17 @@ public class StatisticsService implements IStatisticsService {
                                 .min();
                 stats.setLowestScore(minScore.isPresent() ? minScore.getAsDouble() : 0.0);
 
-                // Tính improvement rate (so sánh 2 tháng gần nhất)
                 Date oneMonthAgo = Date.from(Instant.now().minus(30, ChronoUnit.DAYS));
                 Date twoMonthsAgo = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
 
-                List<AIResult> recentResults = aiResultRepository.findByStudentIdAndGradedAtAfter(studentId,
-                                oneMonthAgo);
-                List<AIResult> previousResults = aiResultRepository.findByStudentIdAndGradedAtAfter(studentId,
-                                twoMonthsAgo);
-                previousResults.removeAll(recentResults); // Chỉ lấy tháng thứ 2
+                List<AIResult> recentResults = results.stream()
+                                .filter(r -> r.getGradedAt() != null && r.getGradedAt().after(oneMonthAgo))
+                                .collect(Collectors.toList());
+                List<AIResult> previousResults = results.stream()
+                                .filter(r -> r.getGradedAt() != null 
+                                        && r.getGradedAt().after(twoMonthsAgo) 
+                                        && !r.getGradedAt().after(oneMonthAgo))
+                                .collect(Collectors.toList());
 
                 double improvementRate = 0.0;
                 if (!recentResults.isEmpty() && !previousResults.isEmpty()) {

@@ -95,15 +95,15 @@ export default function StudentDashboard() {
                             Dashboard Học sinh
                         </h1>
                         <p className="text-slate-500 mt-1">
-                            Student ID: <span className="font-medium text-slate-700">{studentId}</span>
+                            Sinh viên: <span className="font-medium text-slate-700">{statistics?.studentName || studentId}</span>
                         </p>
                     </div>
                     <button
-                        onClick={() => navigate("/ai")}
+                        onClick={() => navigate("/")}
                         className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 transition"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Quay lại trang AI
+                        Quay lại trang chủ
                     </button>
                 </div>
 
