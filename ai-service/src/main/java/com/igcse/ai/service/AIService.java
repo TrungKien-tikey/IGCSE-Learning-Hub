@@ -129,7 +129,6 @@ public class AIService {
             }
         }
 
-        // ✅ Trích xuất Metadata
         TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
 
         // Lưu DB
@@ -153,10 +152,6 @@ public class AIService {
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
-        // Invalidate cache (Đã chuyển sang TierManagerService kiểm soát Tầng 2)
-        // Không xóa DB bừa bãi ở đây nữa để tránh mất lịch sử Tầng 2 khi chưa đủ bài
-        // thi
-
         return new DetailedGradingResultDTO(
                 attemptId, score, maxScore, feedback, confidence, lang, gradingResults);
     }
@@ -174,9 +169,7 @@ public class AIService {
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
 
         AIResult result = getResult(attemptId);
-        List<GradingResult> detailsList = new java.util.ArrayList<>();
-
-        detailsList = jsonService.parseGradingDetails(result.getDetails());
+        List<GradingResult> detailsList = jsonService.parseGradingDetails(result.getDetails());
 
         Double maxScore = 10.0;
         if (!detailsList.isEmpty()) {
