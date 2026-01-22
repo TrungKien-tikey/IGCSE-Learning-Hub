@@ -67,8 +67,8 @@ public class RecommendationService implements IRecommendationService {
             boolean isNewData = tierManagerService.isNewData(studentId, analysis);
 
             if (!isNewData) {
-                logger.info("Returning latest cached recommendation for studentId: {}", studentId);
-                return convertToDTO(cached.get());
+            logger.info("Returning latest cached recommendation for studentId: {}", studentId);
+            return convertToDTO(cached.get());
             }
         }
 

@@ -30,27 +30,45 @@ public class StatisticsService implements IStatisticsService {
 
         @Override
         public StudentStatisticsDTO getStudentStatistics(Long studentId) {
-                logger.info("Getting statistics for studentId: {}", studentId);
+                logger.info("Getting optimized statistics for studentId: {}", studentId);
                 Objects.requireNonNull(studentId, "Student ID cannot be null");
 
-                List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+                // 1. Lấy tổng số bài thi bằng aggregation
+                Long totalExams = aiResultRepository.countByStudentId(studentId);
+                if (totalExams == null || totalExams == 0) {
+                        logger.debug("No results found for studentId: {}", studentId);
+                        return createEmptyStats(studentId);
+                }
 
                 StudentStatisticsDTO stats = new StudentStatisticsDTO();
                 stats.setStudentId(studentId);
+                stats.setTotalExams(totalExams.intValue());
 
-                if (results.isEmpty()) {
-                        logger.debug("No results found for studentId: {}", studentId);
-                        stats.setTotalExams(0);
-                        stats.setAverageScore(0.0);
-                        stats.setHighestScore(0.0);
-                        stats.setLowestScore(0.0);
-                        stats.setImprovementRate(0.0);
-                        stats.setSubjectPerformance(new HashMap<>());
-                        String studentName = tierManagerService.extractMetadata(studentId, null).studentName();
-                        stats.setStudentName(studentName);
-                        return stats;
+                // 2. Lấy Max/Min/Avg trực tiếp từ DB
+                Double avg = aiResultRepository.getAverageScoreByStudentId(studentId);
+                Double max = aiResultRepository.getMaxScoreByStudentId(studentId);
+                Double min = aiResultRepository.getMinScoreByStudentId(studentId);
+
+                stats.setAverageScore(avg != null ? Math.round(avg * 100.0) / 100.0 : 0.0);
+                stats.setHighestScore(max != null ? max : 0.0);
+                stats.setLowestScore(min != null ? min : 0.0);
+
+                // 3. Tính Improvement Rate bằng aggregation theo khoảng thời gian
+                Date now = Date.from(Instant.now());
+                Date oneMonthAgo = Date.from(Instant.now().minus(30, ChronoUnit.DAYS));
+                Date twoMonthsAgo = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
+
+                Double recentAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, oneMonthAgo, now);
+                Double previousAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, twoMonthsAgo, oneMonthAgo);
+
+                double improvementRate = 0.0;
+                if (recentAvg != null && previousAvg != null && previousAvg > 0) {
+                        improvementRate = ((recentAvg - previousAvg) / previousAvg) * 100.0;
                 }
+                stats.setImprovementRate(Math.round(improvementRate * 100.0) / 100.0);
 
+                // 4. Lấy tên học sinh (ưu tiên từ AIResult, fallback từ TierManager)
+                List<AIResult> results = aiResultRepository.findByStudentId(studentId);
                 String studentName = results.stream()
                                 .map(AIResult::getStudentName)
                                 .filter(Objects::nonNull)
@@ -58,55 +76,7 @@ public class StatisticsService implements IStatisticsService {
                                 .orElseGet(() -> tierManagerService.extractMetadata(studentId, null).studentName());
                 stats.setStudentName(studentName);
 
-                // Tính toán các thống kê cơ bản
-                stats.setTotalExams(results.size());
-
-                double averageScore = results.stream()
-                                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                .average()
-                                .orElse(0.0);
-                stats.setAverageScore(Math.round(averageScore * 100.0) / 100.0);
-
-                OptionalDouble maxScore = results.stream()
-                                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                .max();
-                stats.setHighestScore(maxScore.isPresent() ? maxScore.getAsDouble() : 0.0);
-
-                OptionalDouble minScore = results.stream()
-                                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                .min();
-                stats.setLowestScore(minScore.isPresent() ? minScore.getAsDouble() : 0.0);
-
-                Date oneMonthAgo = Date.from(Instant.now().minus(30, ChronoUnit.DAYS));
-                Date twoMonthsAgo = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
-
-                List<AIResult> recentResults = results.stream()
-                                .filter(r -> r.getGradedAt() != null && r.getGradedAt().after(oneMonthAgo))
-                                .collect(Collectors.toList());
-                List<AIResult> previousResults = results.stream()
-                                .filter(r -> r.getGradedAt() != null 
-                                        && r.getGradedAt().after(twoMonthsAgo) 
-                                        && !r.getGradedAt().after(oneMonthAgo))
-                                .collect(Collectors.toList());
-
-                double improvementRate = 0.0;
-                if (!recentResults.isEmpty() && !previousResults.isEmpty()) {
-                        double recentAvg = recentResults.stream()
-                                        .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                        .average()
-                                        .orElse(0.0);
-                        double previousAvg = previousResults.stream()
-                                        .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                                        .average()
-                                        .orElse(0.0);
-
-                        if (previousAvg > 0) {
-                                improvementRate = ((recentAvg - previousAvg) / previousAvg) * 100.0;
-                        }
-                }
-                stats.setImprovementRate(Math.round(improvementRate * 100.0) / 100.0);
-
-                // Tính subject performance (group theo examId - giả định mỗi examId là một môn)
+                // 5. Subject performance: vẫn sử dụng grouping tại tầng Java (có thể tối ưu sau bằng GROUP BY nếu cần)
                 Map<String, Double> subjectPerformance = results.stream()
                                 .filter(r -> r.getExamId() != null)
                                 .collect(Collectors.groupingBy(
@@ -118,6 +88,20 @@ public class StatisticsService implements IStatisticsService {
                 logger.debug("Statistics calculated for studentId: {}, totalExams: {}, averageScore: {}",
                                 studentId, stats.getTotalExams(), stats.getAverageScore());
 
+                return stats;
+        }
+
+        private StudentStatisticsDTO createEmptyStats(Long studentId) {
+                StudentStatisticsDTO stats = new StudentStatisticsDTO();
+                stats.setStudentId(studentId);
+                stats.setTotalExams(0);
+                stats.setAverageScore(0.0);
+                stats.setHighestScore(0.0);
+                stats.setLowestScore(0.0);
+                stats.setImprovementRate(0.0);
+                stats.setSubjectPerformance(new HashMap<>());
+                String studentName = tierManagerService.extractMetadata(studentId, null).studentName();
+                stats.setStudentName(studentName);
                 return stats;
         }
 

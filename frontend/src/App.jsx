@@ -97,7 +97,7 @@ function App() {
         <Route
           path="/ai/dashboard/student"
           element={
-            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN']}>
+            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'TEACHER']}>
               <StudentDashboard />
             </RoleProtectedRoute>
           }
