@@ -1,174 +1,163 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import './Login.css'; // 👈 Dùng chung CSS
 
-// 👇 1. Import Icon
+// Import Icon
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 const ResetPassword = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
-  // Lấy token từ URL
   const token = searchParams.get('token');
 
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
-  // 👇 2. Thêm state quản lý ẩn/hiện cho 2 ô
+  const [formData, setFormData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
+
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  // State lỗi
+  const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState('');
   const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    // Xóa lỗi khi gõ lại
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: '' });
+    }
+  };
+
+  // Hàm Validate
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    // Check Pass mới
+    if (!formData.newPassword) {
+      newErrors.newPassword = "Vui lòng nhập mật khẩu mới";
+      isValid = false;
+    } else if (formData.newPassword.length < 6) {
+      newErrors.newPassword = "Mật khẩu phải có ít nhất 6 ký tự";
+      isValid = false;
+    }
+
+    // Check Nhập lại
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Vui lòng xác nhận mật khẩu";
+      isValid = false;
+    } else if (formData.newPassword !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Mật khẩu xác nhận không khớp";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setApiError('');
     setMessage('');
 
-    if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp!');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự!');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsLoading(true);
 
     try {
-      // Gọi API Reset Password
-      await axios.post(`http://localhost:8000/api/v1/auth/reset-password?token=${token}&newPassword=${newPassword}`);
+      await axios.post(`http://localhost:8000/api/v1/auth/reset-password?token=${token}&newPassword=${formData.newPassword}`);
       
-      setMessage('Đổi mật khẩu thành công! Đang chuyển hướng về trang đăng nhập...');
-      
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      setMessage('Đổi mật khẩu thành công! Đang chuyển hướng...');
+      setTimeout(() => navigate('/login'), 2000);
       
     } catch (err) {
       const errorMsg = err.response?.data || 'Link hết hạn hoặc không hợp lệ.';
-      setError(errorMsg);
+      setApiError(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Nếu không có token trên URL thì báo lỗi luôn
+  // Màn hình lỗi nếu thiếu Token
   if (!token) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '50px' }}>
-        <h3 style={{ color: 'red' }}>Đường dẫn không hợp lệ hoặc thiếu Token!</h3>
-        <button onClick={() => navigate('/login')} style={{ padding: '10px 20px', cursor: 'pointer' }}>Quay về trang đăng nhập</button>
+      <div className="login-container">
+        <div className="login-box">
+          <h3 style={{ color: '#dc3545' }}>Lỗi Đường Dẫn!</h3>
+          <p>Link reset mật khẩu không hợp lệ hoặc thiếu Token.</p>
+          <button onClick={() => navigate('/login')} className="btn-submit" style={{marginTop: '20px'}}>
+            Quay về đăng nhập
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="auth-container" style={{ maxWidth: '400px', margin: '50px auto', padding: '20px', boxShadow: '0 0 10px rgba(0,0,0,0.1)', borderRadius: '8px', backgroundColor: 'white' }}>
-      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Đặt Lại Mật Khẩu</h2>
-      
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+    <div className="login-container">
+      <div className="login-box">
+        <h2>Đặt Lại Mật Khẩu</h2>
         
-        {/* 👇 3. Ô Mật khẩu mới */}
-        <div>
-           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Mật khẩu mới</label>
-           <div style={{ position: 'relative', width: '100%' }}>
-             <input
-               type={showPassword ? "text" : "password"} // Type động
-               placeholder="Nhập mật khẩu mới"
-               value={newPassword}
-               onChange={(e) => setNewPassword(e.target.value)}
-               required
-               style={{ 
-                 width: '100%', 
-                 padding: '10px', 
-                 paddingRight: '40px', // Chừa chỗ cho icon
-                 borderRadius: '5px', 
-                 border: '1px solid #ccc',
-                 boxSizing: 'border-box'
-               }}
-             />
-             <span
-               onClick={() => setShowPassword(!showPassword)}
-               style={{
-                 position: 'absolute',
-                 right: '10px',
-                 top: '50%',
-                 transform: 'translateY(-50%)',
-                 cursor: 'pointer',
-                 color: '#666',
-                 fontSize: '18px',
-                 display: 'flex'
-               }}
-             >
-               {showPassword ? <FaEyeSlash /> : <FaEye />}
-             </span>
-           </div>
-        </div>
+        <form onSubmit={handleSubmit} noValidate>
+          
+          {/* Mật khẩu mới */}
+          <div className="input-group">
+            <label>Mật khẩu mới</label>
+            <div className="password-input-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="newPassword"
+                placeholder="******"
+                value={formData.newPassword}
+                onChange={handleChange}
+                className={errors.newPassword ? "input-error" : ""}
+              />
+              <span className="password-toggle-icon" onClick={() => setShowPassword(!showPassword)}>
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
+            {errors.newPassword && <span className="error-message">{errors.newPassword}</span>}
+          </div>
 
-        {/* 👇 4. Ô Xác nhận mật khẩu */}
-        <div>
-           <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Xác nhận mật khẩu</label>
-           <div style={{ position: 'relative', width: '100%' }}>
-             <input
-               type={showConfirmPassword ? "text" : "password"} // Type động
-               placeholder="Nhập lại mật khẩu mới"
-               value={confirmPassword}
-               onChange={(e) => setConfirmPassword(e.target.value)}
-               required
-               style={{ 
-                 width: '100%', 
-                 padding: '10px', 
-                 paddingRight: '40px', // Chừa chỗ cho icon
-                 borderRadius: '5px', 
-                 border: '1px solid #ccc',
-                 boxSizing: 'border-box' 
-               }}
-             />
-             <span
-               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-               style={{
-                 position: 'absolute',
-                 right: '10px',
-                 top: '50%',
-                 transform: 'translateY(-50%)',
-                 cursor: 'pointer',
-                 color: '#666',
-                 fontSize: '18px',
-                 display: 'flex'
-               }}
-             >
-               {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-             </span>
-           </div>
-        </div>
+          {/* Nhập lại mật khẩu */}
+          <div className="input-group">
+            <label>Xác nhận mật khẩu</label>
+            <div className="password-input-wrapper">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                placeholder="******"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                className={errors.confirmPassword ? "input-error" : ""}
+              />
+              <span className="password-toggle-icon" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </span>
+            </div>
+            {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+          </div>
 
-        <button 
-          type="submit" 
-          disabled={isLoading}
-          style={{ 
-            padding: '12px', 
-            backgroundColor: '#28a745', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '5px', 
-            cursor: isLoading ? 'not-allowed' : 'pointer',
-            fontWeight: 'bold',
-            marginTop: '10px',
-            fontSize: '16px'
-          }}
-        >
-          {isLoading ? 'Đang xử lý...' : 'Lưu mật khẩu mới'}
-        </button>
-      </form>
+          <button 
+            type="submit" 
+            className="btn-submit"
+            disabled={isLoading}
+            style={{ backgroundColor: isLoading ? '#ccc' : '#28a745' }} // Nút màu xanh lá
+          >
+            {isLoading ? 'Đang xử lý...' : 'Lưu mật khẩu mới'}
+          </button>
+        </form>
 
-      {message && <div style={{ marginTop: '15px', color: '#155724', backgroundColor: '#d4edda', padding: '10px', borderRadius: '5px', border: '1px solid #c3e6cb' }}>{message}</div>}
-      {error && <div style={{ marginTop: '15px', color: '#721c24', backgroundColor: '#f8d7da', padding: '10px', borderRadius: '5px', border: '1px solid #f5c6cb' }}>{error}</div>}
+        {message && <div style={{ marginTop: '15px', color: '#155724', backgroundColor: '#d4edda', padding: '10px', borderRadius: '5px' }}>{message}</div>}
+        {apiError && <div style={{ marginTop: '15px', color: '#721c24', backgroundColor: '#f8d7da', padding: '10px', borderRadius: '5px' }}>{apiError}</div>}
+      </div>
     </div>
   );
 };
