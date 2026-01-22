@@ -14,7 +14,13 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "ai_results")
+@Table(name = "ai_results", indexes = {
+        @Index(name = "idx_class_id", columnList = "class_id"),
+        @Index(name = "idx_student_id", columnList = "student_id"),
+        @Index(name = "idx_exam_id", columnList = "exam_id"),
+        @Index(name = "idx_attempt_id", columnList = "attempt_id"),
+        @Index(name = "idx_graded_at", columnList = "graded_at")
+})
 public class AIResult {
 
     @Id

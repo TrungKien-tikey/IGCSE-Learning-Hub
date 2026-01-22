@@ -18,7 +18,7 @@ export default function CoursePage() {
     title: '', description: '', price: '', duration: ''
   });
 
-  const API_URL = 'http://localhost:8082/api/courses';
+  const API_URL = 'http://localhost:8079/api/courses';
 
   const fetchCourses = async () => {
     try {

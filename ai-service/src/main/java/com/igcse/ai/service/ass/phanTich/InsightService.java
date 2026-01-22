@@ -43,55 +43,60 @@ public class InsightService implements IInsightService {
         this.tierManagerService = tierManagerService;
     }
 
-    /**
-     * Lấy nhận xét AI tổng hợp cho học sinh (Dùng cho Dashboard).
-     * 
-     * @param studentId ID học sinh
-     * @return DTO chứa nhận xét, điểm mạnh, điểm yếu và kế hoạch hành động.
-     */
     @Override
-    @Transactional
     public AIInsightDTO getInsight(Long studentId) {
-        return getInsight(studentId, null);
-    }
-
-    /**
-     * Lấy nhận xét AI có kèm dữ liệu làm giàu từ NiFi (Tên học sinh, Persona).
-     * 
-     * @param studentId ID học sinh
-     * @param nifiData  Chuỗi JSON chứa thông tin bổ sung từ luồng NiFi
-     * @return DTO chứa nhận xét đã được cá nhân hóa
-     */
-    @Override
-    public AIInsightDTO getInsight(Long studentId, String nifiData) {
-        logger.info("Processing insights for studentId: {} with nifiData enrichment", studentId);
+        logger.info("Getting insights for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
-        // ✅ BƯỚC 1: Lấy dữ liệu bài thi
+        Optional<AIInsight> cached = aiInsightRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId);
+        if (cached.isPresent()) {
+            List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+            if (results.isEmpty()) {
+                return createEmptyInsight(studentId);
+            }
+
+            TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
+            boolean isNewData = tierManagerService.isNewDataForInsight(studentId, analysis);
+
+            if (!isNewData) {
+                logger.info("Returning latest cached insight for studentId: {}", studentId);
+                return convertToDTO(cached.get());
+            }
+        }
+
+        // Không có cache hoặc có dữ liệu mới: làm tươi lại bằng luồng chuẩn (không cần NiFi)
+        return refreshInsight(studentId, null);
+    }
+
+    @Override
+    public void triggerUpdate(Long studentId, String nifiData) {
+        logger.info("Triggering insight update for studentId: {} with data size: {}",
+                studentId, (nifiData != null ? nifiData.length() : "null"));
+        refreshInsight(studentId, nifiData);
+    }
+
+    @Transactional
+    private AIInsightDTO refreshInsight(Long studentId, String nifiData) {
         List<AIResult> results = aiResultRepository.findByStudentId(studentId);
         if (results.isEmpty()) {
             return createEmptyInsight(studentId);
         }
 
-        // Bước 1: Parse và phân tích logic (Dùng chung cho cả AI và Cache)
         TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
 
-        // ✅ BƯỚC 2: Kiểm tra dữ liệu mới
-        boolean isNewData = tierManagerService.isNewData(studentId, analysis);
+        boolean isNewData = tierManagerService.isNewDataForInsight(studentId, analysis);
 
-        // Nếu dữ liệu không đổi, trả về bản ghi AI mới nhất
+        // Nếu dữ liệu không đổi, trả về bản ghi cũ nhất
         if (!isNewData) {
             return aiInsightRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
                     .map(this::convertToDTO)
                     .orElseGet(() -> createEmptyInsight(studentId));
         }
 
-        // ✅ BƯỚC 3: Kích hoạt AI Synthesis (Gộp bài có bối cảnh)
         logger.info("Triggering AI Synthesis with Context for studentId: {}", studentId);
         AIInsightDTO synthesisResult = null;
 
         try {
-            // ✅ Trích xuất Metadata (Tên, Persona)
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
 
             // Lấy các bản phân tích cũ làm ngữ cảnh so sánh
@@ -179,8 +184,6 @@ public class InsightService implements IInsightService {
 
         Optional<AIResult> resultOpt = aiResultRepository.findByAttemptId(attemptId);
         if (resultOpt.isEmpty()) {
-            // Return empty or error? plan implies we show it in UI.
-            // If no result, maybe not graded yet?
             return null;
         }
 

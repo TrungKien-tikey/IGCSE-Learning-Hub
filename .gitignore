@@ -75,3 +75,6 @@ Thumbs.db
 *.db
 mysql_data/
 ai_logs.txt
+.agent
+
+.cursor/

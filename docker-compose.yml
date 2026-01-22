@@ -62,53 +62,103 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động cập nhật bảng nếu code thay đổi
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     networks:
       - igcse-network
 
-  # # 1.4 AI SERVICE (Java Spring Boot - Tự động hóa!)
-  # ai-service:
-  #   build: ./ai-service
-  #   container_name: ai-service
-  #   restart: always
-  #   ports:
-  #     - "8082:8082"
-  #   environment:
-  #     # Kết nối DB qua tên service dùng chung "igcse_mysql" (tùy thuộc vào container_name hoặc service name)
-  #     # Trong docker-compose này, mysql service đặt tên là "mysql-db"
-  #     - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/ai_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-  #     - SPRING_DATASOURCE_USERNAME=root
-  #     - SPRING_DATASOURCE_PASSWORD=root
-  #     - SPRING_RABBITMQ_HOST=rabbitmq
-  #     # QUAN TRỌNG: Tự động cập nhật Database (Thêm bảng/cột mới) mà không cần chạy SQL thủ công
-  #     - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-  #     - EXAM_SERVICE_URL=http://exam-service:8085
-  #     - OPENAI_API_KEY=${OPENAI_API_KEY}
-  #   depends_on:
-  #     - mysql-db
-  #     - rabbitmq
-  #   networks:
-  #     - igcse-network
+  # 1.4 USER SERVICE (Java Spring Boot)
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
 
-  # # 1.5 EXAM SERVICE (Java Spring Boot - Tự động hóa!)
-  # exam-service:
-  #   build: ./exam-service
-  #   container_name: exam-service
-  #   restart: always
-  #   ports:
-  #     - "8085:8085"
-  #   environment:
-  #     - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
-  #     - SPRING_DATASOURCE_USERNAME=root
-  #     - SPRING_DATASOURCE_PASSWORD=root
-  #     # Tự động tạo bảng/cột cho Exam Service
-  #     - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-  #     - SPRING_RABBITMQ_HOST=rabbitmq
-  #   depends_on:
-  #     - mysql-db
-  #     - rabbitmq
-  #   networks:
-  #     - igcse-network
+  # 1.5 AI SERVICE (Java Spring Boot - Tự động hóa!)
+  ai-service:
+    build: ./ai-service
+    container_name: ai-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      # Kết nối DB qua tên service dùng chung "mysql-db"
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/ai_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
+      # RabbitMQ
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      # Profile
+      - SPRING_PROFILES_ACTIVE=prod
+      # OpenAI API Key - Đọc từ .env file
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/api/ai/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
+  # 1.5 EXAM SERVICE (Java Spring Boot - Tự động hóa!)
+  exam-service:
+    build: ./exam-service
+    container_name: exam-service
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      # Tự động tạo bảng/cột cho Exam Service
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
+  communication-service:
+    build: ./communication-service
+    container_name: communication-service
+    restart: always
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
   # =========================================
   # PHẦN 2: KONG API GATEWAY
   # =========================================

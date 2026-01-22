@@ -2,14 +2,74 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     BookOpen, Target, Clock, Trophy, Users, ShieldCheck,
-    FileText, TrendingUp, CalendarDays, Calculator, ClipboardList, PlayCircle, ShoppingCart
+    FileText, TrendingUp, CalendarDays, Calculator, ClipboardList, PlayCircle, ShoppingCart,
+    Bot, Star, TrendingDown, ArrowRight, FileText as FileIcon
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useStudentData } from './ai/hooks/useStudentData';
 
-// Dữ liệu User (Lấy từ localStorage nếu đã đăng nhập)
+// Import AI Components
+import InsightCard from './ai/components/InsightCard';
+import RecommendationPanel from './ai/components/RecommendationPanel';
+
+// Component Danh sách bài thi gần đây (Thay thế cho ô nhập ID thủ công)
+const RecentExamsCompact = ({ exams }) => {
+    const navigate = useNavigate();
+
+    if (!exams || exams.length === 0) return null;
+
+    return (
+        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
+                        <FileIcon className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-800">Kết quả bài thi</h3>
+                </div>
+                <button
+                    onClick={() => navigate('/ai')}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
+                >
+                    Chi tiết
+                </button>
+            </div>
+
+            <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+                {exams.slice(0, 4).map((exam) => (
+                    <div
+                        key={exam.attemptId}
+                        onClick={() => navigate(`/ai/results/${exam.attemptId}`)}
+                        className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:border-indigo-100 hover:bg-indigo-50/50 transition-all cursor-pointer group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover:text-indigo-500 group-hover:border-indigo-200 transition-colors">
+                                #{exam.attemptId}
+                            </div>
+                            <div>
+                                <p className="text-sm font-bold text-gray-700">Exam Attempt</p>
+                                <p className="text-[10px] text-gray-500">{new Date(exam.date).toLocaleDateString('vi-VN')}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className={`text-sm font-black ${exam.totalScore >= 8 ? "text-emerald-500" :
+                                exam.totalScore >= 5 ? "text-indigo-500" : "text-orange-500"
+                                }`}>
+                                {exam.totalScore?.toFixed(1) || "0.0"}
+                            </span>
+                            <ArrowRight className="w-3 h-3 text-gray-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
+// Dữ liệu User (Lấy từ sessionStorage nếu đã đăng nhập)
 const user = {
-    name: "User", // Bạn có thể lưu tên vào localStorage lúc Login nếu muốn
+    name: localStorage.getItem("userName") || "User",
     role: localStorage.getItem("userRole")?.toLowerCase() || "student"
 };
 
@@ -42,13 +102,6 @@ const StatCard = ({ title, value, icon: Icon, color, trend }) => {
     );
 };
 
-// Data mẫu cho hoạt động gần đây
-const activities = [
-    { title: "Quadratic Equations", subtitle: "Completed Module 3", time: "2h ago", icon: Calculator, color: "text-blue-600 bg-blue-100" },
-    { title: "Algebra Mid-Term", subtitle: "Scored 92/100", time: "Yesterday", icon: Trophy, color: "text-teal-600 bg-teal-100" },
-    { title: "Weekly Report", subtitle: "Auto-generated", time: "2 days ago", icon: FileText, color: "text-amber-600 bg-amber-100" },
-];
-
 const roleMessages = {
     student: "Ready for another math challenge?",
     teacher: "Managing your classes effectively.",
@@ -56,63 +109,47 @@ const roleMessages = {
 };
 
 const StudentDashboardGeneral = () => {
-
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const studentId = searchParams.get("studentId") || localStorage.getItem("userId") || "1";
 
-    // --- 1. KHAI BÁO BIẾN DỮ LIỆU (STATE) ---
+    const { statistics, insights, recommendations } = useStudentData(studentId);
+
     const [myCourses, setMyCourses] = useState([]);
     const [recommendedCourses, setRecommendedCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const API_URL = '/api/courses';
 
-    // --- 2. GỌI API LẤY DỮ LIỆU ---
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const userId = 1; // Giả sử bạn đang đăng nhập với ID = 1 (Giống lúc bấm đăng ký)
-
-                // A. Lấy danh sách ĐÃ MUA từ Backend
-                // (API này sẽ lục trong bảng enrollment xem user 1 đã mua gì)
-                const myRes = await axios.get(`${API_URL}/my-courses?userId=${userId}`);
+                const myRes = await axios.get(`${API_URL}/my-courses?userId=${studentId}`);
                 const myData = myRes.data;
-
-                // B. Lấy TẤT CẢ khóa học để lọc ra danh sách Gợi ý
                 const allRes = await axios.get(API_URL);
                 const allData = allRes.data;
-
-                // C. Xử lý Logic lọc "Khóa học mới" (Recommended)
-                // Lấy danh sách ID của các khóa đã mua
                 const enrolledIds = myData.map(course => course.courseId);
-
-                // Lọc: Chỉ lấy khóa đang Active VÀ KHÔNG nằm trong danh sách đã mua
                 const recData = allData.filter(course =>
                     course.active === true && !enrolledIds.includes(course.courseId)
                 );
-
-                // D. Cập nhật State
                 setMyCourses(myData);
                 setRecommendedCourses(recData);
-
             } catch (err) {
                 console.error("Lỗi tải dữ liệu Dashboard:", err);
-                // Mẹo: Nếu API my-courses lỗi (do chưa restart backend), nó sẽ rỗng
                 setMyCourses([]);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
-    }, []);
+    }, [studentId]);
 
-    // 3. Các hàm chuyển trang
     const handleContinueLearning = (courseId) => navigate(`/learning/${courseId}`);
     const handleViewDetails = (courseId) => navigate(`/course-detail/${courseId}`);
 
     return (
         <MainLayout>
             <div className="space-y-8">
-                {/* Header Section */}
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-serif font-bold text-gray-900">
@@ -124,15 +161,15 @@ const StudentDashboardGeneral = () => {
                     </div>
                 </div>
 
-                {/* 1. Thẻ Thống Kê (Stats Grid) */}
+                {/* 1. Thẻ Thống Kê (AI Data) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard title="Modules Done" value="12/24" icon={BookOpen} color="blue" trend="+2 this week" />
-                    <StatCard title="Average Score" value="87%" icon={Target} color="teal" trend="Top 15%" />
-                    <StatCard title="Study Hours" value="24.5h" icon={Clock} color="amber" trend="Last 30 days" />
-                    <StatCard title="Badges" value="8" icon={Trophy} color="purple" trend="New unlocked!" />
+                    <StatCard title="Tổng bài thi" value={statistics?.totalExams || "0"} icon={FileText} color="blue" trend="Cập nhật từ hệ thống" />
+                    <StatCard title="Điểm trung bình" value={statistics?.averageScore?.toFixed(1) || "0.0"} icon={TrendingUp} color="teal" trend="+0.2 so với kỳ trước" />
+                    <StatCard title="Điểm cao nhất" value={statistics?.highestScore?.toFixed(1) || "0.0"} icon={Trophy} color="amber" trend="Thành tích tốt nhất" />
+                    <StatCard title="Điểm thấp nhất" value={statistics?.lowestScore?.toFixed(1) || "0.0"} icon={TrendingDown} color="purple" trend="Cần cải thiện thêm" />
                 </div>
 
-                {/* 2. KHÓA HỌC CỦA TÔI (Đã đăng ký) */}
+                {/* 2. KHÓA HỌC CỦA TÔI */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold font-serif text-gray-800 flex items-center gap-2">
@@ -146,9 +183,7 @@ const StudentDashboardGeneral = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {myCourses.map((course) => (
                                 <div key={course.courseId} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex gap-4 hover:shadow-md transition-all">
-                                    {/* Ảnh giả lập */}
                                     <div className="w-24 h-24 rounded-lg bg-blue-100 flex items-center justify-center text-2xl shrink-0">📚</div>
-
                                     <div className="flex-1 flex flex-col justify-between">
                                         <div>
                                             <h3 className="font-bold text-gray-800">{course.title}</h3>
@@ -165,10 +200,7 @@ const StudentDashboardGeneral = () => {
                                         </div>
                                     </div>
                                     <div className="flex items-center">
-                                        <button
-                                            onClick={() => handleContinueLearning(course.courseId)}
-                                            className="p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-colors" title="Học tiếp"
-                                        >
+                                        <button onClick={() => handleContinueLearning(course.courseId)} className="p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-colors" title="Học tiếp">
                                             <PlayCircle className="w-6 h-6" />
                                         </button>
                                     </div>
@@ -178,7 +210,7 @@ const StudentDashboardGeneral = () => {
                     )}
                 </div>
 
-                {/* 3. KHÁM PHÁ KHÓA HỌC (Gợi ý) */}
+                {/* 3. KHÁM PHÁ KHÓA HỌC */}
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold font-serif text-gray-800 flex items-center gap-2">
@@ -187,28 +219,19 @@ const StudentDashboardGeneral = () => {
                         </h2>
                         <button onClick={() => navigate('/all-courses')} className="text-sm text-blue-600 font-medium hover:underline">Xem thêm</button>
                     </div>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {recommendedCourses.map((course) => (
                             <div key={course.courseId} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
                                 <div className="h-32 bg-amber-50 relative overflow-hidden flex items-center justify-center">
                                     <span className="text-4xl">🎓</span>
-                                    <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-md text-xs font-bold shadow-sm">
-                                        ⭐ 4.5
-                                    </div>
+                                    <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-md text-xs font-bold shadow-sm">⭐ 4.5</div>
                                 </div>
                                 <div className="p-4">
                                     <h3 className="font-bold text-gray-800 mb-1 truncate">{course.title}</h3>
                                     <p className="text-xs text-gray-500 mb-3">Thời lượng: {course.duration}</p>
-
                                     <div className="flex items-center justify-between mt-4">
                                         <span className="text-lg font-bold text-blue-600">{course.price > 0 ? `$${course.price}` : 'Free'}</span>
-                                        <button
-                                            onClick={() => handleViewDetails(course.courseId)}
-                                            className="px-4 py-2 bg-amber-50 text-amber-700 text-sm font-bold rounded-lg hover:bg-amber-100 transition-colors"
-                                        >
-                                            Xem Chi Tiết
-                                        </button>
+                                        <button onClick={() => handleViewDetails(course.courseId)} className="px-4 py-2 bg-amber-50 text-amber-700 text-sm font-bold rounded-lg hover:bg-amber-100 transition-colors">Xem Chi Tiết</button>
                                     </div>
                                 </div>
                             </div>
@@ -216,48 +239,46 @@ const StudentDashboardGeneral = () => {
                     </div>
                 </div>
 
-                {/* Bottom Grid */}
-                <div className="grid md:grid-cols-3 gap-8">
-                    {/* Recent Activity */}
-                    <div className="md:col-span-2 space-y-6">
-                        <div className="flex items-center justify-between mb-4">
-                            <h2 className="text-xl font-bold font-serif text-gray-800">Recent Activity</h2>
-                            <button className="text-sm text-blue-600 font-medium hover:underline">View All</button>
-                        </div>
+                {/* 4. DỮ LIỆU PHÂN TÍCH VÀ GỢI Ý TỪ AI */}
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-2xl font-bold font-serif text-gray-900 flex items-center gap-2">
+                        <Bot className="w-8 h-8 text-indigo-600" />
+                        AI Learning Compass
+                    </h2>
+                    <button
+                        onClick={() => navigate(`/ai/dashboard/student?studentId=${studentId}`)}
+                        className="text-sm text-blue-600 font-medium hover:underline">
+                        Xem chi tiết phân tích
+                        {/* <TrendingUp className="w-4 h-4" /> */}
+                    </button>
+                </div>
 
-                        <div className="space-y-4">
-                            {activities.map((act, i) => (
-                                <div key={i} className="flex items-center p-4 bg-white border border-gray-100 rounded-xl hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer group">
-                                    <div className={`w-12 h-12 rounded-lg ${act.color} flex items-center justify-center shrink-0 mr-4`}>
-                                        <act.icon className="w-6 h-6" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">{act.title}</h3>
-                                        <p className="text-xs text-gray-500">{act.subtitle}</p>
-                                    </div>
-                                    <div className="text-sm font-medium text-gray-400">
-                                        {act.time}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                <div className={`grid ${statistics?.recentExams?.length > 0 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6`}>
+                    {/* Kết quả Phân tích AI */}
+                    <div className="md:col-span-1">
+                        {insights ? (
+                            <InsightCard insight={insights} />
+                        ) : (
+                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm text-center py-10 h-full flex items-center justify-center">
+                                <p className="text-gray-500 italic">Đang phân tích dữ liệu học tập...</p>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Quick Links */}
-                    <div className="space-y-6">
-                        <h2 className="text-xl font-bold font-serif text-gray-800 mb-4">Quick Links</h2>
-                        <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm space-y-2">
-                            {[
-                                { title: "Learning Resources", icon: BookOpen },
-                                { title: "Past Papers", icon: FileText },
-                                { title: "System Support", icon: ShieldCheck },
-                            ].map((link, i) => (
-                                <button key={i} className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium group">
-                                    <link.icon className="w-5 h-5 text-blue-500 group-hover:scale-110 transition-transform" />
-                                    {link.title}
-                                </button>
-                            ))}
-                        </div>
+                    {/* Gợi ý lộ trình học tập */}
+                    <div className="md:col-span-1">
+                        {recommendations ? (
+                            <RecommendationPanel data={recommendations} />
+                        ) : (
+                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm text-center py-10 h-full flex items-center justify-center">
+                                <p className="text-gray-500 italic">Đang chuẩn bị gợi ý cho bạn...</p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Kết quả gần đây (Thay thế cho QuickResultCard) */}
+                    <div className="md:col-span-1">
+                        <RecentExamsCompact exams={statistics?.recentExams} />
                     </div>
                 </div>
             </div>

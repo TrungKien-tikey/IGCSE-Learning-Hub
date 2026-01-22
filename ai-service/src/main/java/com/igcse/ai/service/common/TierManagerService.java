@@ -2,13 +2,14 @@ package com.igcse.ai.service.common;
 
 import com.igcse.ai.dto.aiChamDiem.GradingResult;
 import com.igcse.ai.entity.AIRecommendation;
+import com.igcse.ai.entity.AIInsight;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.repository.AIRecommendationRepository;
+import com.igcse.ai.repository.AIInsightRepository;
 import com.igcse.ai.repository.StudyContextRepository;
 import com.igcse.ai.entity.StudyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,19 +22,16 @@ public class TierManagerService {
     private static final Logger logger = LoggerFactory.getLogger(TierManagerService.class);
 
     private final AIRecommendationRepository aiRecommendationRepository;
+    private final AIInsightRepository aiInsightRepository;
     private final StudyContextRepository studyContextRepository;
     private final JsonService jsonService;
 
-    @Value("${ai.analysis.tier2.exam-threshold:3}")
-    private int tier2Threshold;
-
-    @Value("${ai.analysis.tier2.score-drop-threshold:0.3}")
-    private double scoreDropThreshold;
-
     public TierManagerService(AIRecommendationRepository aiRecommendationRepository,
+            AIInsightRepository aiInsightRepository,
             StudyContextRepository studyContextRepository,
             JsonService jsonService) {
         this.aiRecommendationRepository = aiRecommendationRepository;
+        this.aiInsightRepository = aiInsightRepository;
         this.studyContextRepository = studyContextRepository;
         this.jsonService = jsonService;
     }
@@ -62,7 +60,7 @@ public class TierManagerService {
     }
 
     /**
-     * Kiểm tra xem dữ liệu có thay đổi so với lần phân tích gần nhất không.
+     * Kiểm tra xem dữ liệu có thay đổi so với lần phân tích Recommendation gần nhất không.
      * Trả về true nếu có bài thi mới hoặc điểm số thay đổi.
      */
     @Transactional(readOnly = true)
@@ -72,8 +70,6 @@ public class TierManagerService {
 
         if (latestOpt.isPresent()) {
             AIRecommendation latest = latestOpt.get();
-            // Nếu số lượng bài thi và điểm trung bình phân tích lần trước giữ nguyên ->
-            // Không có dữ liệu mới
             if (latest.getAvgScoreAnalyzed() != null && latest.getTotalExamsAnalyzed() != null) {
                 if (latest.getAvgScoreAnalyzed().equals(data.avgScore()) &&
                         latest.getTotalExamsAnalyzed() == data.totalExams()) {
@@ -84,6 +80,30 @@ public class TierManagerService {
         }
 
         logger.info("New data detected for student {}. Total exams: {}", studentId, data.totalExams());
+        return true;
+    }
+
+    /**
+     * Kiểm tra xem dữ liệu có thay đổi so với lần phân tích Insight gần nhất không.
+     * Trả về true nếu có bài thi mới hoặc điểm số thay đổi.
+     */
+    @Transactional(readOnly = true)
+    public boolean isNewDataForInsight(Long studentId, AnalysisData data) {
+        Optional<AIInsight> latestOpt = aiInsightRepository
+                .findTopByStudentIdOrderByGeneratedAtDesc(studentId);
+
+        if (latestOpt.isPresent()) {
+            AIInsight latest = latestOpt.get();
+            if (latest.getAvgScoreAnalyzed() != null && latest.getTotalExamsAnalyzed() != null) {
+                if (latest.getAvgScoreAnalyzed().equals(data.avgScore()) &&
+                        latest.getTotalExamsAnalyzed() == data.totalExams()) {
+                    logger.debug("Dữ liệu cho student {} không đổi so với bản Insight gần nhất.", studentId);
+                    return false;
+                }
+            }
+        }
+
+        logger.info("New data detected for student {} (Insight). Total exams: {}", studentId, data.totalExams());
         return true;
     }
 
@@ -142,7 +162,8 @@ public class TierManagerService {
         Optional<StudyContext> storedContext = studyContextRepository.findByStudentId(studentId);
         if (storedContext.isPresent()) {
             logger.debug("Sử dụng bối cảnh đã lưu từ database cho student: {}", studentId);
-            return new AnalysisMetadata(storedContext.get().getStudentName());
+            String storedName = storedContext.get().getStudentName();
+            return new AnalysisMetadata(storedName != null ? storedName : "Học sinh");
         }
 
         // Ưu tiên 2: Fallback parse từ nifiData truyền trực tiếp (nếu DB chưa kịp
@@ -160,7 +181,9 @@ public class TierManagerService {
 
                     if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
                         String studentName = "Học sinh";
-                        if (record.containsKey("student_name"))
+                        if (record.containsKey("full_name"))
+                            studentName = record.get("full_name").toString();
+                        else if (record.containsKey("student_name"))
                             studentName = record.get("student_name").toString();
                         else if (record.containsKey("name"))
                             studentName = record.get("name").toString();

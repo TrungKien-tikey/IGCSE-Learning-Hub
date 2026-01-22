@@ -16,6 +16,7 @@ import java.util.Date;
 @AllArgsConstructor
 public class StudentStatisticsDTO {
     private Long studentId;
+    private String studentName;
     private int totalExams;
     private double averageScore;
     private double highestScore;

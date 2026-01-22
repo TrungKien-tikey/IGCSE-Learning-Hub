@@ -55,15 +55,23 @@ public class RecommendationService implements IRecommendationService {
         logger.info("Getting recommendations for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
-        // ✅ BƯỚC 1: Kiểm tra cache
         Optional<AIRecommendation> cached = aiRecommendationRepository
                 .findTopByStudentIdOrderByGeneratedAtDesc(studentId);
         if (cached.isPresent()) {
+            List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+            if (results.isEmpty()) {
+                return createEmptyRecommendation(studentId);
+            }
+
+            TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
+            boolean isNewData = tierManagerService.isNewData(studentId, analysis);
+
+            if (!isNewData) {
             logger.info("Returning latest cached recommendation for studentId: {}", studentId);
             return convertToDTO(cached.get());
+            }
         }
 
-        // ✅ BƯỚC 2: Không có cache, tạo mới
         return refreshRecommendation(studentId, null);
     }
 
@@ -83,25 +91,20 @@ public class RecommendationService implements IRecommendationService {
     @Transactional
     private LearningRecommendationDTO refreshRecommendation(Long studentId, String nifiData) {
         List<AIResult> results = aiResultRepository.findByStudentId(studentId);
-        // Bước 1: Parse và phân tích logic (Dùng chung)
         TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
 
-        // ✅ BƯỚC 2: Kiểm tra dữ liệu mới
         boolean isNewData = tierManagerService.isNewData(studentId, analysis);
 
-        // Nếu dữ liệu không đổi, trả về bản ghi cũ nhất
         if (!isNewData) {
             return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
                     .map(this::convertToDTO)
                     .orElseGet(() -> createEmptyRecommendation(studentId));
         }
 
-        // ✅ BƯỚC 3: Kích hoạt AI Synthesis
         logger.info(">>> Triggering AI Recommendation Synthesis for studentId: {}", studentId);
         LearningRecommendationDTO synthesisResult = null;
 
         try {
-            // ✅ Trích xuất Metadata (Tên, Persona)
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
 
             // Lấy các bản gợi ý cũ làm ngữ cảnh
