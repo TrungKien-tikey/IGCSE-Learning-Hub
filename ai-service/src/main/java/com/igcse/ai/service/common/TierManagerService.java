@@ -8,7 +8,6 @@ import com.igcse.ai.repository.StudyContextRepository;
 import com.igcse.ai.entity.StudyContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +22,6 @@ public class TierManagerService {
     private final AIRecommendationRepository aiRecommendationRepository;
     private final StudyContextRepository studyContextRepository;
     private final JsonService jsonService;
-
-    @Value("${ai.analysis.tier2.exam-threshold:3}")
-    private int tier2Threshold;
-
-    @Value("${ai.analysis.tier2.score-drop-threshold:0.3}")
-    private double scoreDropThreshold;
 
     public TierManagerService(AIRecommendationRepository aiRecommendationRepository,
             StudyContextRepository studyContextRepository,

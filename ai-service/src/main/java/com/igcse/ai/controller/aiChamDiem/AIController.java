@@ -8,18 +8,19 @@ import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.service.AIService;
 import com.igcse.ai.service.common.JsonService;
 import com.igcse.ai.service.common.StudyContextService;
-import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/ai")
-@RequiredArgsConstructor
 @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')")
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
@@ -29,6 +30,22 @@ public class AIController {
     private final IInsightService insightService;
     private final JsonService jsonService;
     private final StudyContextService studyContextService;
+    private final Executor taskExecutor;
+
+    public AIController(
+            AIService aiService,
+            IRecommendationService recommendationService,
+            IInsightService insightService,
+            JsonService jsonService,
+            StudyContextService studyContextService,
+            @Qualifier("taskExecutor") Executor taskExecutor) {
+        this.aiService = aiService;
+        this.recommendationService = recommendationService;
+        this.insightService = insightService;
+        this.jsonService = jsonService;
+        this.studyContextService = studyContextService;
+        this.taskExecutor = taskExecutor;
+    }
 
     @GetMapping("/result/{attemptId}")
     public ResponseEntity<AIResultResponse> getResult(@PathVariable Long attemptId) {
@@ -84,15 +101,30 @@ public class AIController {
 
         String content = jsonService.toJson(records);
         for (Long studentId : studentIds) {
-            logger.info(">>> [NiFi-to-AI] Triggering analysis for student: {}", studentId);
-            recommendationService.triggerUpdate(studentId, content);
-            insightService.getInsight(studentId, content);
+            logger.info(">>> [NiFi-to-AI] Triggering async analysis for student: {}", studentId);
+            processStudentAnalysisAsync(studentId, content);
         }
 
         Map<String, String> response = new HashMap<>();
-        response.put("status", "SUCCESS");
-        response.put("message", "Ingestion processed for " + studentIds.size() + " students");
-        return ResponseEntity.ok(response);
+        response.put("status", "ACCEPTED");
+        response.put("message", "Ingestion queued for " + studentIds.size() + " students. Processing will continue asynchronously.");
+        return ResponseEntity.accepted().body(response);
+    }
+
+    private void processStudentAnalysisAsync(Long studentId, String content) {
+        CompletableFuture.runAsync(() -> {
+            try {
+                logger.info(">>> [Async] Processing recommendation for student: {}", studentId);
+                recommendationService.triggerUpdate(studentId, content);
+                
+                logger.info(">>> [Async] Processing insight for student: {}", studentId);
+                insightService.getInsight(studentId, content);
+                
+                logger.info(">>> [Async] Completed analysis for student: {}", studentId);
+            } catch (Exception e) {
+                logger.error(">>> [Async] Error processing analysis for student {}: {}", studentId, e.getMessage(), e);
+            }
+        }, taskExecutor);
     }
 
     @GetMapping("/health")
