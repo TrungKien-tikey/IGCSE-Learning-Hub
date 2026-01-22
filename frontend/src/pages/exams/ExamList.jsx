@@ -4,28 +4,52 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 
-const CURRENT_USER_ID = 1; // Giả định user ID = 1
-const CURRENT_USER_ROLE = "TEACHER";
-
 export default function ExamListPage() {
+  const navigate = useNavigate();
+
+  // --- 1. STATE QUẢN LÝ USER (Thay cho hằng số cứng) ---
+  const [role, setRole] = useState(null);
+  const [userId, setUserId] = useState(null);
+
+  // State dữ liệu
   const [allExams, setAllExams] = useState([]); 
   const [filteredExams, setFilteredExams] = useState([]);
-  
-  // 1. [MỚI] State để lưu số lần đã làm của từng bài thi { examId: số_lần }
-  const [userAttempts, setUserAttempts] = useState({});
-
+  const [userAttempts, setUserAttempts] = useState({}); // Đếm số lượt làm bài
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
-
-  const [role, setRole] = useState(CURRENT_USER_ROLE);
-  const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
+
+  // --- 2. EFFECT KIỂM TRA QUYỀN VÀ CHUYỂN HƯỚNG ---
+  useEffect(() => {
+    // Lấy thông tin từ localStorage (khớp với file Login.jsx của bạn)
+    const storedRole = localStorage.getItem("userRole");
+    const storedUserId = localStorage.getItem("userId");
+
+    if (storedRole) {
+      setRole(storedRole);
+      setUserId(storedUserId);
+
+      // NẾU LÀ GIÁO VIÊN -> Chuyển ngay sang trang quản lý
+      if (storedRole === "TEACHER" || storedRole === "ADMIN") {
+        navigate("/exams/manage");
+      }
+    } else {
+      // Nếu không có role (chưa đăng nhập), bạn có thể chọn redirect về login
+      // navigate("/login");
+    }
+  }, [navigate]);
+
+  // --- 3. EFFECT TẢI DỮ LIỆU (Chỉ chạy khi đã xác định Role và KHÔNG PHẢI Teacher) ---
   const location = useLocation(); 
   
   // Effect 1: Tải danh sách bài thi
   useEffect(() => {
+    // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
+    if (!role || role === "TEACHER" || role === "ADMIN") return;
+
     const timer = setInterval(() => setNow(new Date()), 60000);
     
+    // A. Tải danh sách bài thi
     fetch("/api/exams")
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
@@ -45,23 +69,20 @@ export default function ExamListPage() {
         console.error("Lỗi tải danh sách bài thi:", err);
         setAllExams([]);
       });
-    return () => clearInterval(timer);
-  }, []);
 
-  // 2. [MỚI] Effect tải lịch sử làm bài để đếm số lượt
-  useEffect(() => {
-    // Gọi API lấy lịch sử (Endpoint này bạn đã thêm ở bước trước)
-    fetch(`/api/exams/history?userId=${CURRENT_USER_ID}`)
+    // B. Tải lịch sử làm bài (Dùng userId lấy từ localStorage)
+    // Nếu userId null thì fallback là 1 để tránh lỗi API
+    const currentUserId = userId || 1; 
+
+    fetch(`/api/exams/history?userId=${currentUserId}`)
       .then(res => {
         if(res.ok) return res.json();
         return [];
       })
       .then(data => {
-        // Chuyển mảng lịch sử thành Map đếm: { 101: 2, 102: 1 } (ExamId: Số lần)
         const counts = {};
         if (Array.isArray(data)) {
             data.forEach(attempt => {
-                // Lấy ID bài thi từ object attempt (tuỳ cấu trúc JSON trả về)
                 const eId = attempt.exam?.examId || attempt.examId;
                 if (eId) {
                     counts[eId] = (counts[eId] || 0) + 1;
@@ -71,9 +92,11 @@ export default function ExamListPage() {
         setUserAttempts(counts);
       })
       .catch(err => console.error("Lỗi tải lịch sử:", err));
-  }, []);
 
-  // Effect 3: Logic Lọc dữ liệu
+    return () => clearInterval(timer);
+  }, [role, userId]); // Chạy lại khi role/userId thay đổi
+
+  // Effect 4: Logic Lọc dữ liệu
   useEffect(() => {
     let result = [...allExams];
 
@@ -128,7 +151,10 @@ export default function ExamListPage() {
       const res = await fetch(`/api/exams/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: examId, userId: CURRENT_USER_ID }),
+        body: JSON.stringify({ 
+            examId: examId, 
+            userId: userId || 1 // Sử dụng userId động từ state
+        }),
       });
 
       if (!res.ok) {
@@ -149,19 +175,20 @@ export default function ExamListPage() {
     });
   };
 
+  // --- 4. GIAO DIỆN CHỜ (Khi đang check role hoặc redirect) ---
+  if (role === "TEACHER") {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+            <div className="text-xl font-semibold text-gray-600">Đang chuyển hướng đến trang quản lý...</div>
+        </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Danh sách bài kiểm tra</h1>
-
-        {role === "TEACHER" && (
-          <button
-            onClick={() => navigate("/exams/manage")}
-            className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow flex items-center gap-2 transition"
-          >
-            Quản lý bài thi
-          </button>
-        )}
+        {/* Đã ẩn nút quản lý vì Teacher sẽ tự động bị redirect */}
       </div>
 
       <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -187,12 +214,10 @@ export default function ExamListPage() {
           const hasEndTime = !!exam.endTime;
           const isExpired = hasEndTime && new Date(exam.endTime) < now;
           
-          // 3. [MỚI] Logic kiểm tra số lượt
           const attemptsMade = userAttempts[exam.examId] || 0;
           const maxAttempts = exam.maxAttempts || 1; 
           const isLimitReached = attemptsMade >= maxAttempts;
           
-          // Điều kiện được phép làm bài: Chưa hết hạn VÀ Chưa hết lượt
           const isOpen = !isExpired;
           const canTakeExam = isOpen && !isLimitReached;
 
@@ -214,7 +239,6 @@ export default function ExamListPage() {
                       {exam.duration} phút
                     </span>
                     
-                    {/* 4. [MỚI] Hiển thị số lượt đã làm */}
                     <span className={`font-medium px-2 py-1 rounded border ${isLimitReached ? 'bg-red-50 text-red-600 border-red-200' : 'text-purple-600 bg-purple-50 border-purple-100'}`}>
                       {attemptsMade} / {maxAttempts} lượt
                     </span>
@@ -230,14 +254,13 @@ export default function ExamListPage() {
                   </div>
                 </div>
 
-                {/* 5. [MỚI] Nút bấm đổi màu theo trạng thái */}
                 <button
                   onClick={() => startExam(exam.examId || 0)}
                   disabled={!canTakeExam}
                   className={`px-5 py-2 rounded transition font-medium min-w-[120px] shadow-sm
                         ${canTakeExam 
-                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' // Nút Xanh (Được làm)
-                            : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'   // Nút Đen (Bị khoá)
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                            : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'
                         }
                     `}
                 >
