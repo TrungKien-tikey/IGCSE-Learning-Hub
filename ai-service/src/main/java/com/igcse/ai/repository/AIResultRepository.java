@@ -73,4 +73,23 @@ public interface AIResultRepository extends JpaRepository<AIResult, Long> {
      */
     @Query("SELECT AVG(r.confidence) FROM AIResult r WHERE r.confidence IS NOT NULL")
     Double getAverageConfidence();
+
+    // --------- Aggregation cho thống kê theo student ---------
+
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.studentId = :studentId")
+    Long countByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getAverageScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT MAX(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMaxScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT MIN(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMinScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId AND r.gradedAt BETWEEN :startDate AND :endDate")
+    Double getAverageScoreByStudentIdAndDateRange(@Param("studentId") Long studentId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate);
 }
