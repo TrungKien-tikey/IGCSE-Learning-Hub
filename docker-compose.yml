@@ -66,6 +66,9 @@ services:
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=guest
       - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      - mysql-db
+      - rabbitmq
     networks:
       - igcse-network
 
@@ -134,7 +137,7 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động tạo bảng/cột cho Exam Service
@@ -149,6 +152,8 @@ services:
     build: ./communication-service
     container_name: communication-service
     restart: always
+    ports:
+      - "8089:8089"
     environment:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=root
@@ -192,6 +197,7 @@ services:
       KONG_PG_HOST: kong-database
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kongpass
+      KONG_PG_TIMEOUT: 60000
     depends_on:
       kong-database:
         condition: service_healthy
@@ -208,6 +214,7 @@ services:
       KONG_PG_HOST: kong-database
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kongpass
+      KONG_PG_TIMEOUT: 60000
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -260,7 +267,34 @@ services:
     networks:
       - igcse-network
 
+  # =========================================
+  # PHẦN 4: MONITORING (Prometheus & Grafana)
+  # =========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: igcse_prometheus
+    restart: always
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - '9090:9090'
+    networks:
+      - igcse-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: igcse_grafana
+    restart: always
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - igcse-network
+
 # =========================================
+
 # CONFIG CHUNG
 # =========================================
 networks:
