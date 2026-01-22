@@ -25,6 +25,7 @@ public class Course {
     private Date createdAt = new Date();
     @Column(name = "duration")
     private String duration;
+    private Long teacherId;
 
 
     // Quan hệ 1-Nhiều với Lesson
@@ -77,4 +78,6 @@ public class Course {
     public Long getCreatedBy() {
         return createdBy;
     }
+    public Long getTeacherId() { return teacherId; }
+    public void setTeacherId(Long teacherId) { this.teacherId = teacherId; }
 }

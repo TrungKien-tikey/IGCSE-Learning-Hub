@@ -4,6 +4,7 @@ import com.igcse.auth.dto.AuthResponse;
 import com.igcse.auth.dto.ChangePasswordRequest;
 import com.igcse.auth.dto.LoginRequest;
 import com.igcse.auth.dto.RegisterRequest;
+import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -84,9 +85,21 @@ public class AuthController {
         }
     }
 
+
     // 8. API Check trùng Email
     @GetMapping("/check-email")
     public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
         return ResponseEntity.ok(authService.checkEmailExists(email));
+    }
+
+   @GetMapping("/users/{id}")
+    public ResponseEntity<com.igcse.auth.dto.UserSyncDTO> getUserById(@PathVariable Long id) {
+        try {
+            // Đảm bảo AuthService đã có hàm getUserById (đã thêm ở bước trước)
+            return ResponseEntity.ok(authService.getUserById(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+
     }
 }

@@ -24,7 +24,7 @@ export default function StudentLearningPage() {
 
     const fetchCourseAndLessons = async () => {
         // Lấy Token
-        const token = localStoragegetItem('accessToken') || localStorage.getItem('accessToken');
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('accessToken');
 
         // Nếu không có token -> Đuổi về Login
         if (!token) {

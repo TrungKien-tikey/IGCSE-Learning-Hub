@@ -145,7 +145,20 @@ services:
   #     - rabbitmq
   #   networks:
   #     - igcse-network
-
+  # communication-service:
+  #   build: ./communication-service
+  #   container_name: communication-service
+  #   restart: always
+  #   environment:
+  #     - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+  #     - SPRING_DATASOURCE_USERNAME=root
+  #     - SPRING_DATASOURCE_PASSWORD=root
+  #     - SPRING_RABBITMQ_HOST=rabbitmq
+  #   depends_on:
+  #     - mysql-db
+  #     - rabbitmq
+  #   networks:
+  #     - igcse-network
   # =========================================
   # PHẦN 2: KONG API GATEWAY
   # =========================================
