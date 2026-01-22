@@ -77,12 +77,12 @@ export default function ManageExamsPage() {
         </div>
         
         <div className="flex gap-3">
-            <button
+            {/* <button
                 onClick={() => navigate("/exams")}
                 className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded border transition"
             >
                 ← Quay lại trang chủ
-            </button>
+            </button> */}
 
             <button
                 onClick={() => navigate("/exams/create")}
