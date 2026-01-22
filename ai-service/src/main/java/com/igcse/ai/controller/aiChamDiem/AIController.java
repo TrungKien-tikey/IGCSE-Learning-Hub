@@ -116,10 +116,10 @@ public class AIController {
             try {
                 logger.info(">>> [Async] Processing recommendation for student: {}", studentId);
                 recommendationService.triggerUpdate(studentId, content);
-                
+
                 logger.info(">>> [Async] Processing insight for student: {}", studentId);
-                insightService.getInsight(studentId, content);
-                
+                insightService.triggerUpdate(studentId, content);
+
                 logger.info(">>> [Async] Completed analysis for student: {}", studentId);
             } catch (Exception e) {
                 logger.error(">>> [Async] Error processing analysis for student {}: {}", studentId, e.getMessage(), e);
