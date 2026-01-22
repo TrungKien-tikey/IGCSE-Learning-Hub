@@ -11,11 +11,11 @@ import Profile from './pages/Profile';
 
 // --- CÁC TRANG KHÁC (Giữ nguyên) ---
 import Dashboard from './pages/Dashboard';
-import TestNotificationPage from './pages/TestNotifyPage'
-import ChatPage from "./pages/ChatPage";
+
 import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
+import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -40,6 +40,10 @@ import AllCoursesPage from './pages/course/AllCoursesPage';
 import MyCoursesPage from './pages/course/MyCoursesPage';
 import StudentLearningPage from './pages/course/StudentLearningPage';
 
+//Comunication page
+import NotificationsPage from './pages/communication/NotificationsPage';
+import ChatPage from "./pages/communication/ChatPage";
+
 function App() {
   return (
     <BrowserRouter>
@@ -63,8 +67,6 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* --- CÁC TRANG CÔNG KHAI KHÁC --- */}
-        <Route path="/testnotify" element={<TestNotificationPage />} />
-        <Route path="/chat" element={<ChatPage />} />
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
         <Route path="/profile" element={<Profile />} />
 
@@ -87,6 +89,10 @@ function App() {
         {/* --- AI ROUTES --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
+        
+        {/* --- Comunication ROUTES --- */}
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
 
         <Route
           path="/ai/dashboard/student"
@@ -111,6 +117,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN']}>
               <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/course-approval"
+          element={
+            <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
+              <AdminCourseApprovalPage />
             </RoleProtectedRoute>
           }
         />
