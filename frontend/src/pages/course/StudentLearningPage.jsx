@@ -14,7 +14,7 @@ export default function StudentLearningPage() {
 
     // Lấy role hoặc tên user từ storage để hiển thị (cho xịn)
     // Giả sử bạn lưu userId, sau này có thể lưu thêm userName
-    const userRole = sessionStorage.getItem('userRole') || "Student";
+    const userRole = localStorage.getItem('userRole') || "Student";
 
     const API_URL = 'http://localhost:8079/api/courses';
 
@@ -24,7 +24,7 @@ export default function StudentLearningPage() {
 
     const fetchCourseAndLessons = async () => {
         // Lấy Token
-        const token = sessionStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        const token = localStoragegetItem('accessToken') || localStorage.getItem('accessToken');
 
         // Nếu không có token -> Đuổi về Login
         if (!token) {
@@ -65,6 +65,16 @@ export default function StudentLearningPage() {
         const videoIdMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:.*v=|.*\/)([^&?]*))/);
         return videoIdMatch ? `https://www.youtube.com/embed/${videoIdMatch[1]}` : null;
     };
+    const handleOpenChat = () => {
+        // Chuyển hướng sang trang /chat
+        // Truyền kèm state (courseId và title) để trang Chat biết cần load danh sách nào
+        navigate('/chat', { 
+            state: { 
+                courseId: courseId, 
+                courseTitle: courseTitle 
+            } 
+        });
+    };
 
     return (
         <div className="lp-container">
@@ -80,11 +90,12 @@ export default function StudentLearningPage() {
 
                 {/* Các icon chức năng */}
                 <div className="lp-tools">
-                    <div className="icon-btn" title="Thông báo">
-                        <Bell size={20} />
-                        <span className="badge">1</span>
-                    </div>
-                    <div className="icon-btn" title="Thảo luận">
+                    <div 
+                        className="icon-btn" 
+                        title="Thảo luận cùng lớp" 
+                        onClick={handleOpenChat} 
+                        style={{ cursor: 'pointer' }} // Thêm con trỏ tay để biết là nút bấm
+                    >
                         <MessageSquare size={20} />
                     </div>
                     <div className="user-info">
