@@ -14,22 +14,35 @@ export default function CourseDetailPage() {
 
     // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
     const currentUserId = 1;
-    const API_URL = 'http://localhost:8082/api/courses';
+    const API_URL = 'http://localhost:8079/api/courses';
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                // 1. Lấy thông tin khóa học
+                // 1. Lấy thông tin khóa học (Public)
                 const courseRes = await axios.get(`${API_URL}/${courseId}`);
                 setCourse(courseRes.data);
 
-                // 2. Lấy danh sách bài học (Mục lục)
+                // 2. Lấy danh sách bài học (Public hoặc Protected tùy logic backend)
                 const lessonRes = await axios.get(`${API_URL}/${courseId}/lessons`);
                 setLessons(lessonRes.data);
 
-                // 3. Kiểm tra xem user này đã mua chưa
-                const checkRes = await axios.get(`${API_URL}/${courseId}/check-enrollment?userId=${currentUserId}`);
-                setIsEnrolled(checkRes.data); // true hoặc false
+                // 3. Kiểm tra đăng ký (CẦN TOKEN)
+                // --- SỬA ĐOẠN NÀY ---
+                const token = localStoragegetItem('accessToken');
+                if (token) {
+                    try {
+                        // Gọi API check-enrollment kiểu mới (Header)
+                        const checkRes = await axios.get(`${API_URL}/${courseId}/check-enrollment`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        });
+                        setIsEnrolled(checkRes.data); // true/false
+                    } catch (e) {
+                        console.log("Lỗi check enrollment (có thể do token hết hạn)", e);
+                        // Không làm gì cả, cứ để isEnrolled = false
+                    }
+                }
+                // --------------------
 
             } catch (err) {
                 console.error("Lỗi tải dữ liệu:", err);
@@ -42,20 +55,42 @@ export default function CourseDetailPage() {
 
     // Xử lý khi bấm nút Đăng Ký
     const handleEnroll = async () => {
-        if (!currentUserId) {
+        // 1. Lấy Token
+        const token = localStorage.getItem('accessToken');
+
+        if (!token) {
             alert("Vui lòng đăng nhập để mua khóa học!");
-            navigate('/'); // Chuyển về login
+            navigate('/login');
             return;
         }
 
         try {
             if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá $${course.price}?`)) {
-                await axios.post(`${API_URL}/${courseId}/enroll?userId=${currentUserId}`);
+
+                // 2. Gọi API enroll kiểu mới:
+                // - Method: POST
+                // - URL: không có ?userId
+                // - Body: {} (rỗng)
+                // - Header: Authorization
+                await axios.post(
+                    `${API_URL}/${courseId}/enroll`,
+                    {},
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+
                 alert("🎉 Đăng ký thành công! Chào mừng bạn vào học.");
-                setIsEnrolled(true); // Đổi trạng thái nút bấm ngay lập tức
+                setIsEnrolled(true);
             }
         } catch (err) {
-            alert("Lỗi đăng ký: " + (err.response?.data || err.message));
+            console.error(err);
+            if (err.response?.status === 401) {
+                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                navigate('/login');
+            } else {
+                alert("Lỗi đăng ký: " + (err.response?.data || "Có lỗi xảy ra"));
+            }
         }
     };
 

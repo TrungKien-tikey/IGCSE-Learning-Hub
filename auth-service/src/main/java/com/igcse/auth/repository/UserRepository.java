@@ -7,9 +7,12 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    // Tìm user bằng email (Dùng cho lúc Đăng nhập)
+    // Tìm user bằng email (Dùng cho lúc Đăng nhập & Quên mật khẩu)
     Optional<User> findByEmail(String email);
 
     // Kiểm tra xem email đã tồn tại chưa (Dùng cho lúc Đăng ký)
     boolean existsByEmail(String email);
+
+    // [MỚI] Tìm User bằng mã Token reset password (Dùng cho lúc Đặt lại mật khẩu)
+    Optional<User> findByResetPasswordToken(String token);
 }

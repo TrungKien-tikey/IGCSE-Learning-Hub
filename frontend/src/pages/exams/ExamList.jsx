@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 export default function ExamListPage() {
   const navigate = useNavigate();
@@ -39,6 +40,9 @@ export default function ExamListPage() {
   }, [navigate]);
 
   // --- 3. EFFECT TẢI DỮ LIỆU (Chỉ chạy khi đã xác định Role và KHÔNG PHẢI Teacher) ---
+  const location = useLocation(); 
+  
+  // Effect 1: Tải danh sách bài thi
   useEffect(() => {
     // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
     if (!role || role === "TEACHER" || role === "ADMIN") return;
@@ -116,6 +120,31 @@ export default function ExamListPage() {
 
     setFilteredExams(result);
   }, [allExams, filterStatus, searchTerm, now]);
+  useEffect(() => {
+    // Chỉ chạy khi danh sách đã lọc xong VÀ có yêu cầu cuộn từ trang trước
+    if (filteredExams.length > 0 && location.state?.scrollToId) {
+      const targetId = location.state.scrollToId;
+      const element = document.getElementById(`exam-card-${targetId}`);
+
+      if (element) {
+        // Cuộn xuống mượt mà
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+        // Hiệu ứng nháy sáng để gây chú ý
+        element.style.transition = "all 0.5s";
+        element.style.border = "2px solid #2563eb"; // Viền xanh
+        element.style.transform = "scale(1.02)";    // Phóng to nhẹ
+
+        // Tắt hiệu ứng sau 2 giây
+        setTimeout(() => {
+          element.style.border = "1px solid #e5e7eb"; // Trả về màu viền gốc
+          element.style.transform = "scale(1)";
+          // Xóa state để F5 không bị cuộn lại
+          window.history.replaceState({}, document.title);
+        }, 2000);
+      }
+    }
+  }, [filteredExams, location.state]);
 
   const startExam = async (examId) => {
     try {
@@ -195,7 +224,9 @@ export default function ExamListPage() {
           return (
             <div
               key={exam.examId || index}
+              id={`exam-card-${exam.examId}`} 
               className={`border p-5 rounded-lg shadow-sm transition bg-white ${!isOpen ? 'bg-gray-50' : ''}`}
+      
             >
               <div className="flex justify-between items-start">
                 <div>

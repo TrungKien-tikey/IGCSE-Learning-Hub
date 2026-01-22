@@ -6,7 +6,7 @@ import './CoursePage.css'; // Tận dụng lại CSS cũ cho nhanh
 export default function AllCoursesPage() {
   const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
-  const API_URL = 'http://localhost:8082/api/courses';
+  const API_URL = 'http://localhost:8079/api/courses';
 
   useEffect(() => {
     const fetchCourses = async () => {

@@ -10,56 +10,75 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration; 
-import org.springframework.web.cors.CorsConfigurationSource; 
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource; 
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; // <--- Quan trọng
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays; 
-import java.util.List;   
+import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+    // 1. Inject Filter xử lý JWT mà bạn vừa tạo
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // 1. Kích hoạt CORS (Quan trọng nhất để Frontend gọi được)
+            // Kích hoạt CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             
-            // 2. Tắt CSRF
+            // Tắt CSRF (vì dùng API Stateless)
             .csrf(csrf -> csrf.disable())
             
-            // 3. Cấu hình quyền truy cập
+            // Cấu hình quyền truy cập (AUTHORIZATION)
             .authorizeHttpRequests(auth -> auth
-                // --- PHẦN ĐÃ SỬA CONFLICT ---
-                .requestMatchers("/api/v1/auth/**").permitAll() // Cho phép login, register (v1)
-                .requestMatchers("/error").permitAll() // Cho phép hiển thị lỗi
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll() // Cho phép xem tài liệu API
-                // -----------------------------
+                // ✅ NHÓM CÔNG KHAI (Không cần Token)
+                .requestMatchers(
+                    "/api/v1/auth/register",
+                    "/api/v1/auth/login",
+                    "/api/v1/auth/verify-token", // Service khác gọi
+                    "/api/v1/auth/health",       // Gateway check
+                    "/api/v1/auth/forgot-password", 
+                    "/api/v1/auth/reset-password",
+                    "/api/v1/auth/check-email",
+                    "/v3/api-docs/**",           // Swagger
+                    "/swagger-ui/**",            // Swagger
+                    "/swagger-ui.html"
+                ).permitAll()
+                
+                // 🔒 NHÓM BẢO MẬT (Bắt buộc có Token)
+                // API /change-password sẽ rơi vào đây
                 .anyRequest().authenticated()
             )
             
-            // 4. Stateless session
+            // Stateless Session (Không lưu session trên server)
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            );
+            )
+            
+            // ⚠️ QUAN TRỌNG NHẤT: Thêm bộ lọc JWT trước bộ lọc Username/Password mặc định
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // --- Cấu hình chi tiết CORS ---
+    // --- Cấu hình CORS (Cho phép Frontend gọi) ---
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Dùng "*" để cho phép mọi nguồn (5173, 8080, v.v...)
-        configuration.setAllowedOriginPatterns(List.of("*")); 
-        
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(List.of("*")); // Chấp nhận mọi nguồn (Dev mode)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
@@ -71,8 +90,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }

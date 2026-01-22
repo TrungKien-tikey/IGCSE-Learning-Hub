@@ -2,6 +2,8 @@ package com.igcse.ai.repository;
 
 import com.igcse.ai.entity.AIResult;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
@@ -47,4 +49,47 @@ public interface AIResultRepository extends JpaRepository<AIResult, Long> {
      * @return List AIResult
      */
     List<AIResult> findByClassId(Long classId);
+
+    /**
+     * Đếm số học sinh unique trong một lớp
+     */
+    @Query("SELECT COUNT(DISTINCT r.studentId) FROM AIResult r WHERE r.classId = :classId")
+    Long countDistinctStudentsByClassId(@Param("classId") Long classId);
+
+    /**
+     * Tính điểm trung bình của lớp
+     */
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.classId = :classId")
+    Double getAverageScoreByClassId(@Param("classId") Long classId);
+
+    /**
+     * Đếm số bài thi đã chấm của lớp
+     */
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.classId = :classId")
+    Long countByClassId(@Param("classId") Long classId);
+
+    /**
+     * Tính confidence trung bình của toàn hệ thống
+     */
+    @Query("SELECT AVG(r.confidence) FROM AIResult r WHERE r.confidence IS NOT NULL")
+    Double getAverageConfidence();
+
+    // --------- Aggregation cho thống kê theo student ---------
+
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.studentId = :studentId")
+    Long countByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getAverageScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT MAX(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMaxScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT MIN(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMinScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId AND r.gradedAt BETWEEN :startDate AND :endDate")
+    Double getAverageScoreByStudentIdAndDateRange(@Param("studentId") Long studentId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate);
 }
