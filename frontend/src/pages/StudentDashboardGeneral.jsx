@@ -247,8 +247,7 @@ const StudentDashboardGeneral = () => {
                     </h2>
                     <button
                         onClick={() => navigate(`/ai/dashboard/student?studentId=${studentId}`)}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-bold shadow-sm"
-                    >
+                        className="text-sm text-blue-600 font-medium hover:underline">
                         Xem chi tiết phân tích
                         {/* <TrendingUp className="w-4 h-4" /> */}
                     </button>
