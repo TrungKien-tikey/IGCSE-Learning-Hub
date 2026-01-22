@@ -43,27 +43,9 @@ public class InsightService implements IInsightService {
         this.tierManagerService = tierManagerService;
     }
 
-    /**
-     * Lấy nhận xét AI tổng hợp cho học sinh (Dùng cho Dashboard).
-     * 
-     * @param studentId ID học sinh
-     * @return DTO chứa nhận xét, điểm mạnh, điểm yếu và kế hoạch hành động.
-     */
     @Override
     public AIInsightDTO getInsight(Long studentId) {
-        return getInsight(studentId, null);
-    }
-
-    /**
-     * Lấy nhận xét AI có kèm dữ liệu làm giàu từ NiFi (Tên học sinh, Persona).
-     * 
-     * @param studentId ID học sinh
-     * @param nifiData  Chuỗi JSON chứa thông tin bổ sung từ luồng NiFi
-     * @return DTO chứa nhận xét đã được cá nhân hóa
-     */
-    @Override
-    public AIInsightDTO getInsight(Long studentId, String nifiData) {
-        logger.info("Processing insights for studentId: {} with nifiData enrichment", studentId);
+        logger.info("Getting insights for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
         Optional<AIInsight> cached = aiInsightRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId);
@@ -82,7 +64,15 @@ public class InsightService implements IInsightService {
             }
         }
 
-        return refreshInsight(studentId, nifiData);
+        // Không có cache hoặc có dữ liệu mới: làm tươi lại bằng luồng chuẩn (không cần NiFi)
+        return refreshInsight(studentId, null);
+    }
+
+    @Override
+    public void triggerUpdate(Long studentId, String nifiData) {
+        logger.info("Triggering insight update for studentId: {} with data size: {}",
+                studentId, (nifiData != null ? nifiData.length() : "null"));
+        refreshInsight(studentId, nifiData);
     }
 
     @Transactional
