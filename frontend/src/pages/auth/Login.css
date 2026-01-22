@@ -41,6 +41,27 @@
   border-radius: 4px;
   font-size: 14px;
   box-sizing: border-box;
+  outline: none; /* Bỏ viền xanh mặc định */
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #007bff;
+}
+
+/* 👇 CLASS MỚI: VIỀN ĐỎ VÀ NỀN HỒNG KHI LỖI 👇 */
+.input-group input.input-error {
+  border-color: #dc3545;
+  background-color: #fff8f8;
+}
+
+/* 👇 CLASS MỚI: DÒNG CHỮ ĐỎ THÔNG BÁO LỖI 👇 */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+  font-style: italic;
 }
 
 .btn-submit {
@@ -70,20 +91,16 @@
   text-decoration: none;
 }
 
-/* --- 👇 PHẦN MỚI CHO ICON MẮT (Show/Hide Password) 👇 --- */
-
-/* Wrapper để định vị icon tương đối so với input */
+/* --- PHẦN CHO ICON MẮT --- */
 .password-input-wrapper {
   position: relative;
   width: 100%;
 }
 
-/* Chỉnh lại input trong wrapper để chữ không bị icon che mất */
 .password-input-wrapper input {
-  padding-right: 40px; /* Chừa khoảng trống bên phải */
+  padding-right: 40px; 
 }
 
-/* Định vị icon con mắt nằm đè lên bên phải input */
 .password-toggle-icon {
   position: absolute;
   right: 12px;      

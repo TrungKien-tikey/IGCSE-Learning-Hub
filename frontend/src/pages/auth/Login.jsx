@@ -5,7 +5,7 @@ import './Login.css';
 import { requestForToken } from "../../firebase";
 import axiosClient from "../../api/axiosClient";
 
-// 👇 Import Icon Mắt và Mắt gạch chéo
+// Import Icon Mắt
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 
 function Login() {
@@ -14,36 +14,68 @@ function Login() {
     password: ''
   });
 
-  // 👇 State quản lý việc hiện/ẩn mật khẩu
+  // State quản lý hiện/ẩn mật khẩu
   const [showPassword, setShowPassword] = useState(false);
 
+  // 👇 1. State quản lý lỗi validation
+  const [errors, setErrors] = useState({});
+
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [name]: value
     });
+
+    // 👇 2. UX: Người dùng nhập lại thì xóa lỗi đỏ đi
+    if (errors[name]) {
+      setErrors({
+        ...errors,
+        [name]: ''
+      });
+    }
   };
 
-  // 👇 Hàm đảo ngược trạng thái mật khẩu
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  // 👇 3. Hàm kiểm tra dữ liệu đầu vào
+  const validateForm = () => {
+    const newErrors = {};
+    let isValid = true;
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Vui lòng nhập email";
+      isValid = false;
+    }
+
+    if (!formData.password) {
+      newErrors.password = "Vui lòng nhập mật khẩu";
+      isValid = false;
+    }
+
+    setErrors(newErrors);
+    return isValid;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 👇 4. Chặn submit nếu dữ liệu chưa nhập đủ
+    if (!validateForm()) {
+      return;
+    }
+
     try {
-      // 1. Gọi API
       const response = await authService.login(formData);
       const serverData = response.data;
       const token = serverData.token;
 
-      // Kiểm tra an toàn
       if (!token) {
         throw new Error("Lỗi: Không tìm thấy Token!");
       }
 
-      // 2. Lưu thông tin vào localStorage
       localStorage.setItem('accessToken', token);
     
       if (serverData.role) {
@@ -54,14 +86,13 @@ function Login() {
         localStorage.setItem('userId', serverData.userId || serverData.id);
       }
 
-      // --- LOGIC FCM (Giữ nguyên) ---
+      // --- LOGIC FCM ---
       if (serverData.role === 'STUDENT') {
         try {
           console.log("--> Bắt đầu lấy FCM Token...");
           const fcmToken = await requestForToken();
           
           if (fcmToken) {
-            console.log("--> FCM Token lấy được:", fcmToken);
             await axiosClient.post('/notifications/subscribe', { 
               token: fcmToken 
             });
@@ -71,11 +102,8 @@ function Login() {
           console.error(" Lỗi đăng ký FCM (Không ảnh hưởng đăng nhập):", fcmError);
         }
       }
-      // -----------------------------
 
-      // 3. Thông báo và chuyển hướng
       alert("Đăng nhập thành công!");
-      
       window.location.href = '/';
 
     } catch (error) {
@@ -89,7 +117,11 @@ function Login() {
     <div className="login-container">
       <div className="login-box">
         <h2>Đăng Nhập</h2>
-        <form onSubmit={handleSubmit}>
+        
+        {/* 👇 noValidate: Tắt popup mặc định */}
+        <form onSubmit={handleSubmit} noValidate>
+          
+          {/* --- Email --- */}
           <div className="input-group">
             <label>Email</label>
             <input
@@ -98,23 +130,25 @@ function Login() {
               placeholder="email@example.com"
               value={formData.email}
               onChange={handleChange}
-              required 
+              // Thêm class lỗi nếu có
+              className={errors.email ? "input-error" : ""}
             />
+            {/* Hiển thị dòng chữ đỏ */}
+            {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
 
+          {/* --- Mật khẩu --- */}
           <div className="input-group">
             <label>Mật khẩu</label>
-            {/* 👇 Cấu trúc mới: Wrapper bọc Input + Icon */}
             <div className="password-input-wrapper">
               <input
-                type={showPassword ? "text" : "password"} // Thay đổi type dựa trên state
+                type={showPassword ? "text" : "password"}
                 name="password"
                 placeholder="******"
                 value={formData.password}
                 onChange={handleChange}
-                required
+                className={errors.password ? "input-error" : ""}
               />
-              {/* Icon Toggle */}
               <span 
                 className="password-toggle-icon" 
                 onClick={togglePasswordVisibility}
@@ -122,6 +156,7 @@ function Login() {
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </span>
             </div>
+            {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
           <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-10px' }}>
