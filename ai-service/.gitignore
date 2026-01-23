@@ -59,3 +59,4 @@ src/FE_Preview/.env.local
 src/FE_Preview/.env.*.local
 
 application.properties
+.env
