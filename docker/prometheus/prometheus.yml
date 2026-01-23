@@ -1,0 +1,34 @@
+global:
+  scrape_interval: 30s
+
+scrape_configs:
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['auth-service:8080']
+
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8083']
+
+  - job_name: 'communication-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['communication-service:8089']
+
+
+  - job_name: 'ai-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['ai-service:8082']
+
+  - job_name: 'exam-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['exam-service:8085']
+
+  - job_name: 'kong'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['kong:8001']
