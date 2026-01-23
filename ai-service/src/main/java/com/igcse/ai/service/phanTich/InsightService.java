@@ -1,4 +1,4 @@
-package com.igcse.ai.service.ass.phanTich;
+package com.igcse.ai.service.phanTich;
 
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.JsonService;
