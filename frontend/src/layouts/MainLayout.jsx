@@ -18,7 +18,7 @@ const menuItems = {
     { title: "Dashboard", icon: Home, url: "/" },
     { title: "Math Modules", icon: Calculator, url: "/modules" },
     { title: "My Progress", icon: BarChart3, url: "/progress" },
-    { title: "Practice Exams", icon: GraduationCap, url: "/exams" },
+    { title: "Bài kiểm tra", icon: GraduationCap, url: "/exams" },
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
     { title: "Thông báo", icon: Bell, url: "/notifications" },
@@ -26,6 +26,7 @@ const menuItems = {
   teacher: [
     { title: "Overview", icon: LayoutDashboard, url: "/" },
     { title: "My Classes", icon: Users, url: "/classes" },
+    { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
     { title: "Curriculum", icon: BookOpen, url: "/modules" },
     { title: "Grading", icon: ClipboardList, url: "/grading" },
   ],
