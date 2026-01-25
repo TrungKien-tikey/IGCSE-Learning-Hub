@@ -16,23 +16,20 @@ public class Comment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String targetId; // ID bài học (có thể để String hoặc Long tùy dự án)
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    private Long userId;      // ID người dùng kiểu Long
-    private String username;
-    private String userAvatar;
+    @Column(name = "exam_id", nullable = false)
+    private Long examId; // Đổi từ targetId thành examId để khớp với bảng mới
 
-    @Column(columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    private Long parentId;    // Dùng cho Reply
-
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
+        this.createdAt = LocalDateTime.now();
     }
 }
