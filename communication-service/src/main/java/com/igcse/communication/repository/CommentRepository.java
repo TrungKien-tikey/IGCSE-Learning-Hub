@@ -7,10 +7,6 @@ import java.util.List;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long> {
-    
-    // Lấy danh sách bình luận theo targetId, sắp xếp thời gian giảm dần
-    List<Comment> findByTargetIdOrderByCreatedAtDesc(String targetId);
-    
-    // Lấy các phản hồi của một comment cha
-    List<Comment> findByParentIdOrderByCreatedAtAsc(Long parentId);
+    // Đổi từ findByTargetId... thành findByExamId...
+    List<Comment> findByExamIdOrderByCreatedAtDesc(Long examId);
 }

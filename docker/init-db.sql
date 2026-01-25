@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 CREATE TABLE IF NOT EXISTS comments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL COMMENT 'ID người dùng',
+    username VARCHAR(255) DEFAULT 'Học viên' COMMENT 'Tên hiển thị người dùng' ,
     exam_id BIGINT NOT NULL COMMENT 'ID bài thi',
     content TEXT NOT NULL COMMENT 'Nội dung bình luận',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Thời gian tạo'
