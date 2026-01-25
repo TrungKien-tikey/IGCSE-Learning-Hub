@@ -22,14 +22,14 @@ public class CommentService {
     public Comment saveComment(Comment comment) {
         Comment saved = commentRepository.save(comment);
         
-        // Gửi Realtime cho những người đang ở trong bài học đó
-        messagingTemplate.convertAndSend("/topic/comments/" + saved.getTargetId(), saved);
+        // Gửi Realtime qua WebSocket sử dụng examId
+        messagingTemplate.convertAndSend("/topic/comments/" + saved.getExamId(), saved);
         
         return saved;
     }
 
-    public List<Comment> getCommentsByTarget(String targetId) {
-        return commentRepository.findByTargetIdOrderByCreatedAtDesc(targetId);
+    public List<Comment> getCommentsByExam(Long examId) {
+        return commentRepository.findByExamIdOrderByCreatedAtDesc(examId);
     }
 
     @Transactional
