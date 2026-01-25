@@ -19,6 +19,8 @@ public class Comment {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    private String username;
+
     @Column(name = "exam_id", nullable = false)
     private Long examId; // Đổi từ targetId thành examId để khớp với bảng mới
 

@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
 
-    // 👇 SỬA DÒNG NÀY: Thêm đoạn "OR n.userId = 0"
+    
     @Query("SELECT n FROM Notification n WHERE (n.userId = :userId OR n.userId = 0) ORDER BY n.isRead ASC, n.createdAt DESC")
     List<Notification> findMyNotifications(Long userId);
 }
