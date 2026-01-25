@@ -266,6 +266,31 @@ services:
       - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
     networks:
       - igcse-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -k -f -u admin:thinhnguyen123 https://localhost:8443/nifi-api/system-diagnostics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+  # Init container để tự động import NiFi flow
+  nifi-flow-importer:
+    image: python:3.11-slim
+    container_name: nifi-flow-importer
+    depends_on:
+      nifi:
+        condition: service_healthy
+    volumes:
+      - ./NiFi_Flow.json:/flow/NiFi_Flow.json:ro
+      - ./docker/nifi/import-flow.py:/import-flow.py:ro
+    command: >
+      sh -c "
+        pip install --no-cache-dir requests urllib3 &&
+        python /import-flow.py
+      "
+    networks:
+      - igcse-network
+    restart: "no"
 
   # =========================================
   # PHẦN 4: MONITORING (Prometheus & Grafana)
