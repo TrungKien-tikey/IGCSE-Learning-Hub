@@ -32,40 +32,39 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Kích hoạt CORS
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            // Tắt CSRF (vì dùng API Stateless)
-            .csrf(csrf -> csrf.disable())
-            
-            // Cấu hình quyền truy cập (AUTHORIZATION)
-            .authorizeHttpRequests(auth -> auth
-                // ✅ NHÓM CÔNG KHAI (Không cần Token)
-                .requestMatchers(
-                    "/api/v1/auth/register",
-                    "/api/v1/auth/login",
-                    "/api/v1/auth/verify-token", // Service khác gọi
-                    "/api/v1/auth/health",       // Gateway check
-                    "/api/v1/auth/forgot-password", 
-                    "/api/v1/auth/reset-password",
-                    "/api/v1/auth/check-email",
-                    "/v3/api-docs/**",           // Swagger
-                    "/swagger-ui/**",            // Swagger
-                    "/swagger-ui.html"
-                ).permitAll()
-                
-                // 🔒 NHÓM BẢO MẬT (Bắt buộc có Token)
-                // API /change-password sẽ rơi vào đây
-                .anyRequest().authenticated()
-            )
-            
-            // Stateless Session (Không lưu session trên server)
-            .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
-            
-            // ⚠️ QUAN TRỌNG NHẤT: Thêm bộ lọc JWT trước bộ lọc Username/Password mặc định
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // Kích hoạt CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+                // Tắt CSRF (vì dùng API Stateless)
+                .csrf(csrf -> csrf.disable())
+
+                // Cấu hình quyền truy cập (AUTHORIZATION)
+                .authorizeHttpRequests(auth -> auth
+                        // ✅ NHÓM CÔNG KHAI (Không cần Token)
+                        .requestMatchers(
+                                "/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/verify-token", // Service khác gọi
+                                "/api/v1/auth/health", // Gateway check
+                                "/api/v1/auth/forgot-password",
+                                "/api/v1/auth/reset-password",
+                                "/api/v1/auth/check-email",
+                                "/v3/api-docs/**", // Swagger
+                                "/swagger-ui/**", // Swagger
+                                "/swagger-ui.html",
+                                "/actuator/**")
+                        .permitAll()
+
+                        // 🔒 NHÓM BẢO MẬT (Bắt buộc có Token)
+                        // API /change-password sẽ rơi vào đây
+                        .anyRequest().authenticated())
+
+                // Stateless Session (Không lưu session trên server)
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // ⚠️ QUAN TRỌNG NHẤT: Thêm bộ lọc JWT trước bộ lọc Username/Password mặc định
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -78,7 +77,7 @@ public class SecurityConfig {
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
