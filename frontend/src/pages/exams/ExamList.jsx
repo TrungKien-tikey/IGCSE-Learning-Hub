@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
+import { FaCommentDots } from "react-icons/fa"; // Thêm icon thảo luận
 import MainLayout from '../../layouts/MainLayout';
+import CommentRoom from '../../components/CommentRoom';
 
 export default function ExamListPage() {
   const navigate = useNavigate();
@@ -18,6 +20,10 @@ export default function ExamListPage() {
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [now, setNow] = useState(new Date());
+  
+  // State quản lý việc mở khung comment (mới thêm)
+  const [activeCommentExam, setActiveCommentExam] = useState(null);
+  const currentUser = JSON.parse(localStorage.getItem('user'));
 
   // --- 2. EFFECT KIỂM TRA QUYỀN VÀ CHUYỂN HƯỚNG ---
   useEffect(() => {
@@ -26,9 +32,9 @@ export default function ExamListPage() {
 
     if (storedUserId) {
       setUserId(storedUserId);
-    }else {
+    } else {
       // Nếu không có userId, chuyển hướng về trang đăng nhập
-      navigate("/login");
+      // navigate("/login");
     }
   }, []);
 
@@ -111,6 +117,7 @@ export default function ExamListPage() {
 
     setFilteredExams(result);
   }, [allExams, filterStatus, searchTerm, now]);
+
   useEffect(() => {
     // Chỉ chạy khi danh sách đã lọc xong VÀ có yêu cầu cuộn từ trang trước
     if (filteredExams.length > 0 && location.state?.scrollToId) {
@@ -171,7 +178,6 @@ export default function ExamListPage() {
       <div className="">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Danh sách bài kiểm tra</h1>
-          {/* Đã ẩn nút quản lý vì Teacher sẽ tự động bị redirect */}
         </div>
 
         <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
@@ -209,7 +215,6 @@ export default function ExamListPage() {
                 key={exam.examId || index}
                 id={`exam-card-${exam.examId}`}
                 className={`border p-5 rounded-lg shadow-sm transition bg-white ${!isOpen ? 'bg-gray-50' : ''}`}
-
               >
                 <div className="flex justify-between items-start">
                   <div>
@@ -218,6 +223,15 @@ export default function ExamListPage() {
                     </h2>
                     <p className="text-gray-600 mt-1">{exam.description || "Không có mô tả"}</p>
                     <div className="flex flex-wrap gap-3 mt-3 text-sm">
+                      {/* Nút mở comment - Luôn sử dụng exam.examId để đồng nhất */}
+                      <button 
+                          onClick={() => setActiveCommentExam(activeCommentExam === exam.examId ? null : exam.examId)}
+                          className={`flex items-center gap-1 transition mr-2 ${activeCommentExam === exam.examId ? 'text-blue-600 font-bold' : 'text-gray-600 hover:text-blue-500'}`}
+                      >
+                          <FaCommentDots size={20} />
+                          <span className="text-sm font-medium">Thảo luận</span>
+                      </button>
+
                       <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded border border-blue-100">
                         {exam.duration} phút
                       </span>
@@ -250,6 +264,13 @@ export default function ExamListPage() {
                     {isLimitReached ? 'Hết lượt' : (isOpen ? 'Làm bài' : 'Hết hạn')}
                   </button>
                 </div>
+                
+                {/* VỊ TRÍ CHÈN COMMENT ROOM: Hiển thị bên dưới thông tin bài thi khi được mở */}
+                {activeCommentExam === exam.examId && (
+                  <div className="mt-5 pt-5 border-t border-gray-100">
+                    <CommentRoom examId={exam.examId} currentUser={currentUser} />
+                  </div>
+                )}
               </div>
             );
           })}

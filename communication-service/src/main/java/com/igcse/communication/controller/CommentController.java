@@ -15,19 +15,13 @@ public class CommentController {
     @Autowired
     private CommentService commentService;
 
-    @GetMapping("/lesson/{targetId}")
-    public ResponseEntity<List<Comment>> getComments(@PathVariable String targetId) {
-        return ResponseEntity.ok(commentService.getCommentsByTarget(targetId));
+    @GetMapping("/exam/{examId}")
+    public ResponseEntity<List<Comment>> getComments(@PathVariable Long examId) {
+        return ResponseEntity.ok(commentService.getCommentsByExam(examId));
     }
 
     @PostMapping
     public ResponseEntity<Comment> createComment(@RequestBody Comment comment) {
         return ResponseEntity.ok(commentService.saveComment(comment));
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long id) {
-        commentService.deleteComment(id);
-        return ResponseEntity.ok().build();
     }
 }
