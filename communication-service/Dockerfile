@@ -1,12 +1,21 @@
-# Sử dụng Amazon Corretto 17 (Rất ổn định và nhẹ)
+# Stage 1: Build ứng dụng bằng Maven
+FROM maven:3.9.6-eclipse-temurin-17-alpine AS build
+WORKDIR /app
+
+# Copy file pom.xml và tải dependencies (giúp cache layer tốt hơn)
+COPY pom.xml .
+RUN mvn dependency:go-offline
+
+# Copy source code và thực hiện build
+COPY src ./src
+RUN mvn clean package -DskipTests
+
+# Stage 2: Chạy ứng dụng (Runtime)
 FROM amazoncorretto:17-alpine-jdk
-
-# Thêm thông tin tác giả (Tùy chọn)
 LABEL maintainer="igcse-learning-hub"
+WORKDIR /app
 
-# Copy file jar được build từ maven vào container
-ARG JAR_FILE=target/*.jar
-COPY ${JAR_FILE} app.jar
+# Copy file jar từ stage build sang
+COPY --from=build /app/target/*.jar app.jar
 
-# Chạy ứng dụng
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["java","-jar","app.jar"]

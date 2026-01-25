@@ -50,5 +50,4 @@ public List<ChatMessage> sendHistoryOnSubscribe(@DestinationVariable String room
 
         return savedMsg;
     }
-
 }
