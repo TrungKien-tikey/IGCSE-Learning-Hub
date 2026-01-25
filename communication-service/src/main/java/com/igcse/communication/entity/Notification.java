@@ -22,7 +22,7 @@ public class Notification {
     private String type;
     @Column(name = "exam_id")
     private Long examId;
-    private boolean isRead = false; // Mặc định là chưa đọc (false)
+    private boolean Read = false; // Mặc định là chưa đọc (false)
     private LocalDateTime createdAt = LocalDateTime.now();
     // Loại bỏ courseId
 }
