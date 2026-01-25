@@ -32,6 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/ai/health").permitAll() // Cho phép kiểm tra trạng thái
                         .requestMatchers("/api/ai/ingest-context").permitAll() // Cho phép NiFi ingest dữ liệu
+                        .requestMatchers("/actuator/**").permitAll() // Cho phép Prometheus scrape metrics
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
