@@ -1,4 +1,4 @@
-package com.igcse.ai.service.ass.goiyLoTrinhHoc;
+package com.igcse.ai.service.goiyLoTrinhHoc;
 
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.JsonService;
