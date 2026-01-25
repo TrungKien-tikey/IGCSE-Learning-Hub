@@ -1,13 +1,14 @@
-package com.igcse.ai.controller.aiChamDiem;
+package com.igcse.ai.controller;
 
-import com.igcse.ai.service.ass.goiyLoTrinhHoc.IRecommendationService;
-import com.igcse.ai.service.ass.phanTich.IInsightService;
 import com.igcse.ai.dto.aiChamDiem.AIResultResponse;
 import com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO;
 import com.igcse.ai.entity.AIResult;
 import com.igcse.ai.service.AIService;
 import com.igcse.ai.service.common.JsonService;
 import com.igcse.ai.service.common.StudyContextService;
+import com.igcse.ai.service.goiyLoTrinhHoc.IRecommendationService;
+import com.igcse.ai.service.phanTich.IInsightService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
