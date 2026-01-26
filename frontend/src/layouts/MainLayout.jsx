@@ -12,7 +12,6 @@ import { requestForToken, onMessageListener } from '../firebase'; // Đảm bả
 import axiosClient from '../api/axiosClient';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 const menuItems = {
   student: [
     { title: "Dashboard", icon: Home, url: "/" },
@@ -40,7 +39,6 @@ const menuItems = {
     { title: "Dashboard", icon: Home, url: "/" },
     { title: "Tiến độ học sinh", icon: BarChart3, url: "/progress" },
     { title: "Báo cáo học tập", icon: FileText, url: "/reports" },
-    { title: "Thông báo", icon: Bell, url: "/notifications" },
   ],
 };
 
@@ -212,5 +210,4 @@ const MainLayout = ({ children }) => {
     </div>
   );
 };
-
 export default MainLayout;
