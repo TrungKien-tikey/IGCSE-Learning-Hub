@@ -162,10 +162,15 @@ services:
     ports:
       - "8089:8089"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+     # Thêm biến múi giờ cho hệ thống container
+      - TZ=Asia/Ho_Chi_Minh
+      # Thêm tham số serverTimezone vào URL để đồng bộ với Database
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&serverTimezone=Asia/Ho_Chi_Minh
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       - SPRING_RABBITMQ_HOST=rabbitmq
+      # Thêm cấu hình để Jackson (trả về JSON) hiểu đúng múi giờ Việt Nam
+      - SPRING_JACKSON_TIME_ZONE=Asia/Ho_Chi_Minh
     depends_on:
       - mysql-db
       - rabbitmq

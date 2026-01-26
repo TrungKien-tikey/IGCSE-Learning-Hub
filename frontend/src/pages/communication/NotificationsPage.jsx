@@ -1,17 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, Clock, Check, Circle, Bell, Filter } from 'lucide-react';
-import notificationService from '../../services/notificationService'; 
+"use client";
 
-// Key lưu LocalStorage
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { BookOpen, Clock, Check, Circle, Bell, ArrowLeft } from 'lucide-react';
+import MainLayout from '../../layouts/MainLayout';
+import notificationService from '../../services/notificationService';
+
+// Key lưu LocalStorage cho thông báo hệ thống
 const LOCAL_STORAGE_KEY = "read_global_notifications";
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState("ALL"); // ALL, UNREAD, READ
   const navigate = useNavigate();
+  const location = useLocation();
 
-
+  // --- 1. LOGIC LOCAL STORAGE ---
   const getReadGlobalIds = () => {
     const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -25,13 +30,7 @@ const NotificationsPage = () => {
     }
   };
 
-  const sortNotifications = (list) => {
-    return [...list].sort((a, b) => {
-      if (a.isRead !== b.isRead) return a.isRead ? 1 : -1;
-      return new Date(b.createdAt) - new Date(a.createdAt);
-    });
-  };
-
+  // --- 2. TẢI DỮ LIỆU ---
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -49,7 +48,13 @@ const NotificationsPage = () => {
         };
       });
 
-      setNotifications(sortNotifications(processedData));
+      // Sắp xếp: Chưa đọc lên đầu, sau đó đến thời gian mới nhất
+      const sorted = processedData.sort((a, b) => {
+        if (a.isRead !== b.isRead) return a.isRead ? 1 : -1;
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      setNotifications(sorted);
     } catch (error) {
       console.error("Lỗi tải thông báo:", error);
     } finally {
@@ -61,9 +66,33 @@ const NotificationsPage = () => {
     fetchNotifications();
   }, []);
 
+  // --- 3. XỬ LÝ CUỘN ĐẾN THÔNG BÁO CỤ THỂ (GIỐNG EXAM LIST) ---
+  useEffect(() => {
+    if (!loading && notifications.length > 0 && location.state?.scrollToId) {
+      const targetId = location.state.scrollToId;
+      const element = document.getElementById(`notif-card-${targetId}`);
+
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.style.transition = "all 0.5s";
+        element.style.borderLeft = "8px solid #2563eb";
+        element.style.transform = "scale(1.02)";
+        element.style.zIndex = "10";
+
+        setTimeout(() => {
+          element.style.transform = "scale(1)";
+          element.style.borderLeft = notifications.find(n => n.id === targetId)?.isRead 
+            ? "1px solid #e2e8f0" 
+            : "4px solid #2563eb";
+          window.history.replaceState({}, document.title);
+        }, 3000);
+      }
+    }
+  }, [loading, notifications, location.state]);
+
+  // --- 4. CÁC HÀM XỬ LÝ ---
   const markAsReadLogic = async (notif) => {
     if (notif.isRead) return;
-
     if (notif.userId === 0) {
       saveReadGlobalId(notif.id);
     } else {
@@ -73,47 +102,52 @@ const NotificationsPage = () => {
         console.error("Lỗi API mark read:", err);
       }
     }
-
-    const updatedList = notifications.map(n => 
+    setNotifications(prev => prev.map(n => 
       n.id === notif.id ? { ...n, isRead: true } : n
-    );
-    setNotifications(sortNotifications(updatedList));
-  };
-
-  const handleMarkAsReadOnly = async (e, notif) => {
-    e.stopPropagation(); 
-    await markAsReadLogic(notif);
+    ));
   };
 
   const handleContentClick = async (notif) => {
     await markAsReadLogic(notif);
-
     const targetExamId = notif.examId || notif.exam_id;
     if (targetExamId) {
       navigate('/exams', { state: { scrollToId: targetExamId } });
-    } else {
-      console.warn("Thông báo không có ID bài thi");
     }
   };
 
-  // Tính số lượng chưa đọc để hiển thị cho đẹp
+  const formatDate = (dateString) => {
+    if (!dateString) return "";
+    return new Date(dateString).toLocaleString('vi-VN', {
+      timeZone: "Asia/Ho_Chi_Minh", // Đảm bảo khớp thời gian thực Việt Nam
+      hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+    });
+  };
+
+  const filteredNotifications = notifications.filter(n => {
+    if (filterStatus === "UNREAD") return !n.isRead;
+    if (filterStatus === "READ") return n.isRead;
+    return true;
+  });
+
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
-    </div>
+    <MainLayout>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    </MainLayout>
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6">
+    <MainLayout>
       <div className="max-w-5xl mx-auto">
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <div className="bg-blue-600 text-white p-2 rounded-lg shadow-lg shadow-blue-200">
+              <div className="bg-blue-600 text-white p-2 rounded-lg shadow-lg">
                  <Bell size={24} />
               </div>
               Thông báo
@@ -123,108 +157,114 @@ const NotificationsPage = () => {
             </p>
           </div>
           
-          {/* Nút giả lập bộ lọc để nhìn cho pro */}
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 hover:border-blue-300 transition-all shadow-sm">
-            <Filter size={18} />
-            <span className="font-medium text-sm">Lọc tin</span>
-          </button>
+          {/* Bộ lọc Tabs giống Exam List */}
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {[
+              { id: 'ALL', label: 'Tất cả' },
+              { id: 'UNREAD', label: 'Chưa đọc' },
+              { id: 'READ', label: 'Đã xem' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setFilterStatus(tab.id)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
+                  filterStatus === tab.id 
+                    ? "bg-white text-gray-800 shadow-sm" 
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* --- LIST CONTAINER --- */}
-        <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 overflow-hidden border border-slate-100">
-          {notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-16 text-center">
-              <div className="bg-blue-50 p-6 rounded-full mb-4">
-                <BookOpen size={48} className="text-blue-300" />
+        {/* --- DANH SÁCH THÔNG BÁO --- */}
+        <div className="space-y-4">
+          {filteredNotifications.length === 0 ? (
+            <div className="bg-white border rounded-2xl p-16 text-center shadow-sm">
+              <div className="bg-blue-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BookOpen size={40} className="text-blue-300" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800">Không có thông báo mới</h3>
-              <p className="text-gray-400 mt-2">Tuyệt vời! Bạn đã cập nhật tất cả thông tin.</p>
+              <h3 className="text-xl font-semibold text-gray-800">Trống trơn</h3>
+              <p className="text-gray-400 mt-2">Không có thông báo nào trong mục này.</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
-              {notifications.map((notif) => (
-                <div 
-                  key={notif.id}
-                  onClick={() => handleContentClick(notif)} 
-                  className={`
-                    group relative p-5 flex gap-5 items-start cursor-pointer transition-all duration-300
-                    hover:bg-gray-50
-                    ${notif.isRead 
-                      ? 'bg-white' 
-                      : 'bg-gradient-to-r from-blue-50/80 to-white border-l-4 border-blue-600' // Hiệu ứng chưa đọc xịn hơn
-                    }
-                  `}
-                >
-                  {/* 1. Icon Container */}
-                  <div className={`
-                    mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-300 group-hover:scale-105
-                    ${notif.isRead 
-                      ? 'bg-gray-100 text-gray-400' 
-                      : 'bg-white text-blue-600 shadow-blue-100 border border-blue-100 ring-2 ring-blue-50'
-                    }
-                  `}>
-                    <BookOpen size={22} strokeWidth={notif.isRead ? 2 : 2.5} />
-                  </div>
+            filteredNotifications.map((notif) => (
+              <div 
+                key={notif.id}
+                id={`notif-card-${notif.id}`}
+                onClick={() => handleContentClick(notif)} 
+                className={`
+                  group relative p-5 flex gap-5 items-start cursor-pointer transition-all duration-300 border rounded-xl
+                  hover:shadow-md hover:border-blue-300
+                  ${notif.isRead 
+                    ? 'bg-white border-gray-100 opacity-80' 
+                    : 'bg-white border-blue-100 border-l-4 border-l-blue-600'
+                  }
+                `}
+              >
+                {/* Icon */}
+                <div className={`
+                  mt-1 h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm
+                  ${notif.isRead ? 'bg-gray-50 text-gray-400' : 'bg-blue-50 text-blue-600'}
+                `}>
+                  <BookOpen size={22} />
+                </div>
 
-                  {/* 2. Nội dung */}
-                  <div className="flex-1 min-w-0 pr-12">
-                    <div className="flex flex-col gap-1">
-                      <h3 className={`text-base font-bold leading-tight transition-colors ${notif.isRead ? 'text-gray-600' : 'text-gray-900 group-hover:text-blue-700'}`}>
-                        {notif.title}
-                      </h3>
+                {/* Nội dung */}
+                <div className="flex-1 min-w-0 pr-12">
+                  <div className="flex flex-col gap-1">
+                    <h3 className={`text-lg font-bold leading-tight ${notif.isRead ? 'text-gray-600' : 'text-gray-900 group-hover:text-blue-700'}`}>
+                      {notif.title}
+                    </h3>
+                    
+                    <p className={`text-sm leading-relaxed ${notif.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {notif.message}
+                    </p>
+
+                    <div className="flex items-center gap-3 mt-3">
+                      <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full
+                        ${notif.isRead ? 'bg-gray-50 text-gray-400' : 'bg-blue-50 text-blue-700'}
+                      `}>
+                        <Clock size={12} /> 
+                        {formatDate(notif.createdAt)}
+                      </span>
                       
-                      <p className={`text-sm leading-relaxed ${notif.isRead ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {notif.message}
-                      </p>
+                      {!notif.isRead && (
+                        <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">MỚI</span>
+                      )}
 
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full w-fit
-                          ${notif.isRead ? 'bg-gray-100 text-gray-400' : 'bg-blue-100 text-blue-700'}
-                        `}>
-                          <Clock size={12} /> 
-                          {new Date(notif.createdAt).toLocaleString('vi-VN', {
-                             hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
-                          })}
-                        </span>
-                        
-                        {!notif.isRead && (
-                            <span className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">MỚI</span>
-                        )}
-                      </div>
+                      <span className="text-xs text-gray-400 italic">
+                        {notif.userId === 0 ? "Hệ thống" : "Cá nhân"}
+                      </span>
                     </div>
                   </div>
-
-                  {/* 3. Nút Tích (Đã style lại) */}
-                  <button
-                    onClick={(e) => handleMarkAsReadOnly(e, notif)}
-                    className={`
-                      absolute right-5 top-1/2 -translate-y-1/2
-                      h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300
-                      focus:outline-none z-10
-                      ${notif.isRead 
-                        ? 'text-green-500 hover:bg-green-50' 
-                        : 'text-gray-300 bg-white border border-gray-200 shadow-sm hover:border-blue-500 hover:text-blue-600 hover:shadow-md hover:scale-110' 
-                      }
-                    `}
-                    title={notif.isRead ? "Đã xem" : "Đánh dấu đã xem"}
-                  >
-                    {notif.isRead 
-                      ? <Check size={20} strokeWidth={3} /> 
-                      : <Circle size={20} strokeWidth={2} />
-                    }
-                  </button>
                 </div>
-              ))}
-            </div>
+
+                {/* Nút Đánh dấu */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    markAsReadLogic(notif);
+                  }}
+                  className={`
+                    absolute right-5 top-5 h-10 w-10 rounded-full flex items-center justify-center transition-all duration-300
+                    ${notif.isRead ? 'text-green-500' : 'text-gray-200 hover:text-blue-600 hover:bg-blue-50'}
+                  `}
+                >
+                  {notif.isRead ? <Check size={22} strokeWidth={3} /> : <Circle size={22} />}
+                </button>
+              </div>
+            ))
           )}
         </div>
         
-        {/* Footer nhỏ cho trang trí */}
-        <div className="text-center mt-8 text-xs text-gray-400">
-            Hệ thống quản lý học tập &copy; 2026
+        <div className="text-center mt-12 mb-8 text-xs text-gray-400 uppercase tracking-widest">
+            IGCSE Learning Hub &copy; 2026
         </div>
       </div>
-    </div>
+    </MainLayout>
   );
 };
 
