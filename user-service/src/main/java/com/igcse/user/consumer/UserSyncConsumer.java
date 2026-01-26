@@ -7,6 +7,8 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class UserSyncConsumer {
 
@@ -17,20 +19,33 @@ public class UserSyncConsumer {
     public void consumeUserSync(UserSyncDTO dto) {
         System.out.println("Received user sync event for: " + dto.getEmail());
 
-        // Kiểm tra xem user đã tồn tại chưa
-        if (userRepository.existsById(dto.getUserId())) {
-            System.out.println("User already exists, skipping sync.");
-            return;
+        try {
+            // Kiểm tra xem user đã tồn tại chưa (theo EMAIL vì email là UNIQUE)
+            Optional<User> existingUser = userRepository.findByEmail(dto.getEmail());
+
+            if (existingUser.isPresent()) {
+                // User đã tồn tại -> UPDATE thông tin
+                User user = existingUser.get();
+                user.setFullName(dto.getFullName());
+                user.setRole(dto.getRole());
+                user.setActive(true);
+                userRepository.save(user);
+                System.out.println("Updated existing user in user_db: " + dto.getEmail());
+            } else {
+                // User chưa tồn tại -> INSERT mới
+                User user = new User();
+                user.setUserId(dto.getUserId());
+                user.setEmail(dto.getEmail());
+                user.setFullName(dto.getFullName());
+                user.setRole(dto.getRole());
+                user.setActive(true);
+                userRepository.save(user);
+                System.out.println("Successfully synced new user to user_db: " + dto.getEmail());
+            }
+        } catch (Exception e) {
+            // Log lỗi nhưng KHÔNG throw exception để tránh RabbitMQ retry vô hạn
+            System.err.println("Error syncing user " + dto.getEmail() + ": " + e.getMessage());
+            e.printStackTrace();
         }
-
-        User user = new User();
-        user.setUserId(dto.getUserId());
-        user.setEmail(dto.getEmail());
-        user.setFullName(dto.getFullName());
-        user.setRole(dto.getRole());
-        user.setActive(true);
-
-        userRepository.save(user);
-        System.out.println("Successfully synced user to user_db: " + dto.getEmail());
     }
 }
