@@ -102,7 +102,7 @@ const CommentRoom = ({ examId }) => {
 
     return (
         <div className="bg-gray-100 p-4 rounded-lg shadow-inner mt-4 max-h-[500px] flex flex-col border border-gray-200">
-            <h4 className="font-bold border-b border-gray-300 pb-2 mb-3 text-gray-700">💬 Thảo luận bài thi</h4>
+            <h4 className="font-bold border-b border-gray-300 pb-2 mb-3 text-gray-700">Thảo luận bài thi</h4>
             
             <div className="space-y-3 mb-4 overflow-y-auto pr-2 flex-1">
                 {comments.length === 0 ? (

@@ -126,8 +126,8 @@ services:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/api/ai/health"]
       interval: 30s
       timeout: 10s
-      retries: 3
-      start_period: 60s
+      retries: 5
+      start_period: 90s
 
   # 1.5 EXAM SERVICE (Java Spring Boot - Tự động hóa!)
   exam-service:
@@ -142,12 +142,19 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động tạo bảng/cột cho Exam Service
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
       - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
       - mysql-db
       - rabbitmq
     networks:
       - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
   communication-service:
     build: ./communication-service
     container_name: communication-service
@@ -164,6 +171,32 @@ services:
       - rabbitmq
     networks:
       - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+  course-service:
+    build: ./course-service
+    container_name: course-service
+    restart: always
+    ports:
+      - "8079:8079"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/course_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+    depends_on:
+      - mysql-db
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8079/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
   # =========================================
   # PHẦN 2: KONG API GATEWAY
   # =========================================
