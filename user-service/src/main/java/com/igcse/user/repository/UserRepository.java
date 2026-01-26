@@ -4,7 +4,9 @@ import com.igcse.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    // Tìm kiếm user bằng ID đã có sẵn trong JpaRepository
+    Optional<User> findByEmail(String email);
 }
