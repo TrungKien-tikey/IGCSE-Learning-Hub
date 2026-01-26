@@ -21,10 +21,17 @@ public class UserService {
         return userRepository.findById(id).orElse(null);
     }
 
-    public User updateUser(Long id, String fullName, String avatar) {
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    public User updateUser(Long id, String fullName, String phone, String address, String bio, String avatar) {
         User user = getUserById(id);
         if (user != null) {
             user.setFullName(fullName);
+            user.setPhoneNumber(phone);
+            user.setAddress(address);
+            user.setBio(bio);
             if (avatar != null) {
                 user.setAvatar(avatar);
             }

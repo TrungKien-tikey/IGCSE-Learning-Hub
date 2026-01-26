@@ -15,6 +15,12 @@ public class User {
 
     private String fullName;
 
+    private String phoneNumber;
+    private String address;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
     @Lob
     @Column(columnDefinition = "LONGTEXT")
     private String avatar;
@@ -34,6 +40,30 @@ public class User {
 
     public void setFullName(String fullName) {
         this.fullName = fullName;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getBio() {
+        return bio;
+    }
+
+    public void setBio(String bio) {
+        this.bio = bio;
     }
 
     public String getAvatar() {
