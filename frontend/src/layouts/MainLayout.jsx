@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
   Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
-  Home, Settings, TrendingUp, ShoppingCart,Bell,
+  Home, Settings, TrendingUp, ShoppingCart, Bell,
   PlayCircle
 } from 'lucide-react';
 
@@ -36,6 +36,12 @@ const menuItems = {
     { title: "System Logs", icon: ShieldCheck, url: "/logs" },
     { title: "Global Settings", icon: Settings, url: "/settings" },
   ],
+  parent: [
+    { title: "Dashboard", icon: Home, url: "/" },
+    { title: "Tiến độ học sinh", icon: BarChart3, url: "/progress" },
+    { title: "Báo cáo học tập", icon: FileText, url: "/reports" },
+    { title: "Thông báo", icon: Bell, url: "/notifications" },
+  ],
 };
 
 const SidebarItem = ({ icon: Icon, text, url, active }) => (
@@ -53,6 +59,7 @@ const MainLayout = ({ children }) => {
 
   // Lấy thông tin user từ localStorage
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
   const mockUser = {
     name: storedUser.fullName || "User",
     role: (localStorage.getItem("userRole") || "student").toLowerCase(),
@@ -61,7 +68,20 @@ const MainLayout = ({ children }) => {
 
   // Xác định menu dựa trên role
   const role = mockUser.role || "student";
-  const items = menuItems[role] || menuItems["student"];
+  let items = menuItems[role] || menuItems["student"];
+
+  // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
+  if (role === 'parent') {
+    const linkedStudent = JSON.parse(localStorage.getItem("linkedStudent") || "null");
+    if (linkedStudent && linkedStudent.userId) {
+      items = items.map(item => {
+        if (item.url === '/progress' || item.url === '/reports') {
+          return { ...item, url: `/ai/dashboard/student?studentId=${linkedStudent.userId}` };
+        }
+        return item;
+      });
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -84,6 +104,7 @@ const MainLayout = ({ children }) => {
           token: fcmToken 
         });
         console.log("FCM Token registered and subscribed to 'students' topic");
+
       }
     } catch (error) {
       console.error("Error registering FCM token:", error);
