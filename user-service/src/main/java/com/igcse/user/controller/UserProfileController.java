@@ -26,8 +26,24 @@ public class UserProfileController {
     @PutMapping("/me")
     public ResponseEntity<User> updateMyProfile(@RequestBody Map<String, String> body) {
         Long currentUserId = com.igcse.user.util.SecurityUtils.getCurrentUserId();
-        User updatedUser = userService.updateUser(currentUserId, body.get("fullName"), body.get("avatar"));
+        User updatedUser = userService.updateUser(
+                currentUserId,
+                body.get("fullName"),
+                body.get("phone"),
+                body.get("address"),
+                body.get("bio"),
+                body.get("avatar"));
         return ResponseEntity.ok(updatedUser);
+    }
+
+    // API: Tìm kiếm user theo Email (Hỗ trợ Phụ huynh tìm con)
+    @GetMapping("/search")
+    public ResponseEntity<User> getUserByEmail(@RequestParam String email) {
+        User user = userService.getUserByEmail(email);
+        if (user == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(user);
     }
 
     // Giữ lại API theo ID nếu cần (ví dụ Admin xem)

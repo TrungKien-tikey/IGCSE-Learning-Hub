@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import {
     User, Mail, Phone, MapPin, Camera,
     Edit3, BookOpen,
@@ -6,6 +7,7 @@ import {
     LayoutDashboard, Lock
 } from 'lucide-react';
 import authService from '../services/authService';
+import axiosClient from '../api/axiosClient';
 import MainLayout from '../layouts/MainLayout';
 
 export default function ProfilePage() {
@@ -35,36 +37,29 @@ export default function ProfilePage() {
 
     useEffect(() => {
         const fetchUser = async () => {
-            const token = localStorage.getItem('accessToken');
-            if (!token) {
-                console.error("Chưa đăng nhập! Không tìm thấy token.");
-                setLoading(false);
-                return;
-            }
-
             try {
-                const res = await fetch(`http://localhost:8083/api/users/me`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                // Sử dụng axiosClient đi qua Proxy (/api/users/me)
+                const res = await axiosClient.get('/users/me', {
+                    baseURL: '/api'
                 });
 
-                if (!res.ok) throw new Error("Không thể tải dữ liệu profile");
-                const data = await res.json();
-
+                const data = res.data;
                 setUser(data);
+
                 // Lưu vào localStorage để đồng bộ toàn cục
                 localStorage.setItem('user', JSON.stringify(data));
 
                 setFormData({
                     fullName: data.fullName || '',
-                    phone: '0987654321', // Mock data nếu DB chưa có
-                    address: 'Hà Nội, Việt Nam',
-                    bio: 'Học viên chăm chỉ tại IGCSE Learning Hub'
+                    phone: data.phoneNumber || '', // Sử dụng data thật từ DB
+                    address: data.address || '',
+                    bio: data.bio || ''
                 });
             } catch (error) {
                 console.error("Lỗi fetch profile:", error);
             } finally {
+                // Thêm delay nhẹ để thấy Skeleton nếu mạng quá nhanh
+                // setTimeout(() => setLoading(false), 500);
                 setLoading(false);
             }
         };
@@ -83,66 +78,46 @@ export default function ProfilePage() {
             const base64String = reader.result;
 
             try {
-                const token = localStorage.getItem('accessToken');
-                const res = await fetch(`http://localhost:8083/api/users/me`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        fullName: user?.fullName,
-                        avatar: base64String
-                    })
+                const res = await axiosClient.put('/users/me', {
+                    fullName: user?.fullName,
+                    avatar: base64String
+                }, {
+                    baseURL: '/api'
                 });
 
-                if (res.ok) {
-                    const updatedUser = await res.json();
-                    setUser(updatedUser);
-                    // Cập nhật lại localStorage sau khi đổi ảnh
-                    localStorage.setItem('user', JSON.stringify(updatedUser));
-
-                    alert("Đổi ảnh đại diện thành công!");
-                } else {
-                    alert("Lỗi khi upload ảnh!");
-                }
+                const updatedUser = res.data;
+                setUser(updatedUser);
+                localStorage.setItem('user', JSON.stringify(updatedUser)); // Cập nhật localStorage
+                toast.success("Đổi ảnh đại diện thành công!");
 
             } catch (error) {
                 console.error("Lỗi upload:", error);
-                alert("Không thể kết nối server.");
+                toast.error("Không thể kết nối server.");
             }
         };
     };
 
     const handleSave = async () => {
         try {
-            const token = localStorage.getItem('accessToken');
-            const res = await fetch(`http://localhost:8083/api/users/me`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    fullName: formData.fullName,
-                    avatar: user?.avatar
-                })
+            const res = await axiosClient.put('/users/me', {
+                fullName: formData.fullName,
+                phone: formData.phone,
+                address: formData.address,
+                bio: formData.bio,
+                avatar: user?.avatar
+            }, {
+                baseURL: '/api'
             });
 
-            if (res.ok) {
-                const updatedUser = await res.json();
-                setUser(updatedUser);
-                // Cập nhật lại localStorage sau khi lưu thành công
-                localStorage.setItem('user', JSON.stringify(updatedUser));
+            const updatedUser = res.data;
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
 
-                setIsEditing(false);
-                alert("Cập nhật hồ sơ thành công!");
-            } else {
-                alert("Lỗi khi lưu dữ liệu!");
-            }
+            setIsEditing(false);
+            toast.success("Cập nhật hồ sơ thành công!");
         } catch (error) {
             console.error("Lỗi API:", error);
-            alert("Không thể kết nối đến server.");
+            toast.error("Không thể kết nối đến server.");
         }
     };
 
@@ -159,7 +134,7 @@ export default function ProfilePage() {
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+            toast.warning("Mật khẩu xác nhận không khớp!");
             return;
         }
 
@@ -170,22 +145,85 @@ export default function ProfilePage() {
                 newPassword: passwordData.newPassword,
                 confirmPassword: passwordData.confirmPassword
             });
-            alert("Đổi mật khẩu thành công!");
+            toast.success("Đổi mật khẩu thành công!");
             setShowPasswordModal(false);
             setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
             console.error("Lỗi đổi mật khẩu:", error);
-            const errorMsg = typeof error.response?.data === 'string'
-                ? error.response.data
-                : (error.response?.data?.message || "Lỗi khi đổi mật khẩu! Hãy kiểm tra lại mật khẩu cũ.");
-            alert(errorMsg);
+            const errorMsg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response.data : "Lỗi khi đổi mật khẩu!");
+            toast.error(errorMsg);
         } finally {
             setIsChangingPassword(false);
         }
     };
 
-    if (loading) return <div className="flex h-screen items-center justify-center text-blue-600 font-bold">Đang tải dữ liệu...</div>;
-    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (Port 8082).</div>;
+    // --- SKELETON LOADER COMPONENT ---
+    if (loading) return (
+        <MainLayout>
+            <div className="max-w-5xl mx-auto w-full animate-pulse">
+                <div className="mb-8">
+                    <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-96"></div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Left Column Skeleton */}
+                    <div className="lg:col-span-1 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative h-80">
+                            <div className="h-24 bg-gray-200"></div>
+                            <div className="px-6 pb-6 text-center -mt-12 relative flex flex-col items-center">
+                                <div className="w-24 h-24 rounded-full bg-gray-300 border-4 border-white"></div>
+                                <div className="h-6 bg-gray-200 rounded w-32 mt-4"></div>
+                                <div className="h-4 bg-gray-200 rounded w-20 mt-2"></div>
+                                <div className="mt-6 pt-6 border-t border-gray-100 w-full flex justify-center">
+                                    <div className="flex flex-col items-center">
+                                        <div className="h-8 bg-gray-200 rounded w-12"></div>
+                                        <div className="h-3 bg-gray-200 rounded w-16 mt-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+                            <div className="h-5 bg-gray-200 rounded w-1/3 mb-4"></div>
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-gray-200"></div>
+                                    <div className="flex-1">
+                                        <div className="h-3 bg-gray-200 rounded w-16 mb-1"></div>
+                                        <div className="h-4 bg-gray-200 rounded w-full"></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Right Column Skeleton */}
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                            <div className="flex justify-between mb-8">
+                                <div className="h-6 bg-gray-200 rounded w-32"></div>
+                                <div className="h-8 bg-gray-200 rounded w-24"></div>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i}>
+                                        <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                                        <div className="h-10 bg-gray-200 rounded w-full"></div>
+                                    </div>
+                                ))}
+                                <div className="md:col-span-2">
+                                    <div className="h-4 bg-gray-200 rounded w-24 mb-2"></div>
+                                    <div className="h-24 bg-gray-200 rounded w-full"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </MainLayout>
+    );
+
+    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (User Service - Port 8083).</div>;
 
     return (
         <MainLayout>
@@ -256,14 +294,10 @@ export default function ProfilePage() {
                                     <h3 className="text-xl font-bold text-gray-800 mt-3">{user.fullName}</h3>
                                     <p className="text-sm text-gray-500 font-medium">{user.role}</p>
 
-                                    <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                                    <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
                                         <div>
                                             <span className="block text-2xl font-bold text-blue-600">12</span>
                                             <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Khóa học</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-2xl font-bold text-indigo-600">8.5</span>
-                                            <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Điểm TB</span>
                                         </div>
                                     </div>
                                 </div>

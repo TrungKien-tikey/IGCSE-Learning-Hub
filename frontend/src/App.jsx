@@ -1,4 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // --- AUTH PAGES (Đã chuyển vào thư mục auth) ---
 import Register from './pages/auth/Register';
@@ -7,7 +9,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'; // File sắp tạo
 import ResetPassword from './pages/auth/ResetPassword';   // File sắp tạo
 
 // --- USER PAGES (Của bạn User Service) ---
-import Profile from './pages/Profile'; 
+import Profile from './pages/Profile';
 
 // --- CÁC TRANG KHÁC (Giữ nguyên) ---
 import Dashboard from './pages/Dashboard';
@@ -61,7 +63,7 @@ function App() {
         {/* --- KHU VỰC AUTH (Login, Register, Quên MK) --- */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        
+
         {/* 👉 2 Route mới cho chức năng Quên Mật Khẩu */}
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
@@ -89,7 +91,7 @@ function App() {
         {/* --- AI ROUTES --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
-        
+
         {/* --- Comunication ROUTES --- */}
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/chat" element={<ChatPage />} />
@@ -97,7 +99,7 @@ function App() {
         <Route
           path="/ai/dashboard/student"
           element={
-            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'TEACHER']}>
+            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'TEACHER', 'PARENT']}>
               <StudentDashboard />
             </RoleProtectedRoute>
           }
@@ -133,6 +135,18 @@ function App() {
         {/* --- XỬ LÝ LỖI (404) --- */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </BrowserRouter>
   );
 }
