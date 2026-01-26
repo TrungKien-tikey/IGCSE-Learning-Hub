@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Trash2, UserX, Search, RefreshCw } from 'lucide-react';
+import { Users, Trash2, UserX, Search, RefreshCw, Filter } from 'lucide-react';
+import { toast } from 'react-toastify';
 import axiosClient from '../api/axiosClient';
 import MainLayout from '../layouts/MainLayout';
 
@@ -37,57 +38,55 @@ export default function AdminDashboard() {
             await axiosClient.delete(`/admin/users/${userId}`, {
                 baseURL: '/api'
             });
-            alert('Xóa người dùng thành công!');
+            toast.success('Xóa người dùng thành công!');
             fetchUsers();
         } catch (error) {
             console.error('Error deleting user:', error);
-            alert('Lỗi khi xóa người dùng!');
+            toast.error('Lỗi khi xóa người dùng!');
         }
     };
 
     const handleDeactivate = async (userId) => {
-        const token = localStorage.getItem('accessToken');
         try {
             await axiosClient.patch(`/admin/users/${userId}/deactivate`, {}, {
                 baseURL: '/api'
             });
-            alert('Vô hiệu hóa người dùng thành công!');
+            toast.warning('Đã vô hiệu hóa người dùng!');
             fetchUsers();
         } catch (error) {
             console.error('Error deactivating user:', error);
-            alert('Lỗi khi vô hiệu hóa người dùng!');
+            toast.error('Lỗi khi vô hiệu hóa người dùng!');
         }
     };
 
     const handleActivate = async (userId) => {
-        const token = localStorage.getItem('accessToken');
         try {
             await axiosClient.patch(`/admin/users/${userId}/activate`, {}, {
                 baseURL: '/api'
             });
-            alert('Kích hoạt người dùng thành công!');
+            toast.success('Đã kích hoạt người dùng!');
             fetchUsers();
         } catch (error) {
             console.error('Error activating user:', error);
-            alert('Lỗi khi kích hoạt người dùng!');
+            toast.error('Lỗi khi kích hoạt người dùng!');
         }
     };
 
     const handleUpdateRole = async (userId, newRole) => {
-        const token = localStorage.getItem('accessToken');
         try {
             await axiosClient.patch(`/admin/users/${userId}/role`, { role: newRole }, {
                 baseURL: '/api'
             });
-            alert('Cập nhật quyền thành công!');
+            toast.info(`Đã cập nhật vai trò thành ${newRole}`);
             fetchUsers();
         } catch (error) {
             console.error('Error updating role:', error);
-            alert('Lỗi khi cập nhật quyền!');
+            toast.error('Lỗi khi cập nhật quyền!');
         }
     };
 
     const [filterRole, setFilterRole] = useState('ALL');
+    const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, ACTIVE, INACTIVE
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 8;
 
@@ -95,7 +94,12 @@ export default function AdminDashboard() {
         const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesRole = filterRole === 'ALL' || user.role === filterRole;
-        return matchesSearch && matchesRole;
+
+        let matchesStatus = true;
+        if (filterStatus === 'ACTIVE') matchesStatus = user.isActive === true;
+        if (filterStatus === 'INACTIVE') matchesStatus = user.isActive === false;
+
+        return matchesSearch && matchesRole && matchesStatus;
     });
 
     // Pagination Logic
@@ -188,19 +192,36 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Role Filter */}
+                        <div className="flex items-center gap-2">
+                            <Filter className="w-4 h-4 text-gray-400" />
+                            <select
+                                value={filterRole}
+                                onChange={(e) => {
+                                    setFilterRole(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-medium text-gray-700"
+                            >
+                                <option value="ALL">Tất cả vai trò</option>
+                                <option value="STUDENT">Học sinh</option>
+                                <option value="TEACHER">Giáo viên</option>
+                                <option value="PARENT">Phụ huynh</option>
+                                <option value="ADMIN">Quản trị</option>
+                            </select>
+                        </div>
+
+                        {/* Status Filter */}
                         <select
-                            value={filterRole}
+                            value={filterStatus}
                             onChange={(e) => {
-                                setFilterRole(e.target.value);
-                                setCurrentPage(1); // Reset page on filter
+                                setFilterStatus(e.target.value);
+                                setCurrentPage(1);
                             }}
                             className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-medium text-gray-700"
                         >
-                            <option value="ALL">Tất cả vai trò</option>
-                            <option value="STUDENT">Học sinh (Student)</option>
-                            <option value="TEACHER">Giáo viên (Teacher)</option>
-                            <option value="PARENT">Phụ huynh (Parent)</option>
-                            <option value="ADMIN">Quản trị viên (Admin)</option>
+                            <option value="ALL">Tất cả trạng thái</option>
+                            <option value="ACTIVE">Hoạt động</option>
+                            <option value="INACTIVE">Vô hiệu hóa</option>
                         </select>
 
                         <button

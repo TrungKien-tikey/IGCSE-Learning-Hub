@@ -42,6 +42,7 @@ public class User {
         this.fullName = fullName;
     }
 
+    @JsonProperty("phone")
     public String getPhoneNumber() {
         return phoneNumber;
     }
