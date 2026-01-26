@@ -25,6 +25,7 @@ const menuItems = {
   ],
   teacher: [
     { title: "Overview", icon: LayoutDashboard, url: "/" },
+    { title: "Quản lý giảng dạy", icon: FileText, url: "course/courses" },
     { title: "My Classes", icon: Users, url: "/classes" },
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
     { title: "Curriculum", icon: BookOpen, url: "/modules" },
