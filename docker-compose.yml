@@ -247,18 +247,19 @@ services:
   # PHẦN 3: DATA ORCHESTRATION (Apache NiFi)
   # =========================================
   nifi:
-    image: apache/nifi:latest
+    image: apache/nifi:1.24.0
     container_name: igcse_nifi
     restart: always
     ports:
-      - "8091:8443"
+      - "8443:8443"
     environment:
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
       - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123 # Yêu cầu ít nhất 12 ký tự
       - NIFI_WEB_HTTPS_PORT=8443
-      - NIFI_WEB_PROXY_HOST=localhost:8091
+      - NIFI_WEB_PROXY_HOST=localhost:8443
     volumes:
-      - nifi_conf:/opt/nifi/nifi-current/conf
+      - ./nifi/conf:/opt/nifi/nifi-current/conf  # Mount local config directory
+      - ./nifi/flow.json.gz:/opt/nifi/nifi-current/conf/flow.json.gz  # NiFi tự động load flow từ đây
       - nifi_database_repository:/opt/nifi/nifi-current/database_repository
       - nifi_flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
       - nifi_content_repository:/opt/nifi/nifi-current/content_repository
@@ -267,30 +268,12 @@ services:
     networks:
       - igcse-network
     healthcheck:
-      test: ["CMD-SHELL", "curl -k -f -u admin:thinhnguyen123 https://localhost:8443/nifi-api/system-diagnostics || exit 1"]
+      # Sử dụng wget thay vì curl (thường có sẵn trong NiFi image)
+      test: ["CMD-SHELL", "wget --no-check-certificate --spider --quiet --auth-no-challenge --user=admin --password=thinhnguyen123 https://localhost:8443/nifi-api/system-diagnostics || exit 1"]
       interval: 30s
       timeout: 10s
-      retries: 10
-      start_period: 120s
-
-  # Init container để tự động import NiFi flow
-  nifi-flow-importer:
-    image: python:3.11-slim
-    container_name: nifi-flow-importer
-    depends_on:
-      nifi:
-        condition: service_healthy
-    volumes:
-      - ./NiFi_Flow.json:/flow/NiFi_Flow.json:ro
-      - ./docker/nifi/import-flow.py:/import-flow.py:ro
-    command: >
-      sh -c "
-        pip install --no-cache-dir requests urllib3 &&
-        python /import-flow.py
-      "
-    networks:
-      - igcse-network
-    restart: "no"
+      retries: 15
+      start_period: 180s  # Tăng lên 3 phút vì NiFi khởi động chậm
 
   # =========================================
   # PHẦN 4: MONITORING (Prometheus & Grafana)
