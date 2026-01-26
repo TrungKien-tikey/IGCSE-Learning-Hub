@@ -6,6 +6,9 @@ import com.igcse.auth.dto.LoginRequest;
 import com.igcse.auth.dto.RegisterRequest;
 import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.service.AuthService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -101,5 +104,20 @@ public class AuthController {
             return ResponseEntity.notFound().build();
         }
 
+    }
+
+    // 9. Đăng xuất (Logout)
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+    // Lấy token từ header "Authorization: Bearer ..."
+        String authHeader = request.getHeader("Authorization");
+    
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            authService.logout(token);
+            return ResponseEntity.ok("Dang xuat thanh cong (Token da bi vo hieu hoa)");
+        }
+    
+        return ResponseEntity.badRequest().body("Token khong hop le");
     }
 }
