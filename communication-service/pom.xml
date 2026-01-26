@@ -100,9 +100,6 @@
     <artifactId>micrometer-registry-prometheus</artifactId>
 </dependency>
 	</dependencies>
-
-
-
 	<build>
 		<plugin>
     <groupId>org.apache.maven.plugins</groupId>

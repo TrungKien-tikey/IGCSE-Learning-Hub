@@ -53,6 +53,7 @@ export default function ProfilePage() {
                 const data = await res.json();
 
                 setUser(data);
+                setUser(data);
                 // Lưu vào localStorage để đồng bộ toàn cục
                 localStorage.setItem('user', JSON.stringify(data));
 
@@ -99,6 +100,7 @@ export default function ProfilePage() {
                 if (res.ok) {
                     const updatedUser = await res.json();
                     setUser(updatedUser);
+                    setUser(updatedUser);
                     // Cập nhật lại localStorage sau khi đổi ảnh
                     localStorage.setItem('user', JSON.stringify(updatedUser));
 
@@ -131,6 +133,7 @@ export default function ProfilePage() {
 
             if (res.ok) {
                 const updatedUser = await res.json();
+                setUser(updatedUser);
                 setUser(updatedUser);
                 // Cập nhật lại localStorage sau khi lưu thành công
                 localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -185,7 +188,7 @@ export default function ProfilePage() {
     };
 
     if (loading) return <div className="flex h-screen items-center justify-center text-blue-600 font-bold">Đang tải dữ liệu...</div>;
-    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (Port 8082).</div>;
+    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (User Service - Port 8083).</div>;
 
     return (
         <MainLayout>
@@ -256,14 +259,10 @@ export default function ProfilePage() {
                                     <h3 className="text-xl font-bold text-gray-800 mt-3">{user.fullName}</h3>
                                     <p className="text-sm text-gray-500 font-medium">{user.role}</p>
 
-                                    <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                                    <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
                                         <div>
                                             <span className="block text-2xl font-bold text-blue-600">12</span>
                                             <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Khóa học</span>
-                                        </div>
-                                        <div>
-                                            <span className="block text-2xl font-bold text-indigo-600">8.5</span>
-                                            <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Điểm TB</span>
                                         </div>
                                     </div>
                                 </div>

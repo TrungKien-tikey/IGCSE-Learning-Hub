@@ -3,6 +3,7 @@ import StudentDashboardGeneral from './StudentDashboardGeneral';
 import TeacherDashboard from './TeacherDashboard';
 import GeneralAdminDashboard from './GeneralAdminDashboard';
 import AdminCourseApprovalPage from './AdminCourseApprovalPage';
+import ParentDashboard from './ParentDashboard';
 
 /**
  * Dashboard (Dispatcher)
@@ -17,10 +18,12 @@ const Dashboard = () => {
     switch (userRole) {
         case 'ADMIN':
             return <GeneralAdminDashboard />;
-        case 'MANAGER': 
+        case 'MANAGER':
             return <AdminCourseApprovalPage />;
         case 'TEACHER':
             return <TeacherDashboard />;
+        case 'PARENT':
+            return <ParentDashboard />;
         case 'STUDENT':
         default:
             return <StudentDashboardGeneral />;

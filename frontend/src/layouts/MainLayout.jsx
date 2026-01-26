@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
   Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
-  Home, Settings, TrendingUp, ShoppingCart,Bell,
+  Home, Settings, TrendingUp, ShoppingCart, Bell,
   PlayCircle
 } from 'lucide-react';
 
@@ -12,7 +12,6 @@ import { requestForToken, onMessageListener } from '../firebase'; // Đảm bả
 import axiosClient from '../api/axiosClient';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
 const menuItems = {
   student: [
     { title: "Dashboard", icon: Home, url: "/" },
@@ -36,6 +35,11 @@ const menuItems = {
     { title: "System Logs", icon: ShieldCheck, url: "/logs" },
     { title: "Global Settings", icon: Settings, url: "/settings" },
   ],
+  parent: [
+    { title: "Dashboard", icon: Home, url: "/" },
+    { title: "Tiến độ học sinh", icon: BarChart3, url: "/progress" },
+    { title: "Báo cáo học tập", icon: FileText, url: "/reports" },
+  ],
 };
 
 const SidebarItem = ({ icon: Icon, text, url, active }) => (
@@ -53,6 +57,7 @@ const MainLayout = ({ children }) => {
 
   // Lấy thông tin user từ localStorage
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+
   const mockUser = {
     name: storedUser.fullName || "User",
     role: (localStorage.getItem("userRole") || "student").toLowerCase(),
@@ -61,7 +66,20 @@ const MainLayout = ({ children }) => {
 
   // Xác định menu dựa trên role
   const role = mockUser.role || "student";
-  const items = menuItems[role] || menuItems["student"];
+  let items = menuItems[role] || menuItems["student"];
+
+  // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
+  if (role === 'parent') {
+    const linkedStudent = JSON.parse(localStorage.getItem("linkedStudent") || "null");
+    if (linkedStudent && linkedStudent.userId) {
+      items = items.map(item => {
+        if (item.url === '/progress' || item.url === '/reports') {
+          return { ...item, url: `/ai/dashboard/student?studentId=${linkedStudent.userId}` };
+        }
+        return item;
+      });
+    }
+  }
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -71,56 +89,43 @@ const MainLayout = ({ children }) => {
   };
 
   // --- [UPDATED] LOGIC NOTIFICATION BẮT ĐẦU TẠI ĐÂY ---
-  useEffect(() => {
-    // 1. Hàm đăng ký token với Backend
-    const registerFCMToken = async () => {
-      try {
-        // Lấy Device Token từ Firebase
-        const fcmToken = await generateToken();
-        
-        // Lấy UserID (Cần đảm bảo storedUser có trường id hoặc userId)
-        // Thông thường storedUser lấy từ JWT decode hoặc response login sẽ có id
-        const userId = storedUser.id || storedUser.userId; 
+ useEffect(() => {
+  const registerFCMToken = async () => {
+    try {
+      // 1. Gọi đúng tên hàm requestForToken từ file firebase.ts
+      const fcmToken = await requestForToken(); 
+      
+      if (fcmToken) {
+        // 2. Gọi đúng endpoint /subscribe đã định nghĩa trong NotificationController
+        // 3. Gửi dữ liệu dưới dạng JSON Body (Map) thay vì Query Parameter
+        await axiosClient.post("/notifications/subscribe", { 
+          token: fcmToken 
+        });
+        console.log("FCM Token registered and subscribed to 'students' topic");
 
-        if (fcmToken && userId) {
-          // Gọi API Backend để lưu cặp (userId, fcmToken)
-          // Đường dẫn này phải khớp với NotificationController bên Spring Boot
-          await axiosClient.post(`/notifications/register-token?userId=${userId}&token=${fcmToken}`);
-          console.log("FCM Token registered with backend successfully");
-        }
-      } catch (error) {
-        console.error("Error registering FCM token:", error);
       }
-    };
-
-    // Chỉ chạy nếu user đã đăng nhập
-    if (storedUser && (storedUser.id || storedUser.userId)) {
-      registerFCMToken();
+    } catch (error) {
+      console.error("Error registering FCM token:", error);
     }
+  };
 
-    // 2. Lắng nghe thông báo khi App đang mở (Foreground)
-    onMessageListener()
-      .then((payload) => {
-        console.log('Foreground notification received:', payload);
-        // Hiển thị Toast thông báo đẹp mắt
-        toast.info(
-          <div>
-            <h4 className="font-bold">{payload.notification.title}</h4>
-            <p className="text-sm">{payload.notification.body}</p>
-          </div>,
-          {
-            position: "top-right",
-            autoClose: 5000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          }
-        );
-      })
-      .catch((err) => console.log('Failed to listen to messages: ', err));
+  if (storedUser && (storedUser.id || storedUser.userId)) {
+    registerFCMToken();
+  }
 
-  }, []); // Chỉ chạy 1 lần khi component mount
+  // Lắng nghe tin nhắn khi App đang mở (Foreground)
+  onMessageListener()
+    .then((payload) => {
+       // Hiển thị Toast cho giao diện web
+       toast.info(`${payload.notification.title}: ${payload.notification.body}`);
+       
+       // Ép trình duyệt hiển thị thông báo hệ thống ngay cả khi đang mở Tab
+       new Notification(payload.notification.title, {
+         body: payload.notification.body,
+         icon: '/vite.svg'
+       });
+    });
+}, []); // Chỉ chạy 1 lần khi component mount
   // --- [UPDATED] KẾT THÚC LOGIC NOTIFICATION ---
 
   return (
@@ -205,5 +210,4 @@ const MainLayout = ({ children }) => {
     </div>
   );
 };
-
 export default MainLayout;
