@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import {
     Users, TrendingUp, Trophy, TrendingDown, FileText, Bot,
     Search, Mail, CheckCircle, AlertCircle, BookOpen, PlayCircle,
@@ -67,15 +67,22 @@ const ParentDashboard = () => {
 
         try {
             // Gọi API search bằng email (Backend vừa bổ sung)
-            const res = await axios.get(`/api/users/search?email=${studentEmail}`);
+            // Override baseURL vì Controller là /api/users (không có /v1)
+            const res = await axiosClient.get('/search', {
+                baseURL: '/api/users',
+                params: { email: studentEmail }
+            });
             const studentData = res.data;
 
-            if (studentData && studentData.role === 'STUDENT') {
+            console.log(">>> [Search] Result:", studentData);
+
+            if (studentData && studentData.role?.toUpperCase() === 'STUDENT') {
                 setLinkedStudent(studentData);
                 localStorage.setItem("linkedStudent", JSON.stringify(studentData));
                 setStudentEmail("");
             } else {
-                setSearchError("Không tìm thấy học sinh với email này.");
+                console.warn(">>> [Search] Invalid Role:", studentData?.role);
+                setSearchError("Tìm thấy tài khoản nhưng không phải là Học sinh (Role: " + studentData?.role + ")");
             }
         } catch (err) {
             setSearchError(err.response?.status === 404 ? "Không tìm thấy học sinh." : "Lỗi hệ thống khi tìm kiếm.");
