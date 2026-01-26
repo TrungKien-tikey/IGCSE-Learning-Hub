@@ -22,7 +22,10 @@ public class Notification {
     private String type;
     @Column(name = "exam_id")
     private Long examId;
-    private boolean isRead = false; // Mặc định là chưa đọc (false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    // Trong file com.igcse.communication.entity.Notification.java
+    @Builder.Default
+    private boolean isRead = false; 
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now(); 
     // Loại bỏ courseId
 }
