@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import {
     User, Mail, Phone, MapPin, Camera,
     Edit3, BookOpen,
@@ -50,7 +51,7 @@ export default function ProfilePage() {
 
                 setFormData({
                     fullName: data.fullName || '',
-                    phone: data.phone || '', // Sử dụng data thật từ DB
+                    phone: data.phoneNumber || '', // Sử dụng data thật từ DB
                     address: data.address || '',
                     bio: data.bio || ''
                 });
@@ -87,11 +88,11 @@ export default function ProfilePage() {
                 const updatedUser = res.data;
                 setUser(updatedUser);
                 localStorage.setItem('user', JSON.stringify(updatedUser)); // Cập nhật localStorage
-                alert("Đổi ảnh đại diện thành công!");
+                toast.success("Đổi ảnh đại diện thành công!");
 
             } catch (error) {
                 console.error("Lỗi upload:", error);
-                alert("Không thể kết nối server.");
+                toast.error("Không thể kết nối server.");
             }
         };
     };
@@ -113,10 +114,10 @@ export default function ProfilePage() {
             localStorage.setItem('user', JSON.stringify(updatedUser));
 
             setIsEditing(false);
-            alert("Cập nhật hồ sơ thành công!");
+            toast.success("Cập nhật hồ sơ thành công!");
         } catch (error) {
             console.error("Lỗi API:", error);
-            alert("Không thể kết nối đến server.");
+            toast.error("Không thể kết nối đến server.");
         }
     };
 
@@ -133,7 +134,7 @@ export default function ProfilePage() {
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
         if (passwordData.newPassword !== passwordData.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+            toast.warning("Mật khẩu xác nhận không khớp!");
             return;
         }
 
@@ -144,13 +145,13 @@ export default function ProfilePage() {
                 newPassword: passwordData.newPassword,
                 confirmPassword: passwordData.confirmPassword
             });
-            alert("Đổi mật khẩu thành công!");
+            toast.success("Đổi mật khẩu thành công!");
             setShowPasswordModal(false);
             setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
         } catch (error) {
             console.error("Lỗi đổi mật khẩu:", error);
-            const errorMsg = error.response?.data?.message || typeof error.response?.data === 'string' ? error.response.data : "Lỗi khi đổi mật khẩu!";
-            alert(errorMsg);
+            const errorMsg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response.data : "Lỗi khi đổi mật khẩu!");
+            toast.error(errorMsg);
         } finally {
             setIsChangingPassword(false);
         }
