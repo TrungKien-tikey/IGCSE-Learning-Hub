@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import axiosClient from '../api/axiosClient'; // Đảm bảo đường dẫn này đúng với project của bạn
 
 const CommentRoom = ({ examId }) => {
     const [comments, setComments] = useState([]);
@@ -8,32 +8,40 @@ const CommentRoom = ({ examId }) => {
     const [resolvedUsername, setResolvedUsername] = useState("Người dùng");
     const [currentUserId, setCurrentUserId] = useState(null);
 
-    const COMM_SERVICE_URL = "http://localhost:8000/api/v1/comments";
-    const AUTH_SERVICE_URL = "http://localhost:8000/api/v1/auth"; 
-
+    // 1. Lấy thông tin User từ Token khi component load
     useEffect(() => {
         const token = localStorage.getItem('accessToken');
         if (token) {
             try {
                 const decoded = jwtDecode(token);
+                // Ưu tiên lấy userId từ các trường phổ biến trong JWT
                 const userId = decoded.userId || decoded.id || decoded.sub;
                 setCurrentUserId(userId);
+
+                // Thử lấy tên từ localStorage trước để hiển thị ngay lập tức
+                const savedName = localStorage.getItem('fullName');
+                if (savedName) {
+                    setResolvedUsername(savedName);
+                }
             } catch (error) {
                 console.error("Lỗi giải mã token:", error);
             }
         }
     }, []);
 
+    // 2. Fetch thông tin chi tiết và danh sách bình luận
     useEffect(() => {
         const fetchUserFromAuth = async () => {
             if (!currentUserId) return;
             try {
-                const res = await axios.get(`${AUTH_SERVICE_URL}/users/${currentUserId}`);
+                // Sử dụng axiosClient để có Header Authorization (tránh lỗi 403)
+                const res = await axiosClient.get(`/auth/users/${currentUserId}`);
                 if (res.data && res.data.fullName) {
                     setResolvedUsername(res.data.fullName);
+                    localStorage.setItem('fullName', res.data.fullName); // Cập nhật lại cache
                 }
             } catch (err) {
-                console.error("Lỗi lấy thông tin:", err);
+                console.error("Lỗi lấy thông tin người dùng từ Auth Service:", err);
             }
         };
 
@@ -41,31 +49,54 @@ const CommentRoom = ({ examId }) => {
         fetchComments();
     }, [currentUserId, examId]);
 
+    // 3. Hàm tải danh sách bình luận
     const fetchComments = async () => {
+        if (!examId) return;
         try {
-            const res = await axios.get(`${COMM_SERVICE_URL}/exam/${examId}`);
+            const res = await axiosClient.get(`/comments/exam/${examId}`);
             setComments(res.data);
         } catch (error) {
             console.error("Lỗi tải bình luận:", error);
         }
     };
 
+    // 4. Hàm gửi bình luận
     const handleSend = async () => {
         if (!newComment.trim() || !currentUserId) return;
+
+        let senderName = resolvedUsername;
+
+        // Kiểm tra lại tên một lần nữa trước khi gửi để tránh "Người dùng"
+        if (senderName === "Người dùng") {
+            const cachedName = localStorage.getItem('fullName');
+            if (cachedName) {
+                senderName = cachedName;
+            } else {
+                try {
+                    const res = await axiosClient.get(`/auth/users/${currentUserId}`);
+                    if (res.data && res.data.fullName) {
+                        senderName = res.data.fullName;
+                    }
+                } catch (e) {
+                    console.error("Không thể lấy tên thật, gửi bằng tên mặc định");
+                }
+            }
+        }
 
         const commentData = {
             examId: examId,
             userId: currentUserId,
-            username: resolvedUsername, // Gửi FullName đã lấy được
+            username: senderName,
             content: newComment
         };
 
         try {
-            await axios.post(COMM_SERVICE_URL, commentData);
+            await axiosClient.post('/comments', commentData);
             setNewComment(""); 
-            fetchComments();   
+            fetchComments(); // Tải lại danh sách sau khi gửi thành công
         } catch (error) {
-            alert("Lỗi kết nối server!");
+            console.error("Lỗi gửi bình luận:", error);
+            alert("Không thể gửi bình luận. Vui lòng kiểm tra lại kết nối!");
         }
     };
 
@@ -80,7 +111,6 @@ const CommentRoom = ({ examId }) => {
                     comments.map(c => (
                         <div key={c.id} className="bg-white p-3 rounded-lg shadow-sm border border-gray-200">
                             <div className="flex justify-between items-center mb-1">
-                                {/* Hiển thị tên từ database, nếu null hiện "Học viên" */}
                                 <span className="font-bold text-blue-600 text-sm">
                                     {c.username && c.username !== "Người dùng" ? c.username : "Học viên"}
                                 </span>
@@ -104,7 +134,7 @@ const CommentRoom = ({ examId }) => {
                 />
                 <button 
                     onClick={handleSend}
-                    className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-blue-700"
+                    className="bg-blue-600 text-white px-4 py-1.5 rounded-md text-sm hover:bg-blue-700 transition-colors"
                 > Gửi </button>
             </div>
         </div>
