@@ -96,7 +96,7 @@ const MainLayout = ({ children }) => {
     const registerFCMToken = async () => {
       try {
         // Lấy Device Token từ Firebase
-        const fcmToken = await generateToken();
+        const fcmToken = await requestForToken();
 
         // Lấy UserID (Cần đảm bảo storedUser có trường id hoặc userId)
         // Thông thường storedUser lấy từ JWT decode hoặc response login sẽ có id
