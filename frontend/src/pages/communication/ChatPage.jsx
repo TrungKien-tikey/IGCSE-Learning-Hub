@@ -134,7 +134,7 @@ export default function ChatPage() {
 useEffect(() => {
     if (!currentUserId) return;
 
-    // Lưu ý: Kiểm tra kỹ lại Port (8089 hay 8085?)
+
     const socket = new SockJS('http://localhost:8089/ws'); 
     const client = Stomp.over(socket);
     client.debug = null;    
@@ -219,7 +219,7 @@ useEffect(() => {
         receiverId: selectedUser.userId,
         content: inputMsg,
         roomId: getRoomId(currentUserId, selectedUser.userId),
-        timestamp: new Date().toISOString()
+        timestamp: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString()
     };
 
     // 1. Chỉ gửi lên Server
@@ -334,7 +334,12 @@ useEffect(() => {
                                                     {msg.content}
                                                 </div>
                                                 <div className="msg-time">
-                                                    {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    {new Date(msg.timestamp).toLocaleTimeString("vi-VN", {
+                                                        timeZone: "Asia/Ho_Chi_Minh",
+                                                        hour: '2-digit',
+                                                        minute: '2-digit',
+                                                        hour12: false
+                                                    })}
                                                 </div>
                                             </div>
                                         </div>
