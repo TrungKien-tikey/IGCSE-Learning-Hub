@@ -3,6 +3,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MainLayout from '../../layouts/MainLayout';
+// Import thêm component và icon
+import CommentRoom from "../../components/CommentRoom";
+import { MessageCircle, X } from "lucide-react";
 
 export default function ManageExamsPage() {
     const [exams, setExams] = useState([]);
@@ -10,6 +13,10 @@ export default function ManageExamsPage() {
     // --- STATE CHO BỘ LỌC ---
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL', 'ACTIVE', 'HIDDEN'
+
+    // --- STATE CHO BÌNH LUẬN ---
+    const [selectedExamId, setSelectedExamId] = useState(null);
+    const [showComments, setShowComments] = useState(false);
 
     const navigate = useNavigate();
 
@@ -30,7 +37,6 @@ export default function ManageExamsPage() {
     const handleSoftDelete = async (examId) => {
         const confirmDelete = window.confirm("Bạn muốn ẩn bài thi này? Học sinh sẽ không nhìn thấy bài thi nữa, nhưng dữ liệu điểm số vẫn được giữ lại.");
         if (!confirmDelete) return;
-
         try {
             const res = await fetch(`/api/exams/${examId}`, {
                 method: "DELETE",
@@ -52,8 +58,6 @@ export default function ManageExamsPage() {
         }
     };
 
-    // --- LOGIC LỌC DỮ LIỆU ---
-    // Biến này sẽ tự động tính toán lại mỗi khi exams, searchTerm hoặc filterStatus thay đổi
     const filteredExams = exams.filter((exam) => {
         // 1. Lọc theo tên
         const matchesSearch = exam.title?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -68,6 +72,12 @@ export default function ManageExamsPage() {
 
         return matchesSearch && matchesStatus;
     });
+
+    // Hàm mở khung chat
+    const openComments = (examId) => {
+        setSelectedExamId(examId);
+        setShowComments(true);
+    };
 
     return (
         <MainLayout>
@@ -125,7 +135,7 @@ export default function ManageExamsPage() {
                     </div>
                 </div>
 
-                {/* --- DANH SÁCH BÀI THI (Dùng filteredExams thay vì exams) --- */}
+                {/* --- DANH SÁCH BÀI THI --- */}
                 <div className="grid gap-4">
                     {filteredExams.length === 0 ? (
                         <div className="text-center py-10 bg-gray-50 rounded-lg border-2 border-dashed">
@@ -151,7 +161,17 @@ export default function ManageExamsPage() {
                                     </div>
                                 </div>
 
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 items-center">
+                                    {/* ICON BÌNH LUẬN (CHAT) */}
+                                    <button
+                                        onClick={() => openComments(exam.examId)}
+                                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition flex items-center gap-1"
+                                        title="Thảo luận bài thi"
+                                    >
+                                        <MessageCircle size={20} />
+                                        <span className="text-xs font-semibold">Chat</span>
+                                    </button>
+
                                     <button
                                         onClick={() => navigate(`/exams/edit/${exam.examId}`)}
                                         className="px-3 py-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded text-sm font-medium"
@@ -173,6 +193,24 @@ export default function ManageExamsPage() {
                     )}
                 </div>
             </div>
+
+            {/* --- MODAL BÌNH LUẬN --- */}
+            {showComments && selectedExamId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col relative">
+                        <button
+                            onClick={() => setShowComments(false)}
+                            className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 transition z-10"
+                        >
+                            <X size={24} />
+                        </button>
+                        <div className="p-4 overflow-y-auto flex-1">
+                            {/* Sử dụng chung selectedExamId để vào cùng room với ExamList */}
+                            <CommentRoom examId={selectedExamId} />
+                        </div>
+                    </div>
+                </div>
+            )}
         </MainLayout>
     );
 }
