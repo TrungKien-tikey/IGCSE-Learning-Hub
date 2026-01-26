@@ -6,9 +6,11 @@ import com.igcse.auth.dto.ChangePasswordRequest;
 import com.igcse.auth.dto.LoginRequest;
 import com.igcse.auth.dto.RegisterRequest;
 import com.igcse.auth.dto.UserSyncDTO;
+import com.igcse.auth.entity.BlacklistedToken;
 import com.igcse.auth.entity.User;
 import com.igcse.auth.repository.UserRepository;
 import com.igcse.auth.util.JwtUtils;
+import com.igcse.auth.repository.BlacklistedTokenRepository;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,19 +31,26 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
+    
+    // 1. [FIX] ĐÃ KHAI BÁO THÊM BIẾN NÀY ĐỂ HẾT LỖI
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     public AuthService(UserRepository userRepository,
                        PasswordEncoder passwordEncoder,
                        JwtUtils jwtUtils,
                        AuthenticationManager authenticationManager,
                        RabbitTemplate rabbitTemplate,
-                       EmailService emailService) {
+                       EmailService emailService,
+                       // 2. [FIX] ĐÃ TIÊM (INJECT) VÀO CONSTRUCTOR
+                       BlacklistedTokenRepository blacklistedTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.rabbitTemplate = rabbitTemplate;
         this.emailService = emailService;
+        // 3. [FIX] GÁN GIÁ TRỊ
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     // 1. Đăng ký
@@ -104,9 +113,8 @@ public class AuthService {
         return jwtUtils.validateToken(token);
     }
 
-    // 4. Đổi mật khẩu (ĐÃ SỬA: Dùng Principal chuẩn)
+    // 4. Đổi mật khẩu
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
-        // Lấy email trực tiếp từ Principal (An toàn, không cần ép kiểu)
         String userEmail = connectedUser.getName();
         
         User user = userRepository.findByEmail(userEmail)
@@ -162,18 +170,15 @@ public class AuthService {
         userRepository.save(user);
     }
 
-
     // 7. Kiểm tra email tồn tại
     public boolean checkEmailExists(String email) {
         return userRepository.existsByEmail(email); 
     }
 
-
     public UserSyncDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khong tim thay User ID: " + id));
         
-        // Trả về DTO chứa thông tin public (Tên, Email, Role)
         return new UserSyncDTO(
             user.getId(),
             user.getEmail(),
@@ -181,6 +186,21 @@ public class AuthService {
             user.getRole()
         );
     }
-}
-    
 
+    // 8. [FIX] Đăng xuất (Đã sửa tên biến cho khớp)
+    public void logout(String token){
+        // Sửa jwtUtil -> jwtUtils (thêm 's' cho giống tên biến ở trên)
+        if (jwtUtils.isTokenExpired(token)) {
+            return; 
+        }
+        
+        // Sửa jwtUtil -> jwtUtils
+        BlacklistedToken blacklistedToken = BlacklistedToken.builder()
+            .token(token)
+            .expirationTime(jwtUtils.extractExpiration(token)) 
+            .build();
+            
+        // Giờ biến này đã được khai báo nên sẽ hết lỗi
+        blacklistedTokenRepository.save(blacklistedToken);
+    }
+}

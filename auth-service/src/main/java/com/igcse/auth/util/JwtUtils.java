@@ -67,7 +67,7 @@ public class JwtUtils {
     }
 
     // Kiểm tra xem Token đã hết hạn chưa
-    private boolean isTokenExpired(String token) {
+    public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
