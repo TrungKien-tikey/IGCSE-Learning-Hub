@@ -251,15 +251,13 @@ services:
     container_name: igcse_nifi
     restart: always
     ports:
-      - "8443:8443"
+      - "8091:8443"  # Map port 8091 (host) -> 8443 (container) để tránh conflict với Kong
     environment:
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
       - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123 # Yêu cầu ít nhất 12 ký tự
       - NIFI_WEB_HTTPS_PORT=8443
-      - NIFI_WEB_PROXY_HOST=localhost:8443
+      - NIFI_WEB_PROXY_HOST=localhost:8091  # Proxy host dùng port 8091
     volumes:
-      - ./nifi/conf:/opt/nifi/nifi-current/conf  # Mount local config directory
-      - ./nifi/flow.json.gz:/opt/nifi/nifi-current/conf/flow.json.gz  # NiFi tự động load flow từ đây
       - nifi_database_repository:/opt/nifi/nifi-current/database_repository
       - nifi_flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
       - nifi_content_repository:/opt/nifi/nifi-current/content_repository
@@ -274,6 +272,26 @@ services:
       timeout: 10s
       retries: 15
       start_period: 180s  # Tăng lên 3 phút vì NiFi khởi động chậm
+
+  # Init container để tự động import NiFi flow
+  nifi-flow-importer:
+    image: alpine:latest
+    container_name: nifi-flow-importer
+    depends_on:
+      nifi:
+        condition: service_healthy
+    volumes:
+      - ./docker/nifi/flow/flow.json.gz:/flow.json.gz:ro
+      - ./docker/nifi/init-flow.sh:/init-flow.sh:ro
+    command: >
+      sh -c "
+        apk add --no-cache bash curl jq gzip &&
+        chmod +x /init-flow.sh &&
+        /init-flow.sh
+      "
+    networks:
+      - igcse-network
+    restart: "no"
 
   # =========================================
   # PHẦN 4: MONITORING (Prometheus & Grafana)
