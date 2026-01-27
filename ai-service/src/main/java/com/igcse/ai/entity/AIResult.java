@@ -73,6 +73,9 @@ public class AIResult {
     @Column(name = "essay_score")
     private Double essayScore; // Điểm phần tự luận
 
+    @Column(name = "ai_insight_text", columnDefinition = "TEXT")
+    private String aiInsightText; // Cache insight AI cho mỗi lần làm bài (tiết kiệm LLM calls)
+
     public AIResult(Long attemptId, Double score, String feedback) {
         this.attemptId = attemptId;
         this.score = score;
