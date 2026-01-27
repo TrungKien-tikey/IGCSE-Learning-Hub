@@ -5,7 +5,8 @@ import com.igcse.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.Map;
+import com.igcse.user.dto.UpdateProfileRequest;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/users")
@@ -24,15 +25,15 @@ public class UserProfileController {
 
     // API: Cập nhật profile chính mình (Dùng Token)
     @PutMapping("/me")
-    public ResponseEntity<User> updateMyProfile(@RequestBody Map<String, String> body) {
+    public ResponseEntity<User> updateMyProfile(@Valid @RequestBody UpdateProfileRequest request) {
         Long currentUserId = com.igcse.user.util.SecurityUtils.getCurrentUserId();
         User updatedUser = userService.updateUser(
                 currentUserId,
-                body.get("fullName"),
-                body.get("phone"),
-                body.get("address"),
-                body.get("bio"),
-                body.get("avatar"));
+                request.getFullName(),
+                request.getPhone(),
+                request.getAddress(),
+                request.getBio(),
+                request.getAvatar());
         return ResponseEntity.ok(updatedUser);
     }
 
