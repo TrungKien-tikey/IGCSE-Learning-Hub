@@ -14,30 +14,24 @@ import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 const menuItems = {
   student: [
-    { title: "Dashboard", icon: Home, url: "/" },
-    { title: "Math Modules", icon: Calculator, url: "/modules" },
-    { title: "My Progress", icon: BarChart3, url: "/progress" },
+    { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Bài kiểm tra", icon: GraduationCap, url: "/exams" },
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
     { title: "Thông báo", icon: Bell, url: "/notifications" },
   ],
   teacher: [
-    { title: "Overview", icon: LayoutDashboard, url: "/" },
-    { title: "Quản lý giảng dạy", icon: FileText, url: "course/courses" },
-    { title: "My Classes", icon: Users, url: "/classes" },
+    { title: "Tổng quan", icon: LayoutDashboard, url: "/" },
+    // { title: "Quản lý giảng dạy", icon: FileText, url: "/course/courses" },
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
-    { title: "Curriculum", icon: BookOpen, url: "/modules" },
-    { title: "Grading", icon: ClipboardList, url: "/grading" },
+    { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
   ],
   admin: [
-    { title: "System Health", icon: Home, url: "/" },
-    { title: "User Management", icon: Users, url: "/admin/dashboard" },
-    { title: "System Logs", icon: ShieldCheck, url: "/logs" },
-    { title: "Global Settings", icon: Settings, url: "/settings" },
+    { title: "Tổng quan", icon: Home, url: "/" },
+    { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
   ],
   parent: [
-    { title: "Dashboard", icon: Home, url: "/" },
+    { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Tiến độ học sinh", icon: BarChart3, url: "/progress" },
     { title: "Báo cáo học tập", icon: FileText, url: "/reports" },
   ],
@@ -148,7 +142,7 @@ const MainLayout = ({ children }) => {
           {/* Menu */}
           <div className="space-y-6">
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Main Navigation</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chuyển hướng </p>
               <ul className="space-y-1">
                 {items.map((item) => (
                   <SidebarItem
@@ -166,12 +160,12 @@ const MainLayout = ({ children }) => {
 
         {/* Bottom Menu */}
         <div className="mt-auto p-6 border-t border-gray-100">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Account</p>
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tài khoản</p>
           <ul className="space-y-1">
-            <SidebarItem icon={User} text="Profile" url="/profile" active={location.pathname === "/profile"} />
+            <SidebarItem icon={User} text="Thông tin" url="/profile" active={location.pathname === "/profile"} />
             <li onClick={handleLogout} className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
               <LogOut size={20} />
-              <span className="font-medium">Logout</span>
+              <span className="font-medium">Đăng xuất</span>
             </li>
           </ul>
         </div>
@@ -182,7 +176,7 @@ const MainLayout = ({ children }) => {
         {/* Header */}
         <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
           <div className="text-sm font-medium text-gray-500">
-            {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
 
           {/* User Info */}

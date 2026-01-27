@@ -25,9 +25,13 @@ public class Course {
     private Date createdAt = new Date();
     @Column(name = "duration")
     private String duration;
+    @Column(name = "teacher_id")
     private Long teacherId;
     @Column(name = "status")
     private String status = "DRAFT";
+
+    @Column(name = "view_count", columnDefinition = "bigint default 0")
+    private Long viewCount = 0L;
 
     // Quan hệ 1-Nhiều với Lesson
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
@@ -146,5 +150,22 @@ public class Course {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Long getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Long viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    // --- Helper Getters for Statistics ---
+    public int getLessonCount() {
+        return lessons != null ? lessons.size() : 0;
+    }
+
+    public int getStudentCount() {
+        return enrollments != null ? enrollments.size() : 0;
     }
 }

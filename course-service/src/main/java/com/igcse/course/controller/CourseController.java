@@ -12,11 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import com.igcse.course.util.JwtUtils;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
-;
 
 @RestController
-@RequestMapping("/api/courses")
+@RequestMapping("/api/v1/courses")
 @CrossOrigin(origins = "*")
 public class CourseController {
 
@@ -25,7 +23,7 @@ public class CourseController {
     @Autowired
     private JwtUtils jwtUtils;
     @Autowired
-    private CourseRepository courseRepository; 
+    private CourseRepository courseRepository;
     @Autowired
     private EnrollmentRepository enrollmentRepositor;
 
@@ -48,6 +46,68 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getAllCourses());
     }
 
+    @GetMapping("/test-connection")
+    public ResponseEntity<String> testConnection() {
+        return ResponseEntity.ok("Course Service is reachable at /api/v1/courses/test-connection");
+    }
+
+    @GetMapping("/debug/claim-all")
+    public ResponseEntity<String> claimAllCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null)
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        List<Course> all = courseRepository.findAll();
+        for (Course c : all) {
+            c.setTeacherId(userId);
+            c.setCreatedBy(userId);
+        }
+        courseRepository.saveAll(all);
+        return ResponseEntity.ok("Đã gán tất cả " + all.size() + " khóa học cho User ID: " + userId);
+    }
+
+    // 1b. API lấy danh sách khóa học DO TÔI DẠY (Dành cho Giáo viên)
+    @GetMapping("/teacher")
+    public ResponseEntity<?> getTeacherCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        System.out.println(">>> FETCH TEACHER COURSES - Extracted UserId: " + userId);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
+        }
+
+        List<Course> courses = courseService.getCoursesByTeacherId(userId);
+        System.out.println(">>> FETCH TEACHER COURSES - Found: " + courses.size() + " courses");
+        return ResponseEntity.ok(courses);
+    }
+
+    // 1. API lấy danh sách khóa học CỦA TÔI (Đã đăng ký)
+    @GetMapping("/mine")
+    public ResponseEntity<?> getMyCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        // Nếu token lỗi hoặc hết hạn -> Trả về 401 Unauthorized
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
+        }
+
+        List<Course> courses = courseService.getCoursesByStudentId(userId);
+        return ResponseEntity.ok(courses);
+    }
+
+    // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
+    @GetMapping("/recommended")
+    public ResponseEntity<?> getRecommendedCourses(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+
+        List<Course> courses = courseService.getRecommendedCourses(userId);
+        return ResponseEntity.ok(courses);
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseById(@PathVariable Long id) {
         Course course = courseService.getCourseById(id);
@@ -55,9 +115,15 @@ public class CourseController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createCourse(@RequestBody Course course) {
+    public ResponseEntity<?> createCourse(
+            @RequestBody Course course,
+            @RequestHeader("Authorization") String tokenHeader) {
         try {
-            return ResponseEntity.ok(courseService.createCourse(course));
+            Long userId = getUserIdFromHeader(tokenHeader);
+            if (userId == null) {
+                return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
+            }
+            return ResponseEntity.ok(courseService.createCourse(course, userId));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -92,46 +158,6 @@ public class CourseController {
     public ResponseEntity<?> activateCourse(@PathVariable Long id) {
         return courseService.activateCourse(id) ? ResponseEntity.ok("Đã hiện khóa học")
                 : ResponseEntity.status(404).body("Lỗi");
-    }
-
-    // 1. API lấy danh sách khóa học CỦA TÔI (Đã đăng ký)
-    @GetMapping("/my-courses")
-    public ResponseEntity<?> getMyCourses(@RequestHeader("Authorization") String tokenHeader) {
-        Long userId = getUserIdFromHeader(tokenHeader);
-
-        // Nếu token lỗi hoặc hết hạn -> Trả về 401 Unauthorized
-        if (userId == null) {
-            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
-        }
-
-        List<Course> courses = courseService.getCoursesByStudentId(userId);
-        return ResponseEntity.ok(courses);
-    }
-
-    // 1b. API lấy danh sách khóa học DO TÔI DẠY (Dành cho Giáo viên)
-    @GetMapping("/teacher-courses")
-    public ResponseEntity<?> getTeacherCourses(@RequestHeader("Authorization") String tokenHeader) {
-        Long userId = getUserIdFromHeader(tokenHeader);
-
-        if (userId == null) {
-            return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
-        }
-
-        List<Course> courses = courseService.getCoursesByTeacherId(userId);
-        return ResponseEntity.ok(courses);
-    }
-
-    // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
-    @GetMapping("/recommended")
-    public ResponseEntity<?> getRecommendedCourses(@RequestHeader("Authorization") String tokenHeader) {
-        Long userId = getUserIdFromHeader(tokenHeader);
-
-        if (userId == null) {
-            return ResponseEntity.status(401).body("Unauthorized");
-        }
-
-        List<Course> courses = courseService.getRecommendedCourses(userId);
-        return ResponseEntity.ok(courses);
     }
 
     // --- LESSON APIs (Task 2 - Chờ làm) ---
@@ -236,25 +262,26 @@ public class CourseController {
         boolean enrolled = courseService.isStudentEnrolled(courseId, userId);
         return ResponseEntity.ok(enrolled);
     }
-   @GetMapping("/{id}/participants")
+
+    @GetMapping("/{id}/participants")
     public ResponseEntity<List<Long>> getCourseParticipants(@PathVariable Long id) {
         // 1. Tìm khóa học để lấy ID giáo viên (createdBy)
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
-        
+
         // 2. Lấy danh sách học viên từ bảng Enrollment
         List<Enrollment> enrollments = enrollmentRepositor.findByCourseCourseId(id);
-        
+
         List<Long> participantIds = enrollments.stream()
                 .map(Enrollment::getUserId)
                 .collect(Collectors.toList());
-                
+
         // 3. Thêm giáo viên vào danh sách (nếu chưa có)
         // Lưu ý: Đảm bảo createdBy không null trong DB
         if (course.getCreatedBy() != null && !participantIds.contains(course.getCreatedBy())) {
             participantIds.add(course.getCreatedBy());
         }
-        
+
         return ResponseEntity.ok(participantIds);
     }
 }
