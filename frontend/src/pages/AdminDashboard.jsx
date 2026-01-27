@@ -8,16 +8,36 @@ export default function AdminDashboard() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterRole, setFilterRole] = useState('ALL');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalElements, setTotalElements] = useState(0);
+    const itemsPerPage = 7; // Sync with backend default or pass explicitly
 
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            // Gọi qua axiosClient để tận dụng Interceptor (Token) và Proxy
-            // Override baseURL về /api vì Controller là /api/admin/users (không có v1)
+            const params = {
+                page: currentPage - 1, // Backend uses 0-based index
+                size: itemsPerPage,
+                keyword: searchTerm,
+                role: filterRole === 'ALL' ? '' : filterRole
+            };
+
             const res = await axiosClient.get('/admin/users', {
-                baseURL: '/api'
+                baseURL: '/api',
+                params: params
             });
-            setUsers(res.data);
+
+            // Handle Paginated Response
+            if (res.data && res.data.content) {
+                setUsers(res.data.content);
+                setTotalPages(res.data.totalPages);
+                setTotalElements(res.data.totalElements);
+            } else {
+                // Fallback if something weird happens
+                setUsers([]);
+            }
         } catch (error) {
             console.error('Error fetching users:', error);
             // alert('Không thể tải danh sách người dùng.'); 
@@ -26,14 +46,18 @@ export default function AdminDashboard() {
         }
     };
 
+    // Debounce search to prevent too many API calls
     useEffect(() => {
-        fetchUsers();
-    }, []);
+        const delayDebounceFn = setTimeout(() => {
+            fetchUsers();
+        }, 500);
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm, filterRole, currentPage]);
 
     const handleDelete = async (userId) => {
         if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
 
-        const token = localStorage.getItem('accessToken');
         try {
             await axiosClient.delete(`/admin/users/${userId}`, {
                 baseURL: '/api'
@@ -85,30 +109,6 @@ export default function AdminDashboard() {
         }
     };
 
-    const [filterRole, setFilterRole] = useState('ALL');
-    const [filterStatus, setFilterStatus] = useState('ALL'); // ALL, ACTIVE, INACTIVE
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 8;
-
-    const filteredUsers = users.filter(user => {
-        const matchesSearch = user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.email.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesRole = filterRole === 'ALL' || user.role === filterRole;
-
-        let matchesStatus = true;
-        if (filterStatus === 'ACTIVE') matchesStatus = user.isActive === true;
-        if (filterStatus === 'INACTIVE') matchesStatus = user.isActive === false;
-
-        return matchesSearch && matchesRole && matchesStatus;
-    });
-
-    // Pagination Logic
-    const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-    const displayedUsers = filteredUsers.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
-
     const handlePageChange = (newPage) => {
         if (newPage >= 1 && newPage <= totalPages) {
             setCurrentPage(newPage);
@@ -143,34 +143,17 @@ export default function AdminDashboard() {
 
                 {/* 1. MOVED STATS TO TOP */}
                 {!loading && (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between">
                             <div>
-                                <p className="text-sm text-gray-500 font-medium uppercase">Tổng người dùng</p>
-                                <p className="text-3xl font-bold text-gray-900 mt-1">{users.length}</p>
+                                <p className="text-sm text-gray-500 font-medium uppercase">Tổng người dùng tìm thấy</p>
+                                <p className="text-3xl font-bold text-gray-900 mt-1">{totalElements}</p>
                             </div>
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-lg">
                                 <Users size={24} />
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-gray-500 font-medium uppercase">Đang hoạt động</p>
-                                <p className="text-3xl font-bold text-green-600 mt-1">{users.filter(u => u.isActive).length}</p>
-                            </div>
-                            <div className="p-3 bg-green-50 text-green-600 rounded-lg">
-                                <RefreshCw size={24} />
-                            </div>
-                        </div>
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex items-center justify-between">
-                            <div>
-                                <p className="text-sm text-red-500 font-medium uppercase">Đã khóa / Vô hiệu</p>
-                                <p className="text-3xl font-bold text-red-600 mt-1">{users.filter(u => !u.isActive).length}</p>
-                            </div>
-                            <div className="p-3 bg-red-50 text-red-600 rounded-lg">
-                                <UserX size={24} />
-                            </div>
-                        </div>
+                        {/* Note: Active/Inactive stats are harder to get accurately with pagination unless we have a specific stats API */}
                     </div>
                 )}
 
@@ -210,20 +193,6 @@ export default function AdminDashboard() {
                             </select>
                         </div>
 
-                        {/* Status Filter */}
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => {
-                                setFilterStatus(e.target.value);
-                                setCurrentPage(1);
-                            }}
-                            className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50 font-medium text-gray-700"
-                        >
-                            <option value="ALL">Tất cả trạng thái</option>
-                            <option value="ACTIVE">Hoạt động</option>
-                            <option value="INACTIVE">Vô hiệu hóa</option>
-                        </select>
-
                         <button
                             onClick={fetchUsers}
                             className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
@@ -249,7 +218,7 @@ export default function AdminDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-200 bg-white">
-                                {loading ? (
+                                {loading && users.length === 0 ? (
                                     <>
                                         <SkeletonRow />
                                         <SkeletonRow />
@@ -257,7 +226,7 @@ export default function AdminDashboard() {
                                         <SkeletonRow />
                                         <SkeletonRow />
                                     </>
-                                ) : displayedUsers.length === 0 ? (
+                                ) : users.length === 0 ? (
                                     <tr>
                                         <td colSpan={6} className="px-6 py-12 text-center text-gray-500 bg-gray-50/50">
                                             <div className="flex flex-col items-center justify-center">
@@ -267,7 +236,7 @@ export default function AdminDashboard() {
                                         </td>
                                     </tr>
                                 ) : (
-                                    displayedUsers.map((user) => (
+                                    users.map((user) => (
                                         <tr key={user.userId} className="hover:bg-gray-50/80 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">#{user.userId}</td>
                                             <td className="px-6 py-4 whitespace-nowrap">
@@ -337,10 +306,10 @@ export default function AdminDashboard() {
                     </div>
 
                     {/* Pagination Footer */}
-                    {!loading && filteredUsers.length > 0 && (
+                    {!loading && users.length > 0 && (
                         <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
                             <p className="text-sm text-gray-500">
-                                Hiển thị <span className="font-medium">{(currentPage - 1) * itemsPerPage + 1}</span> đến <span className="font-medium">{Math.min(currentPage * itemsPerPage, filteredUsers.length)}</span> trong tổng số <span className="font-medium">{filteredUsers.length}</span> kết quả
+                                Hiển thị trang <span className="font-medium">{currentPage}</span> / <span className="font-medium">{totalPages}</span>
                             </p>
                             <div className="flex gap-2">
                                 <button
@@ -350,18 +319,12 @@ export default function AdminDashboard() {
                                 >
                                     Trước
                                 </button>
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                                    <button
-                                        key={page}
-                                        onClick={() => handlePageChange(page)}
-                                        className={`px-3 py-1 text-sm border rounded-md ${currentPage === page
-                                            ? 'bg-blue-600 text-white border-blue-600'
-                                            : 'bg-white border-gray-300 hover:bg-gray-50'
-                                            }`}
-                                    >
-                                        {page}
-                                    </button>
-                                ))}
+
+                                {/* Simple Pagination for now to avoid logic complexity */}
+                                <span className="px-3 py-1 text-sm border rounded-md bg-white border-gray-300">
+                                    {currentPage}
+                                </span>
+
                                 <button
                                     onClick={() => handlePageChange(currentPage + 1)}
                                     disabled={currentPage === totalPages}

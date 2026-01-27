@@ -51,7 +51,7 @@ export default function ProfilePage() {
 
                 setFormData({
                     fullName: data.fullName || '',
-                    phone: data.phoneNumber || '', // Sử dụng data thật từ DB
+                    phone: data.phone || '', // Sử dụng data thật từ DB
                     address: data.address || '',
                     bio: data.bio || ''
                 });
@@ -117,7 +117,10 @@ export default function ProfilePage() {
             toast.success("Cập nhật hồ sơ thành công!");
         } catch (error) {
             console.error("Lỗi API:", error);
-            toast.error("Không thể kết nối đến server.");
+            const errorMessage = error.response?.data?.errors
+                ? Object.values(error.response.data.errors).join(", ")
+                : (error.response?.data?.message || "Cập nhật thất bại, vui lòng kiểm tra lại thông tin.");
+            toast.error(errorMessage);
         }
     };
 
@@ -373,7 +376,15 @@ export default function ProfilePage() {
                                     {isEditing && (
                                         <div className="flex justify-end gap-3 pt-6 border-t border-gray-100 animate-fade-in">
                                             <button
-                                                onClick={() => setIsEditing(false)}
+                                                onClick={() => {
+                                                    setFormData({
+                                                        fullName: user.fullName || '',
+                                                        phone: user.phone || '',
+                                                        address: user.address || '',
+                                                        bio: user.bio || ''
+                                                    });
+                                                    setIsEditing(false);
+                                                }}
                                                 className="flex items-center gap-2 px-6 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition"
                                             >
                                                 <X size={18} /> Hủy bỏ

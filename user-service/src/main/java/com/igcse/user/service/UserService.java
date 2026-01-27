@@ -8,6 +8,10 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class UserService {
@@ -47,6 +51,11 @@ public class UserService {
 
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    public Page<User> getUsers(String keyword, String role, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("userId").descending());
+        return userRepository.searchUsers(keyword, role, pageable);
     }
 
     public void deleteUser(Long id) {
