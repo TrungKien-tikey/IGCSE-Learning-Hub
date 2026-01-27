@@ -13,7 +13,7 @@ import java.util.function.Function;
 public class JwtUtils {
 
     // QUAN TRỌNG: Key này PHẢI GIỐNG HỆT bên Auth-Service
-    private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";  
+    private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
@@ -21,7 +21,13 @@ public class JwtUtils {
 
     // --- 1. Lấy UserID từ Token (Hàm mới thêm quan trọng nhất) ---
     public Long extractUserId(String token) {
-        return extractClaim(token, claims -> claims.get("userId", Long.class));
+        return extractClaim(token, claims -> {
+            Object userId = claims.get("userId");
+            if (userId instanceof Number) {
+                return ((Number) userId).longValue();
+            }
+            return null;
+        });
     }
 
     // --- 2. Các hàm hỗ trợ cơ bản ---
@@ -53,7 +59,8 @@ public class JwtUtils {
     // Kiểm tra token có hợp lệ không (chữ ký đúng + chưa hết hạn)
     public boolean validateToken(String token) {
         try {
-            if (isTokenExpired(token)) return false;
+            if (isTokenExpired(token))
+                return false;
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
         } catch (Exception e) {

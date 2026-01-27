@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
 export default function CourseDetailPage() {
@@ -13,36 +13,28 @@ export default function CourseDetailPage() {
     const [loading, setLoading] = useState(true);
 
     // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
-    const currentUserId = 1;
-    const API_URL = 'http://localhost:8079/api/courses';
+    const API_URL = '/courses';
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 // 1. Lấy thông tin khóa học (Public)
-                const courseRes = await axios.get(`${API_URL}/${courseId}`);
+                const courseRes = await axiosClient.get(`${API_URL}/${courseId}`);
                 setCourse(courseRes.data);
 
                 // 2. Lấy danh sách bài học (Public hoặc Protected tùy logic backend)
-                const lessonRes = await axios.get(`${API_URL}/${courseId}/lessons`);
+                const lessonRes = await axiosClient.get(`${API_URL}/${courseId}/lessons`);
                 setLessons(lessonRes.data);
 
                 // 3. Kiểm tra đăng ký (CẦN TOKEN)
-                // --- SỬA ĐOẠN NÀY ---
-                const token = localStoragegetItem('accessToken');
-                if (token) {
-                    try {
-                        // Gọi API check-enrollment kiểu mới (Header)
-                        const checkRes = await axios.get(`${API_URL}/${courseId}/check-enrollment`, {
-                            headers: { Authorization: `Bearer ${token}` }
-                        });
-                        setIsEnrolled(checkRes.data); // true/false
-                    } catch (e) {
-                        console.log("Lỗi check enrollment (có thể do token hết hạn)", e);
-                        // Không làm gì cả, cứ để isEnrolled = false
-                    }
+                try {
+                    // Gọi API check-enrollment kiểu mới (Header)
+                    const checkRes = await axiosClient.get(`${API_URL}/${courseId}/check-enrollment`);
+                    setIsEnrolled(checkRes.data); // true/false
+                } catch (e) {
+                    console.log("Lỗi check enrollment (có thể do chưa đăng nhập hoặc token hết hạn)");
+                    // Không làm gì cả, cứ để isEnrolled = false
                 }
-                // --------------------
 
             } catch (err) {
                 console.error("Lỗi tải dữ liệu:", err);
@@ -68,16 +60,9 @@ export default function CourseDetailPage() {
             if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá $${course.price}?`)) {
 
                 // 2. Gọi API enroll kiểu mới:
-                // - Method: POST
-                // - URL: không có ?userId
-                // - Body: {} (rỗng)
-                // - Header: Authorization
-                await axios.post(
+                await axiosClient.post(
                     `${API_URL}/${courseId}/enroll`,
-                    {},
-                    {
-                        headers: { Authorization: `Bearer ${token}` }
-                    }
+                    {}
                 );
 
                 alert("🎉 Đăng ký thành công! Chào mừng bạn vào học.");

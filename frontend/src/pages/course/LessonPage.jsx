@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import './LessonPage.css'; // <--- Import file CSS ở dưới
 
 export default function LessonPage() {
@@ -14,7 +14,7 @@ export default function LessonPage() {
     title: '', content: '', videoUrl: '', orderIndex: 1
   });
 
-  const API_URL = 'http://localhost:8079/api/courses';
+  const API_URL = '/courses';
 
   useEffect(() => {
     fetchLessons();
@@ -22,7 +22,7 @@ export default function LessonPage() {
 
   const fetchLessons = async () => {
     try {
-      const res = await axios.get(`${API_URL}/${courseId}/lessons`);
+      const res = await axiosClient.get(`${API_URL}/${courseId}/lessons`);
       setLessons(res.data);
     } catch (err) { console.error(err); }
   };
@@ -48,10 +48,10 @@ export default function LessonPage() {
     e.preventDefault();
     try {
       if (selectedLessonId) {
-        await axios.put(`${API_URL}/lessons/${selectedLessonId}`, formData);
+        await axiosClient.put(`${API_URL}/lessons/${selectedLessonId}`, formData);
         alert("Cập nhật thành công!");
       } else {
-        await axios.post(`${API_URL}/${courseId}/lessons`, formData);
+        await axiosClient.post(`${API_URL}/${courseId}/lessons`, formData);
         alert("Thêm bài mới thành công!");
       }
       fetchLessons();
@@ -64,7 +64,7 @@ export default function LessonPage() {
 
     if (window.confirm("Bạn có chắc chắn muốn xóa bài học này không?")) {
       try {
-        await axios.delete(`${API_URL}/lessons/${lessonId}`);
+        await axiosClient.delete(`${API_URL}/lessons/${lessonId}`);
         alert("Đã xóa thành công!");
         fetchLessons(); // Tải lại danh sách
 

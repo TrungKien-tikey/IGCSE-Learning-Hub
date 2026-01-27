@@ -1,6 +1,6 @@
-// frontend/src/pages/CoursePage.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom'; // Dùng để chuyển trang
 import './CoursePage.css';
 
@@ -18,11 +18,11 @@ export default function CoursePage() {
     title: '', description: '', price: '', duration: ''
   });
 
-  const API_URL = 'http://localhost:8079/api/courses';
+  const API_URL = '/courses';
 
   const fetchCourses = async () => {
     try {
-      const response = await axios.get(API_URL);
+      const response = await axiosClient.get(API_URL);
       setCourses(response.data);
     } catch (err) {
       console.error(err);
@@ -68,10 +68,10 @@ export default function CoursePage() {
     e.preventDefault();
     try {
       if (isEditing && currentId) {
-        await axios.put(`${API_URL}/${currentId}`, formData);
+        await axiosClient.put(`${API_URL}/${currentId}`, formData);
         alert("Cập nhật thành công!");
       } else {
-        await axios.post(API_URL, formData);
+        await axiosClient.post(API_URL, formData);
         alert("Thêm mới thành công!");
       }
       fetchCourses();
@@ -84,7 +84,7 @@ export default function CoursePage() {
   const handleDelete = async (courseId) => {
     if (window.confirm("Bạn chắc chắn xóa khóa học này?")) {
       try {
-        await axios.delete(`${API_URL}/${courseId}`);
+        await axiosClient.delete(`${API_URL}/${courseId}`);
         // Cập nhật lại danh sách ngay lập tức
         setCourses(prev => prev.filter(c => c.courseId !== courseId));
         alert("Đã xóa thành công!");
@@ -99,7 +99,7 @@ export default function CoursePage() {
     if (window.confirm("Bạn muốn ẩn khóa học này (Vô hiệu hóa)?")) {
       try {
         // Gọi API deactivate
-        await axios.delete(`${API_URL}/${courseId}/deactivate`);
+        await axiosClient.delete(`${API_URL}/${courseId}/deactivate`);
         alert("Đã ẩn khóa học thành công!");
         fetchCourses(); // Load lại để thấy trạng thái "Đã ẩn"
       } catch (err) {
@@ -116,7 +116,7 @@ export default function CoursePage() {
   // 2. THÊM HÀM HIỆN (ACTIVATE)
   const handleActivate = async (courseId) => {
     try {
-      await axios.put(`${API_URL}/${courseId}/activate`);
+      await axiosClient.put(`${API_URL}/${courseId}/activate`);
       alert("Khóa học đã hiển thị công khai!");
       fetchCourses(); // Load lại danh sách
     } catch (err) {
