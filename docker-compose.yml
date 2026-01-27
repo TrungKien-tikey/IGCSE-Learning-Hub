@@ -322,7 +322,6 @@ services:
       - nifi_content_repository:/opt/nifi/nifi-current/content_repository
       - nifi_provenance_repository:/opt/nifi/nifi-current/provenance_repository
       - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
-      - ./docker/nifi/flow/flow.json.gz:/opt/nifi/nifi-current/conf/flow.json.gz
     networks:
       - igcse-network
     mem_limit: 2g
