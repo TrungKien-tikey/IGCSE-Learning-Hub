@@ -31,10 +31,15 @@ public class CourseService {
     }
 
     public Course getCourseById(Long id) {
-        return courseRepository.findById(id).orElse(null);
+        Course course = courseRepository.findById(id).orElse(null);
+        if (course != null) {
+            course.setViewCount((course.getViewCount() != null ? course.getViewCount() : 0) + 1);
+            courseRepository.save(course);
+        }
+        return course;
     }
 
-    public Course createCourse(Course course) {
+    public Course createCourse(Course course, Long teacherId) {
         // Validate dữ liệu đầu vào
         if (course.getTitle() == null || course.getTitle().trim().isEmpty()) {
             throw new RuntimeException("Tên khóa học không được để trống!");
@@ -43,6 +48,8 @@ public class CourseService {
             throw new RuntimeException("Giá khóa học không được nhỏ hơn 0!");
         }
 
+        course.setTeacherId(teacherId);
+        course.setCreatedBy(teacherId);
         course.setActive(true);
         return courseRepository.save(course);
     }

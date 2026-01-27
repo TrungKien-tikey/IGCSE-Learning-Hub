@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle } from 'lucide-react';
 import './CoursePage.css';
@@ -8,27 +8,12 @@ export default function MyCoursesPage() {
   const [courses, setCourses] = useState([]);
   const navigate = useNavigate();
 
-  const API_URL = 'http://localhost:8079/api/courses';
+  const API_URL = '/courses';
 
   useEffect(() => {
     const fetchMyCourses = async () => {
-      // --- SỬA Ở ĐÂY: Đổi 'token' thành 'accessToken' ---
-      const token = localStorage.getItem('accessToken');
-      // --------------------------------------------------
-
-      // Nếu không có token -> Đẩy về trang Login
-      if (!token) {
-        console.log("Không tìm thấy token trong localStorage");
-        navigate('/login');
-        return;
-      }
-
       try {
-        const res = await axios.get(`${API_URL}/my-courses`, {
-          headers: {
-            Authorization: `Bearer ${token}` // Gửi token kèm theo
-          }
-        });
+        const res = await axiosClient.get(`${API_URL}/mine`);
 
         setCourses(res.data);
       } catch (err) {
