@@ -292,20 +292,38 @@ services:
       - "8091:8443"
     environment:
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
-      - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123 # Yêu cầu ít nhất 12 ký tự
+      - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123
       - NIFI_WEB_HTTPS_PORT=8443
+      - NIFI_WEB_HTTPS_HOST=0.0.0.0
       - NIFI_WEB_PROXY_HOST=localhost:8091
-      - NIFI_SENSITIVE_PROPS_KEY=thisIsASecretKey123 # Cần dùng chung Key này trên mọi máy
+      - NIFI_JVM_HEAP_INIT=512m
+      - NIFI_JVM_HEAP_MAX=1g
+      - NIFI_JVM_DEBUG=false
+      - NIFI_CLUSTER_IS_NODE=false
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=
+      - NIFI_ZK_CONNECT_STRING=
+      - NIFI_ELECTION_MAX_WAIT=30 sec
+      - NIFI_SENSITIVE_PROPS_KEY=
+      - NIFI_STATE_MANAGEMENT_CONFIG_FILE=/opt/nifi/nifi-current/conf/state-management.xml
+      - NIFI_STATE_MANAGEMENT_LOCAL_PROVIDER_ID=local-provider
+      - NIFI_STATE_MANAGEMENT_START_CLUSTERS=
     volumes:
       - nifi_conf:/opt/nifi/nifi-current/conf
       - nifi_database_repository:/opt/nifi/nifi-current/database_repository
       - nifi_flowfile_repository:/opt/nifi/nifi-current/flowfile_repository
       - nifi_content_repository:/opt/nifi/nifi-current/content_repository
       - nifi_provenance_repository:/opt/nifi/nifi-current/provenance_repository
-      - ./docker/nifi/flow/flow.json.gz:/opt/nifi/nifi-current/conf/flow.json.gz
       - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
     networks:
       - igcse-network
+    mem_limit: 2g
+    mem_reservation: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'nifi' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
 
   # =========================================
   # PHẦN 4: MONITORING (Prometheus & Grafana)
