@@ -29,6 +29,7 @@ public class StatisticsService implements IStatisticsService {
         }
 
         @Override
+        @org.springframework.transaction.annotation.Transactional(readOnly = true)
         public StudentStatisticsDTO getStudentStatistics(Long studentId) {
                 logger.info("Getting optimized statistics for studentId: {}", studentId);
                 Objects.requireNonNull(studentId, "Student ID cannot be null");
@@ -58,8 +59,10 @@ public class StatisticsService implements IStatisticsService {
                 Date oneMonthAgo = Date.from(Instant.now().minus(30, ChronoUnit.DAYS));
                 Date twoMonthsAgo = Date.from(Instant.now().minus(60, ChronoUnit.DAYS));
 
-                Double recentAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, oneMonthAgo, now);
-                Double previousAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, twoMonthsAgo, oneMonthAgo);
+                Double recentAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, oneMonthAgo,
+                                now);
+                Double previousAvg = aiResultRepository.getAverageScoreByStudentIdAndDateRange(studentId, twoMonthsAgo,
+                                oneMonthAgo);
 
                 double improvementRate = 0.0;
                 if (recentAvg != null && previousAvg != null && previousAvg > 0) {
@@ -67,16 +70,21 @@ public class StatisticsService implements IStatisticsService {
                 }
                 stats.setImprovementRate(Math.round(improvementRate * 100.0) / 100.0);
 
-                // 4. Lấy tên học sinh (ưu tiên từ AIResult, fallback từ TierManager)
+                // 4. Lấy metadata 1 LẦN THÔI (tối ưu: tránh gọi DB 2 lần)
+                TierManagerService.AnalysisMetadata meta = tierManagerService.extractMetadata(studentId, null);
+
+                // 5. Lấy kết quả bài thi để xử lý recentExams và subjectPerformance
                 List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+
+                // 6. Tên học sinh: ưu tiên từ AIResult, fallback từ metadata
                 String studentName = results.stream()
                                 .map(AIResult::getStudentName)
                                 .filter(Objects::nonNull)
                                 .findFirst()
-                                .orElseGet(() -> tierManagerService.extractMetadata(studentId, null).studentName());
+                                .orElseGet(() -> meta != null ? meta.studentName() : "Học sinh");
                 stats.setStudentName(studentName);
 
-                // 5. Subject performance: vẫn sử dụng grouping tại tầng Java (có thể tối ưu sau bằng GROUP BY nếu cần)
+                // 7. Subject performance
                 Map<String, Double> subjectPerformance = results.stream()
                                 .filter(r -> r.getExamId() != null)
                                 .collect(Collectors.groupingBy(
@@ -84,6 +92,26 @@ public class StatisticsService implements IStatisticsService {
                                                 Collectors.averagingDouble(
                                                                 r -> r.getScore() != null ? r.getScore() : 0.0)));
                 stats.setSubjectPerformance(subjectPerformance);
+
+                // 8. Persona Badge (dùng lại metadata đã lấy ở bước 4)
+                if (meta != null && meta.personaInfo() != null && !meta.personaInfo().isEmpty()) {
+                        stats.setPersona(meta.personaInfo());
+                }
+
+                // 9. Recent Exams - Top 5 bài thi mới nhất
+                List<StudentStatisticsDTO.ExamStat> recentExams = results.stream()
+                                .filter(r -> r.getGradedAt() != null)
+                                .sorted((a, b) -> b.getGradedAt().compareTo(a.getGradedAt()))
+                                .limit(5)
+                                .map(r -> new StudentStatisticsDTO.ExamStat(
+                                                r.getAttemptId(),
+                                                "Exam " + r.getExamId(),
+                                                r.getScore(),
+                                                r.getMultipleChoiceScore(),
+                                                r.getEssayScore(),
+                                                r.getGradedAt()))
+                                .collect(Collectors.toList());
+                stats.setRecentExams(recentExams);
 
                 logger.debug("Statistics calculated for studentId: {}, totalExams: {}, averageScore: {}",
                                 studentId, stats.getTotalExams(), stats.getAverageScore());
@@ -100,8 +128,8 @@ public class StatisticsService implements IStatisticsService {
                 stats.setLowestScore(0.0);
                 stats.setImprovementRate(0.0);
                 stats.setSubjectPerformance(new HashMap<>());
-                String studentName = tierManagerService.extractMetadata(studentId, null).studentName();
-                stats.setStudentName(studentName);
+                TierManagerService.AnalysisMetadata meta = tierManagerService.extractMetadata(studentId, null);
+                stats.setStudentName(meta != null ? meta.studentName() : "Học sinh");
                 return stats;
         }
 

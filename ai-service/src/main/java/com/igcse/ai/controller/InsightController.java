@@ -50,7 +50,23 @@ public class InsightController {
     }
 
     @GetMapping("/attempt/{attemptId}")
-    public ResponseEntity<AIInsightDTO> getInsightByAttempt(@PathVariable Long attemptId) {
-        return ResponseEntity.ok(insightService.getInsightByAttempt(attemptId));
+    public ResponseEntity<?> getInsightByAttempt(@PathVariable Long attemptId) {
+        AIInsightDTO insight = insightService.getInsightByAttempt(attemptId);
+
+        if (insight == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy kết quả phân tích cho lượt làm bài này"));
+        }
+
+        // Kiểm tra quyền truy cập (Học sinh chỉ xem bài của mình, Teacher/Admin xem
+        // hết)
+        if (!SecurityUtils.canAccessStudentData(insight.getStudentId())) {
+            logger.warn("User {} attempted to access insight for attempt {} of student {} without permission",
+                    SecurityUtils.getCurrentUserId(), attemptId, insight.getStudentId());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+        }
+
+        return ResponseEntity.ok(insight);
     }
 }
