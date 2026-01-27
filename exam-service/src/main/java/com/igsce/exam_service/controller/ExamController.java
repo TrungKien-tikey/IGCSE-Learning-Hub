@@ -38,6 +38,11 @@ public class ExamController {
         return ResponseEntity.ok(examService.getExamAttempt(attemptId));
     }
 
+    @GetMapping("/attempts/{examId}")
+    public ResponseEntity<List<ExamAttempt>> getAttemptsByExamId(@PathVariable Long examId) {
+        return ResponseEntity.ok(examService.getAttemptsByExamId(examId));
+    }
+
     @PostMapping
     public ResponseEntity<?> createExam(@RequestBody CreateExamRequest request) {
         try {

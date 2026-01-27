@@ -11,7 +11,6 @@ import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.enums.QuestionType;
 import com.igsce.exam_service.dto.*;
-import com.igsce.exam_service.dto.ExamCreatedEvent;
 
 @Service
 public class ExamService {
@@ -80,6 +79,22 @@ public class ExamService {
             System.out.println(">>> [ExamService] Found 0 answers (null list) for attempt " + attemptId);
         }
         return attempt;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttempt> getAttemptsByExamId(Long examId) {
+        // Kiểm tra xem Exam có tồn tại không (tùy chọn)
+        if (!examRepository.existsById(examId)) {
+            throw new RuntimeException("Exam not found with id: " + examId);
+        }
+        
+        // Gọi Repository lấy danh sách
+        List<ExamAttempt> attempts = attemptRepository.findByExam_ExamIdOrderBySubmittedAtDesc(examId);
+        
+        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi convert JSON
+        // Nhưng thường với danh sách bảng điểm thì không cần load sâu User Answers
+        
+        return attempts;
     }
 
     @Async("taskExecutor")
