@@ -25,6 +25,7 @@ public interface InsightAiService {
         @UserMessage("""
                         Student Name: {{studentName}}
                         Data Summary: {{dataSummary}}
+                        Student Persona (Context): {{persona}}
                         Language: {{language}}
 
                         Generate the personalized insight report now.
@@ -32,5 +33,6 @@ public interface InsightAiService {
         AIInsightDTO generateInsight(
                         @V("dataSummary") String dataSummary,
                         @V("studentName") String studentName,
+                        @V("persona") String persona,
                         @V("language") String language);
 }

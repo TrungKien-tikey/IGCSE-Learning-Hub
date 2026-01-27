@@ -44,15 +44,23 @@ public class InsightService implements IInsightService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public AIInsightDTO getInsight(Long studentId) {
+
         logger.info("Getting insights for studentId: {}", studentId);
         Objects.requireNonNull(studentId, "Student ID cannot be null");
 
         Optional<AIInsight> cached = aiInsightRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId);
+
+        // Có cache AI insight -> kiểm tra xem có cần update không
         if (cached.isPresent()) {
             List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+
+            // OPTIMIZATION: Nếu chưa có bài thi nhưng đã có insight AI -> trả về insight đã
+            // có
             if (results.isEmpty()) {
-                return createEmptyInsight(studentId);
+                logger.info("Student {} has no exam results but has cached AI insight. Returning cache.", studentId);
+                return convertToDTO(cached.get());
             }
 
             TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
@@ -62,9 +70,15 @@ public class InsightService implements IInsightService {
                 logger.info("Returning latest cached insight for studentId: {}", studentId);
                 return convertToDTO(cached.get());
             }
+        } else {
+            // Chưa có cache và chưa có bài thi -> trả về empty
+            List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+            if (results.isEmpty()) {
+                return createEmptyInsight(studentId);
+            }
         }
 
-        // Không có cache hoặc có dữ liệu mới: làm tươi lại bằng luồng chuẩn (không cần NiFi)
+        // Không có cache hoặc có dữ liệu mới: làm tươi lại bằng luồng chuẩn
         return refreshInsight(studentId, null);
     }
 
@@ -94,7 +108,14 @@ public class InsightService implements IInsightService {
         }
 
         logger.info("Triggering AI Synthesis with Context for studentId: {}", studentId);
-        AIInsightDTO synthesisResult = null;
+
+        // Khóa để tránh xử lý song song cho cùng 1 học sinh
+        if (!tierManagerService.startProcessing(studentId)) {
+            logger.warn("Insight analysis already in progress for student: {}. Skipping.", studentId);
+            return aiInsightRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
+                    .map(this::convertToDTO)
+                    .orElseGet(() -> createEmptyInsight(studentId));
+        }
 
         try {
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
@@ -120,8 +141,8 @@ public class InsightService implements IInsightService {
                     "\n\nHãy so sánh sự tiến bộ dựa trên bối cảnh cũ và các mẩu phân tích mới để đưa ra đánh giá đúc kết sâu sắc.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    aiLanguageName);
+            AIInsightDTO synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                    metadata.personaInfo(), aiLanguageName);
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -132,6 +153,8 @@ public class InsightService implements IInsightService {
             }
         } catch (Exception e) {
             logger.error("AI Synthesis failed for student {}: {}", studentId, e.getMessage());
+        } finally {
+            tierManagerService.stopProcessing(studentId);
         }
 
         return createEmptyInsight(studentId);
@@ -176,6 +199,9 @@ public class InsightService implements IInsightService {
      * Lấy nhận xét AI riêng lẻ cho từng lần làm bài (Dùng trong xem chi tiết kết
      * quả).
      * 
+     * OPTIMIZATION: Ưu tiên trả về insight đã cache trong AIResult.aiInsightText
+     * để tránh gọi LLM mỗi lần user xem chi tiết bài thi.
+     * 
      * @param attemptId ID lượt làm bài
      */
     @Override
@@ -190,24 +216,39 @@ public class InsightService implements IInsightService {
         AIResult result = resultOpt.get();
         Long studentId = result.getStudentId();
 
-        // Use the single result to build analysis data
-        TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(Collections.singletonList(result));
+        // 1. CACHE HIT: Kiểm tra nếu đã có insight được cache trong AIResult
+        if (result.getAiInsightText() != null && !result.getAiInsightText().isEmpty()) {
+            logger.debug("Cache HIT for attempt insight: {}", attemptId);
+            AIInsightDTO cachedInsight = new AIInsightDTO();
+            cachedInsight.setStudentId(studentId);
+            cachedInsight.setOverallSummary(result.getAiInsightText());
+            cachedInsight.setKeyStrengths(Collections.emptyList());
+            cachedInsight.setAreasForImprovement(Collections.emptyList());
+            cachedInsight.setActionPlan("Xem phần nhận xét chi tiết ở trên.");
+            return cachedInsight;
+        }
 
+        // 2. CACHE MISS: Gọi LLM và lưu kết quả vào cache
+        logger.debug("Cache MISS for attempt insight: {}. Calling LLM...", attemptId);
+        TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(Collections.singletonList(result));
         AIInsightDTO insight = null;
 
         try {
             String dataSummary = tierManagerService.buildTextSummary(analysis);
-            // Append explicit attempt info
             dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
 
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
-
             String aiLanguageName = languageService.getAiLanguageName("vi");
             insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    aiLanguageName);
+                    metadata.personaInfo(), aiLanguageName);
 
             if (insight != null) {
                 insight.setStudentId(studentId);
+
+                // Lưu insight vào cache trong AIResult
+                result.setAiInsightText(insight.getOverallSummary());
+                aiResultRepository.save(result);
+                logger.info("Cached AI insight for attemptId: {}", attemptId);
             }
 
         } catch (Exception e) {

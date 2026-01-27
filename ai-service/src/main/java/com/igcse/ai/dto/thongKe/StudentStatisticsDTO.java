@@ -24,6 +24,12 @@ public class StudentStatisticsDTO {
     private Map<String, Double> subjectPerformance; // Môn học -> Điểm TB
     private double improvementRate; // Tỉ lệ cải thiện so với tháng trước
 
+    /**
+     * Đặc điểm tính cách và thói quen học tập (từ NiFi/StudyContext)
+     * Dùng để hiển thị Persona Badge trên Dashboard
+     */
+    private String persona;
+
     private List<ExamStat> recentExams; // Danh sách các bài thi gần nhất
 
     @Data

@@ -33,6 +33,12 @@ public class StudyContext {
     @Column(name = "class_id")
     private Long classId;
 
+    @Column(name = "course_title")
+    private String courseTitle;
+
+    @Column(name = "persona", columnDefinition = "TEXT")
+    private String persona;
+
     /**
      * Dữ liệu bối cảnh chi tiết dưới dạng JSON String.
      * Lưu trữ mọi thông tin phụ trợ từ NiFi (persona, chuyên cần, nhận xét cũ...).

@@ -60,15 +60,24 @@ public class RecommendationService implements IRecommendationService {
         if (cached.isPresent()) {
             List<AIResult> results = aiResultRepository.findByStudentId(studentId);
             if (results.isEmpty()) {
-                return createEmptyRecommendation(studentId);
+                logger.info("Student {} has no exam results but has cached AI recommendation. Returning cache.",
+                        studentId);
+                return convertToDTO(cached.get());
             }
 
             TierManagerService.AnalysisData analysis = tierManagerService.analyzeResults(results);
             boolean isNewData = tierManagerService.isNewData(studentId, analysis);
 
             if (!isNewData) {
-            logger.info("Returning latest cached recommendation for studentId: {}", studentId);
-            return convertToDTO(cached.get());
+                logger.info("Returning latest cached recommendation for studentId: {}", studentId);
+                return convertToDTO(cached.get());
+            }
+        } else {
+            // Chưa có cache và chưa có bài thi -> trả về empty
+            List<AIResult> results = aiResultRepository.findByStudentId(studentId);
+            if (results.isEmpty()) {
+                logger.debug("No recommendations and no exam results for studentId: {}", studentId);
+                return createEmptyRecommendation(studentId);
             }
         }
 
@@ -102,7 +111,14 @@ public class RecommendationService implements IRecommendationService {
         }
 
         logger.info(">>> Triggering AI Recommendation Synthesis for studentId: {}", studentId);
-        LearningRecommendationDTO synthesisResult = null;
+
+        // Tránh xử lý song song
+        if (!tierManagerService.startProcessing(studentId)) {
+            logger.warn("Analysis already in progress for student: {}. Skipping.", studentId);
+            return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
+                    .map(this::convertToDTO)
+                    .orElseGet(() -> createEmptyRecommendation(studentId));
+        }
 
         try {
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
@@ -122,14 +138,15 @@ public class RecommendationService implements IRecommendationService {
                     .map(AIRecommendation::getLearningPathSuggestion)
                     .orElse("Đây là lần đầu tiên xây dựng lộ trình chuyên sâu.");
 
-            String combinedSummary = "Dữ liệu thống kê: " + tierManagerService.buildTextSummary(analysis) +
+            String combinedSummary = "Dữ liệu thống kê cho khóa học [" + metadata.lastCourseName() + "]: " +
+                    tierManagerService.buildTextSummary(analysis) +
                     "\n\n--- CÁC GỢI Ý LOGIC GẦN ĐÂY ---\n" + logContext +
                     "\n\n--- LỘ TRÌNH CHUYÊN SÂU TRƯỚC ĐÓ ---\n" + aiContext +
                     "\n\nHãy phân tích sự thay đổi và cập nhật lộ trình học tập mới nhất.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            synthesisResult = recommendationAiService.generateRecommendation(
-                    combinedSummary, metadata.studentName(), aiLanguageName);
+            LearningRecommendationDTO synthesisResult = recommendationAiService.generateRecommendation(
+                    combinedSummary, metadata.studentName(), metadata.personaInfo(), aiLanguageName);
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -141,6 +158,8 @@ public class RecommendationService implements IRecommendationService {
             }
         } catch (Exception e) {
             logger.error("AI Recommendation Synthesis failed for student {}: {}", studentId, e.getMessage());
+        } finally {
+            tierManagerService.stopProcessing(studentId);
         }
 
         return createEmptyRecommendation(studentId);
