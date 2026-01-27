@@ -161,6 +161,8 @@ services:
     restart: always
     ports:
       - "8089:8089"
+    volumes:
+      - ./communication-service/src/main/resources/serviceAccountKey.json:/app/serviceAccountKey.json:ro
     environment:
      # Thêm biến múi giờ cho hệ thống container
       - TZ=Asia/Ho_Chi_Minh
@@ -302,6 +304,7 @@ services:
       - nifi_content_repository:/opt/nifi/nifi-current/content_repository
       - nifi_provenance_repository:/opt/nifi/nifi-current/provenance_repository
       - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
+      - ./docker/nifi/flow/flow.json.gz:/opt/nifi/nifi-current/conf/flow.json.gz
     networks:
       - igcse-network
 
