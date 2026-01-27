@@ -26,6 +26,12 @@ public class TierManagerService {
     private final StudyContextRepository studyContextRepository;
     private final JsonService jsonService;
 
+    // Bộ nhớ tạm để tránh phân tích song song cho cùng một học sinh
+    private final Set<Long> processingStudents = Collections.synchronizedSet(new HashSet<>());
+
+    // Cooldown mặc định (mili giây) - 3 phút
+    private static final long ANALYSIS_COOLDOWN_MS = 3 * 60 * 1000;
+
     public TierManagerService(AIRecommendationRepository aiRecommendationRepository,
             AIInsightRepository aiInsightRepository,
             StudyContextRepository studyContextRepository,
@@ -46,21 +52,26 @@ public class TierManagerService {
             double highestScore,
             double lowestScore,
             List<String> strengths,
-            List<String> weaknesses) {
+            List<String> weaknesses,
+            Double avgDurationSeconds) {
     }
 
     /**
      * DTO chứa metadata từ NiFi
      */
     public record AnalysisMetadata(
-            String studentName) {
+            String studentName,
+            String personaInfo,
+            String lastCourseName,
+            Long classId) {
         public static AnalysisMetadata defaultMetadata() {
-            return new AnalysisMetadata("Học sinh");
+            return new AnalysisMetadata("Học sinh", "Chưa có thông tin bối cảnh.", "Khóa học IGCSE", null);
         }
     }
 
     /**
-     * Kiểm tra xem dữ liệu có thay đổi so với lần phân tích Recommendation gần nhất không.
+     * Kiểm tra xem dữ liệu có thay đổi so với lần phân tích Recommendation gần nhất
+     * không.
      * Trả về true nếu có bài thi mới hoặc điểm số thay đổi.
      */
     @Transactional(readOnly = true)
@@ -70,10 +81,23 @@ public class TierManagerService {
 
         if (latestOpt.isPresent()) {
             AIRecommendation latest = latestOpt.get();
+
+            // 1. Kiểm tra Cooldown (Ví dụ: 3 phút)
+            long timeSinceLastAnalysis = System.currentTimeMillis() - latest.getGeneratedAt().getTime();
+            if (timeSinceLastAnalysis < ANALYSIS_COOLDOWN_MS) {
+                logger.debug("Học sinh {} vừa được phân tích cách đây {}ms. Bỏ qua (Cooldown).", studentId,
+                        timeSinceLastAnalysis);
+                return false;
+            }
+
+            // 2. Kiểm tra thay đổi dữ liệu
             if (latest.getAvgScoreAnalyzed() != null && latest.getTotalExamsAnalyzed() != null) {
-                if (latest.getAvgScoreAnalyzed().equals(data.avgScore()) &&
-                        latest.getTotalExamsAnalyzed() == data.totalExams()) {
-                    logger.debug("Dữ liệu cho student {} không đổi so với bản Recommendation gần nhất.", studentId);
+                // Sử dụng tolerance 0.01 để tránh sai lệch nhỏ do số thực (double)
+                boolean scoreMatch = Math.abs(latest.getAvgScoreAnalyzed() - data.avgScore()) < 0.01;
+                boolean countMatch = latest.getTotalExamsAnalyzed() == data.totalExams();
+
+                if (scoreMatch && countMatch) {
+                    logger.debug("Dữ liệu cho student {} không đổi (Recommendation). Cache HIT.", studentId);
                     return false;
                 }
             }
@@ -81,6 +105,17 @@ public class TierManagerService {
 
         logger.info("New data detected for student {}. Total exams: {}", studentId, data.totalExams());
         return true;
+    }
+
+    /**
+     * Quản lý trạng thái đang xử lý để tránh gọi AI song song cho cùng 1 học sinh.
+     */
+    public boolean startProcessing(Long studentId) {
+        return processingStudents.add(studentId);
+    }
+
+    public void stopProcessing(Long studentId) {
+        processingStudents.remove(studentId);
     }
 
     /**
@@ -94,10 +129,23 @@ public class TierManagerService {
 
         if (latestOpt.isPresent()) {
             AIInsight latest = latestOpt.get();
+
+            // 1. Kiểm tra Cooldown
+            long timeSinceLastAnalysis = System.currentTimeMillis() - latest.getGeneratedAt().getTime();
+            if (timeSinceLastAnalysis < ANALYSIS_COOLDOWN_MS) {
+                logger.debug("Học sinh {} vừa được phân tích Insight cách đây {}ms. Bỏ qua (Cooldown).", studentId,
+                        timeSinceLastAnalysis);
+                return false;
+            }
+
+            // 2. Kiểm tra thay đổi dữ liệu
             if (latest.getAvgScoreAnalyzed() != null && latest.getTotalExamsAnalyzed() != null) {
-                if (latest.getAvgScoreAnalyzed().equals(data.avgScore()) &&
-                        latest.getTotalExamsAnalyzed() == data.totalExams()) {
-                    logger.debug("Dữ liệu cho student {} không đổi so với bản Insight gần nhất.", studentId);
+                // Sử dụng tolerance 0.01 cho so sánh số thực
+                boolean scoreMatch = Math.abs(latest.getAvgScoreAnalyzed() - data.avgScore()) < 0.01;
+                boolean countMatch = latest.getTotalExamsAnalyzed() == data.totalExams();
+
+                if (scoreMatch && countMatch) {
+                    logger.debug("Dữ liệu cho student {} không đổi (Insight). Cache HIT.", studentId);
                     return false;
                 }
             }
@@ -109,7 +157,7 @@ public class TierManagerService {
 
     public AnalysisData analyzeResults(List<AIResult> results) {
         if (results.isEmpty())
-            return new AnalysisData(0, 0, 0, 0, 0, List.of(), List.of());
+            return new AnalysisData(0, 0, 0, 0, 0, List.of(), List.of(), 0.0);
 
         double averageScore = results.stream()
                 .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
@@ -134,18 +182,43 @@ public class TierManagerService {
             for (GradingResult gr : details) {
                 if (gr.getScore() != null && gr.getMaxScore() != null && gr.getMaxScore() > 0) {
                     double pct = (gr.getScore() / gr.getMaxScore()) * 100;
+
+                    // Ưu tiên Topic/AO, nếu không có mới dùng Question ID
+                    String identifier = gr.getTopic() != null ? gr.getTopic()
+                            : (gr.getAssessmentObjective() != null ? gr.getAssessmentObjective()
+                                    : "Câu " + gr.getQuestionId());
+
                     if (pct >= 80)
-                        strengths.add("Câu " + gr.getQuestionId());
+                        strengths.add(identifier);
                     else if (pct < 50)
-                        weaknesses.add("Câu " + gr.getQuestionId());
+                        weaknesses.add(identifier);
                 }
             }
         }
 
+        double averageDuration = results.stream()
+                .filter(r -> r.getDetails() != null)
+                .mapToDouble(r -> {
+                    try {
+                        // Giả sử NiFi gán duration_seconds vào metadata trong JSON details
+                        Map<String, Object> meta = jsonService.getObjectMapper().readValue(r.getDetails(),
+                                new TypeReference<Map<String, Object>>() {
+                                });
+                        return meta.containsKey("duration_seconds")
+                                ? Double.valueOf(meta.get("duration_seconds").toString())
+                                : 0.0;
+                    } catch (Exception e) {
+                        return 0.0;
+                    }
+                })
+                .filter(d -> d > 0)
+                .average().orElse(0.0);
+
         return new AnalysisData(
                 averageScore, passRate, results.size(), maxScore, minScore,
-                strengths.stream().distinct().limit(5).collect(Collectors.toList()),
-                weaknesses.stream().distinct().limit(5).collect(Collectors.toList()));
+                strengths.stream().distinct().limit(10).collect(Collectors.toList()),
+                weaknesses.stream().distinct().limit(10).collect(Collectors.toList()),
+                averageDuration);
     }
 
     /**
@@ -157,19 +230,46 @@ public class TierManagerService {
      * 3. Nếu vẫn không có, lấy từ bản ghi AIRecommendation gần nhất.
      */
     public AnalysisMetadata extractMetadata(Long studentId, String nifiData) {
-        // Ưu tiên 1: Lấy từ bảng study_contexts (Đã được lưu từ AIController trước khi
-        // trigger)
+        // Ưu tiên 1: Lấy từ bảng study_contexts
         Optional<StudyContext> storedContext = studyContextRepository.findByStudentId(studentId);
         if (storedContext.isPresent()) {
             logger.debug("Sử dụng bối cảnh đã lưu từ database cho student: {}", studentId);
             String storedName = storedContext.get().getStudentName();
-            return new AnalysisMetadata(storedName != null ? storedName : "Học sinh");
+            String persona = storedContext.get().getPersona();
+            String contextJson = storedContext.get().getContextData();
+
+            // Ưu tiên lấy courseTitle trực tiếp từ entity (đã được lưu từ NiFi)
+            String lastCourse = storedContext.get().getCourseTitle();
+
+            // Fallback: Parse từ contextJson nếu courseTitle chưa có
+            if (lastCourse == null || lastCourse.isEmpty()) {
+                try {
+                    if (contextJson != null) {
+                        Map<String, Object> data = jsonService.getObjectMapper().readValue(contextJson,
+                                new TypeReference<Map<String, Object>>() {
+                                });
+                        if (data.containsKey("title"))
+                            lastCourse = data.get("title").toString();
+                        else if (data.containsKey("course_name"))
+                            lastCourse = data.get("course_name").toString();
+                    }
+                } catch (Exception e) {
+                }
+            }
+
+            if (lastCourse == null || lastCourse.isEmpty()) {
+                lastCourse = "Khóa học IGCSE";
+            }
+
+            return new AnalysisMetadata(
+                    storedName != null ? storedName : "Học sinh",
+                    persona != null ? persona : "Chưa có thông tin bối cảnh.",
+                    lastCourse,
+                    storedContext.get().getClassId());
         }
 
-        // Ưu tiên 2: Fallback parse từ nifiData truyền trực tiếp (nếu DB chưa kịp
-        // update hoặc lỗi)
+        // Ưu tiên 2: Parse từ nifiData
         if (nifiData != null && !nifiData.isEmpty()) {
-            logger.debug("Không tìm thấy bối cảnh trong DB, thử parse trực tiếp nifiData cho student: {}", studentId);
             try {
                 List<Map<String, Object>> records = jsonService.getObjectMapper().readValue(
                         nifiData, new TypeReference<List<Map<String, Object>>>() {
@@ -180,34 +280,39 @@ public class TierManagerService {
                         sid = record.get("studentId");
 
                     if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
-                        String studentName = "Học sinh";
-                        if (record.containsKey("full_name"))
-                            studentName = record.get("full_name").toString();
-                        else if (record.containsKey("student_name"))
-                            studentName = record.get("student_name").toString();
-                        else if (record.containsKey("name"))
-                            studentName = record.get("name").toString();
-
-                        return new AnalysisMetadata(studentName);
+                        String studentName = extractString(record, "full_name", "student_name", "name");
+                        String courseName = extractString(record, "course_name", "title");
+                        return new AnalysisMetadata(
+                                studentName != null ? studentName : "Học sinh",
+                                "Thông tin bối cảnh tạm thời từ NiFi.",
+                                courseName != null ? courseName : "Khóa học IGCSE",
+                                extractLong(record, "course_id"));
                     }
                 }
             } catch (Exception e) {
-                logger.warn("Could not parse nifiData for metadata: {}", e.getMessage());
             }
         }
 
-        // Ưu tiên 3: Lấy từ bản ghi phân tích cũ nhất trong DB
         return findLatestMetadata(studentId);
     }
 
-    /**
-     * Tìm metadata gần nhất từ database cho học sinh
-     */
     private AnalysisMetadata findLatestMetadata(Long studentId) {
         return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
                 .map(r -> new AnalysisMetadata(
-                        r.getStudentName() != null ? r.getStudentName() : "Học sinh"))
+                        r.getStudentName() != null ? r.getStudentName() : "Học sinh",
+                        "Thông tin bối cảnh từ bản phân tích cũ.",
+                        "Khóa học IGCSE",
+                        null)) // AIRecommendation does not have classId
                 .orElse(AnalysisMetadata.defaultMetadata());
+    }
+
+    private String extractString(Map<String, Object> record, String... keys) {
+        for (String key : keys) {
+            if (record.containsKey(key) && record.get(key) != null) {
+                return record.get(key).toString();
+            }
+        }
+        return null;
     }
 
     /**
@@ -218,6 +323,11 @@ public class TierManagerService {
         sb.append(String.format("Học sinh có %d bài thi. Điểm TB: %.2f/10. Tỷ lệ đạt: %.1f%%. ",
                 data.totalExams(), data.avgScore(), data.passRate()));
 
+        if (data.avgDurationSeconds() != null && data.avgDurationSeconds() > 0) {
+            long mins = Math.round(data.avgDurationSeconds() / 60);
+            sb.append(String.format("Tốc độ làm bài trung bình: %d phút. ", mins));
+        }
+
         if (!data.strengths().isEmpty()) {
             sb.append("Điểm mạnh: ").append(String.join(", ", data.strengths())).append(". ");
         }
@@ -225,5 +335,16 @@ public class TierManagerService {
             sb.append("Cần cải thiện: ").append(String.join(", ", data.weaknesses())).append(". ");
         }
         return sb.toString();
+    }
+
+    private Long extractLong(Map<String, Object> record, String key) {
+        if (record.containsKey(key) && record.get(key) != null) {
+            try {
+                return Long.valueOf(record.get(key).toString());
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
+        return null;
     }
 }

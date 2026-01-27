@@ -22,6 +22,9 @@ public class AIRecommendation {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
+    @Column(name = "class_id")
+    private Long classId;
+
     @Column(name = "student_name")
     private String studentName;
 

@@ -14,6 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class DetailedGradingResultDTO {
     private Long attemptId;
+    private Long studentId;
     private Double score;
     private Double maxScore;
     private String feedback;

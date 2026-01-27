@@ -19,6 +19,11 @@ public class RabbitConfig {
     public static final String QUEUE_NAME = "exam.grading.queue";
     public static final String ROUTING_KEY = "grade.exam";
 
+    // Dead Letter Queue Configuration
+    public static final String DLQ_EXCHANGE_NAME = "exam.grading.dlx";
+    public static final String DLQ_QUEUE_NAME = "exam.grading.dlq";
+    public static final String DLQ_ROUTING_KEY = "grade.dlq";
+
     public static final String RESULT_EXCHANGE_NAME = "exam.grading.result.exchange";
     public static final String RESULT_QUEUE_NAME = "exam.grading.result.queue";
     public static final String RESULT_ROUTING_KEY = "grade.result";
@@ -28,14 +33,42 @@ public class RabbitConfig {
         return new DirectExchange(EXCHANGE_NAME);
     }
 
+    /**
+     * Dead Letter Exchange (DLX) - Nơi chứa các message bị lỗi
+     */
+    @Bean
+    public DirectExchange deadLetterExchange() {
+        return new DirectExchange(DLQ_EXCHANGE_NAME);
+    }
+
+    /**
+     * Main Grading Queue với cấu hình chuyển message lỗi sang DLQ
+     */
     @Bean
     public Queue gradingQueue() {
-        return new Queue(QUEUE_NAME, true);
+        return org.springframework.amqp.core.QueueBuilder.durable(QUEUE_NAME)
+                .withArgument("x-dead-letter-exchange", DLQ_EXCHANGE_NAME)
+                .withArgument("x-dead-letter-routing-key", DLQ_ROUTING_KEY)
+                .build();
+    }
+
+    /**
+     * Dead Letter Queue - Nơi lưu trữ các message bị reject/timeout để phân tích
+     * sau
+     */
+    @Bean
+    public Queue deadLetterQueue() {
+        return new Queue(DLQ_QUEUE_NAME, true);
     }
 
     @Bean
     public Binding binding(Queue gradingQueue, DirectExchange gradingExchange) {
         return BindingBuilder.bind(gradingQueue).to(gradingExchange).with(ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding dlqBinding(Queue deadLetterQueue, DirectExchange deadLetterExchange) {
+        return BindingBuilder.bind(deadLetterQueue).to(deadLetterExchange).with(DLQ_ROUTING_KEY);
     }
 
     @Bean

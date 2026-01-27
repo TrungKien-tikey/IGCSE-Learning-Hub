@@ -106,8 +106,8 @@ public class AIService {
                     maxScore = gradingService.calculateMaxScore(detailsList);
 
                 return new DetailedGradingResultDTO(
-                        attemptId, cachedResult.getScore(), maxScore, cachedResult.getFeedback(),
-                        cachedResult.getConfidence(), lang, detailsList);
+                        attemptId, cachedResult.getStudentId(), cachedResult.getScore(), maxScore,
+                        cachedResult.getFeedback(), cachedResult.getConfidence(), lang, detailsList);
             }
             // else fall through
         }
@@ -131,6 +131,19 @@ public class AIService {
 
         TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
 
+        // Tính toán điểm chi tiết theo phần
+        double mcScore = 0.0;
+        double essayScore = 0.0;
+        for (GradingResult gr : gradingResults) {
+            if (gr.getScore() != null) {
+                if ("MULTIPLE_CHOICE".equalsIgnoreCase(gr.getQuestionType())) {
+                    mcScore += gr.getScore();
+                } else if ("ESSAY".equalsIgnoreCase(gr.getQuestionType())) {
+                    essayScore += gr.getScore();
+                }
+            }
+        }
+
         // Lưu DB
         AIResult result = existingResult.orElse(new AIResult(attemptId, score, feedback, lang, confidence));
         result.setScore(score);
@@ -139,21 +152,26 @@ public class AIService {
         result.setConfidence(confidence);
         result.setStudentId(attempt.getStudentId());
         result.setExamId(attempt.getExamId());
+        result.setMultipleChoiceScore(mcScore);
+        result.setEssayScore(essayScore);
         result.setEvaluationMethod(overallMethod);
         result.setGradedAt(new java.util.Date());
         result.setAnswersHash(currentAnswersHash);
         result.setDetails(jsonService.toJson(gradingResults));
 
-        // Lưu Metadata vào AIResult
+        // Lưu Metadata (bao gồm classId) vào AIResult
         if (metadata != null) {
             result.setStudentName(metadata.studentName());
+            if (metadata.classId() != null) {
+                result.setClassId(metadata.classId());
+            }
         }
 
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
         return new DetailedGradingResultDTO(
-                attemptId, score, maxScore, feedback, confidence, lang, gradingResults);
+                attemptId, attempt.getStudentId(), score, maxScore, feedback, confidence, lang, gradingResults);
     }
 
     public AIResult getResult(Long attemptId) {
@@ -178,6 +196,7 @@ public class AIService {
 
         return new DetailedGradingResultDTO(
                 result.getAttemptId(),
+                result.getStudentId(),
                 result.getScore(),
                 maxScore,
                 result.getFeedback(),
