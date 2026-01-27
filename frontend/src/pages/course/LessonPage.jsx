@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
-import './LessonPage.css'; // <--- Import file CSS ở dưới
+import { MessageSquare } from 'lucide-react'; // Thêm icon từ lucide
+import './LessonPage.css';
 
 export default function LessonPage() {
   const { courseId } = useParams();
   const navigate = useNavigate();
 
   const [lessons, setLessons] = useState([]);
-  const [selectedLessonId, setSelectedLessonId] = useState(null); // Bài đang chọn để sửa
+  const [selectedLessonId, setSelectedLessonId] = useState(null); 
 
   const [formData, setFormData] = useState({
     title: '', content: '', videoUrl: '', orderIndex: 1
@@ -27,7 +28,6 @@ export default function LessonPage() {
     } catch (err) { console.error(err); }
   };
 
-  // Click vào bài ở Sidebar trái -> Load dữ liệu sang phải
   const handleSelectLesson = (lesson) => {
     setSelectedLessonId(lesson.lessonId);
     setFormData({
@@ -38,7 +38,6 @@ export default function LessonPage() {
     });
   };
 
-  // Click nút "+ Bài mới"
   const handleCreateNew = () => {
     setSelectedLessonId(null);
     setFormData({ title: '', content: '', videoUrl: '', orderIndex: lessons.length + 1 });
@@ -55,20 +54,19 @@ export default function LessonPage() {
         alert("Thêm bài mới thành công!");
       }
       fetchLessons();
-      if (!selectedLessonId) handleCreateNew(); // Reset form sau khi thêm
+      if (!selectedLessonId) handleCreateNew();
     } catch (err) { alert("Lỗi lưu dữ liệu: " + (err.response?.data || err.message)); }
   };
 
   const handleDelete = async (e, lessonId) => {
-    e.stopPropagation(); // <--- QUAN TRỌNG: Ngăn không cho nó kích hoạt việc "Chọn bài"
+    e.stopPropagation(); 
 
     if (window.confirm("Bạn có chắc chắn muốn xóa bài học này không?")) {
       try {
         await axiosClient.delete(`${API_URL}/lessons/${lessonId}`);
         alert("Đã xóa thành công!");
-        fetchLessons(); // Tải lại danh sách
+        fetchLessons(); 
 
-        // Nếu đang sửa bài mà bị xóa, thì reset về form thêm mới
         if (selectedLessonId === lessonId) {
           handleCreateNew();
         }
@@ -78,9 +76,18 @@ export default function LessonPage() {
     }
   };
 
-  // Hàm xử lý Logout giả lập
   const handleLogout = () => {
     navigate('/');
+  };
+
+  // Hàm mở chat đồng bộ với StudentLearningPage
+  const handleOpenChat = () => {
+    navigate('/chat', {
+      state: {
+        courseId: courseId,
+        courseTitle: "Thảo luận lớp học" 
+      }
+    });
   };
 
   return (
@@ -92,8 +99,16 @@ export default function LessonPage() {
           <span className="lp-course-name">Quản lý nội dung khóa học</span>
         </div>
         <div className="lp-tools">
-          <div className="icon-btn" title="Thông báo">🔔 <span className="badge">3</span></div>
-          <div className="icon-btn" title="Bình luận">💬</div>
+          {/* SỬA ICON BÌNH LUẬN TẠI ĐÂY */}
+          <div 
+            className="icon-btn" 
+            title="Thảo luận cùng lớp" 
+            onClick={handleOpenChat}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <MessageSquare size={20} />
+          </div>
+          
           <div className="user-info">
             <span>Giáo viên A</span>
             <div className="avatar">GV</div>
@@ -104,7 +119,6 @@ export default function LessonPage() {
 
       {/* 2. BODY */}
       <div className="lp-body">
-
         {/* CỘT TRÁI: SIDEBAR */}
         <aside className="lp-sidebar">
           <div className="sidebar-top">
@@ -120,7 +134,6 @@ export default function LessonPage() {
               >
                 <span className="idx">#{l.orderIndex}</span>
                 <span className="txt">{l.title}</span>
-                {/* --- 2. THÊM NÚT XÓA Ở ĐÂY --- */}
                 <button
                   className="btn-delete-mini"
                   onClick={(e) => handleDelete(e, l.lessonId)}
