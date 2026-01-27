@@ -21,8 +21,16 @@ export function useStudentData(studentId) {
   const [error, setError] = useState(null);
 
   const fetchData = useCallback(async () => {
-    if (!studentId) {
+    // Validate studentId: không được null, undefined, hoặc string "undefined"
+    if (!studentId || studentId === "undefined" || studentId === "null" || String(studentId).trim() === "") {
       setError("Student ID không hợp lệ");
+      setLoading(false);
+      return;
+    }
+
+    // Validate studentId phải là số hợp lệ
+    if (isNaN(studentId) || Number(studentId) <= 0) {
+      setError("Student ID phải là số hợp lệ");
       setLoading(false);
       return;
     }

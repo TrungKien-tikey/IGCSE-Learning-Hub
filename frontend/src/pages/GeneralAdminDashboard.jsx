@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
 import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 
 // Dùng một instance axios riêng không qua interceptor auth (vì Actuator thường public hoặc basic auth)
 const monitorClient = axios.create();
@@ -24,6 +25,9 @@ export default function GeneralAdminDashboard() {
         { id: 'communication', name: "Communication Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
     ]);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // State cho tổng số người dùng
+    const [totalUsers, setTotalUsers] = useState(0);
 
     // Hàm check health cho 1 service (với retry)
     const checkSingleService = async (svc, retries = 1) => {
@@ -70,9 +74,31 @@ export default function GeneralAdminDashboard() {
         setTimeout(() => setIsRefreshing(false), 6000);
     };
 
+    // Hàm fetch tổng số người dùng
+    const fetchTotalUsers = async () => {
+        try {
+            // Gọi API với page=0, size=1 để chỉ lấy metadata (totalElements)
+            const response = await axiosClient.get('/admin/users', {
+                baseURL: '/api',
+                params: {
+                    page: 0,
+                    size: 1
+                }
+            });
+            
+            if (response.data && response.data.totalElements !== undefined) {
+                setTotalUsers(response.data.totalElements);
+            }
+        } catch (error) {
+            console.error('Error fetching total users:', error);
+            // Giữ giá trị mặc định nếu lỗi
+        }
+    };
+
     useEffect(() => {
         // Chỉ check 1 lần khi component mount
         checkHealth();
+        fetchTotalUsers();
     }, []);
 
     const stats = [
@@ -99,7 +125,7 @@ export default function GeneralAdminDashboard() {
         },
         {
             title: "Tổng người dùng",
-            value: "1,240",
+            value: totalUsers > 0 ? totalUsers.toLocaleString('vi-VN') : "0",
             icon: Users,
             color: "text-blue-600",
             bg: "bg-blue-100"
@@ -118,10 +144,10 @@ export default function GeneralAdminDashboard() {
                         </h1>
                         <p className="text-slate-500 mt-1">Xin chào, {adminName}. Toàn bộ hệ thống đang hoạt động ổn định.</p>
                     </div>
-                    <button className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition flex items-center gap-2 font-medium">
+                    {/* <button className="px-4 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition flex items-center gap-2 font-medium">
                         <Settings className="w-4 h-4" />
                         Cài đặt hệ thống
-                    </button>
+                    </button> */}
                 </div>
 
                 {/* Stats Grid */}
@@ -186,7 +212,7 @@ export default function GeneralAdminDashboard() {
                         </div>
                     </div>
 
-                    {/* Quick Logs (Mockup - Vì log thật cần ElasticSearch/Loki) */}
+                    {/* Quick Logs (Mockup - Vì log thật cần ElasticSearch/Loki)
                     <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
                         <h2 className="font-bold text-slate-800 flex items-center gap-2">
                             <FileText className="w-5 h-5 text-blue-500" />
@@ -209,7 +235,7 @@ export default function GeneralAdminDashboard() {
                         <button className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">
                             Xem nhật ký chi tiết
                         </button>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </MainLayout>

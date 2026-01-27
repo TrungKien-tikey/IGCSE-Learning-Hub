@@ -70,11 +70,27 @@ async function fetchApi(endpoint, options = {}) {
 // ============================================
 
 /**
+ * Validate ID parameter
+ * @param {any} id - ID to validate
+ * @param {string} paramName - Name of parameter for error message
+ * @throws {ApiError} If ID is invalid
+ */
+function validateId(id, paramName = "ID") {
+  if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
+    throw new ApiError(`${paramName} không được để trống`, 400);
+  }
+  if (isNaN(id) || Number(id) <= 0) {
+    throw new ApiError(`${paramName} phải là số hợp lệ`, 400);
+  }
+}
+
+/**
  * Lấy kết quả chấm điểm cơ bản
  * @param {number|string} attemptId 
  * @returns {Promise<AIResultResponse>}
  */
 export async function getResult(attemptId) {
+  validateId(attemptId, "Attempt ID");
   return fetchApi(`/result/${attemptId}`);
 }
 
@@ -84,6 +100,7 @@ export async function getResult(attemptId) {
  * @returns {Promise<DetailedGradingResultDTO>}
  */
 export async function getDetailedResult(attemptId) {
+  validateId(attemptId, "Attempt ID");
   return fetchApi(`/result/${attemptId}/details`);
 }
 
@@ -97,6 +114,7 @@ export async function getDetailedResult(attemptId) {
  * @returns {Promise<StudentStatisticsDTO>}
  */
 export async function getStudentStatistics(studentId) {
+  validateId(studentId, "Student ID");
   return fetchApi(`/statistics/student/${studentId}`);
 }
 
@@ -110,6 +128,7 @@ export async function getStudentStatistics(studentId) {
  * @returns {Promise<LearningRecommendationDTO>}
  */
 export async function getRecommendations(studentId) {
+  validateId(studentId, "Student ID");
   return fetchApi(`/recommendations/${studentId}`);
 }
 
@@ -123,6 +142,7 @@ export async function getRecommendations(studentId) {
  * @returns {Promise<AIInsightDTO>}
  */
 export async function getInsights(studentId) {
+  validateId(studentId, "Student ID");
   return fetchApi(`/insights/student/${studentId}`);
 }
 

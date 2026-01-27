@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react'; // [UPDATED] Thêm useEffect
+import React, { useEffect, useState } from 'react'; // [UPDATED] Thêm useEffect và useState
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
   Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
   Home, Settings, TrendingUp, ShoppingCart, Bell,
-  PlayCircle
+  PlayCircle, Menu, X, Award
 } from 'lucide-react';
 
 // [UPDATED] Import các thư viện cần thiết cho Notification
@@ -16,6 +16,7 @@ const menuItems = {
   student: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Bài kiểm tra", icon: GraduationCap, url: "/exams" },
+    { title: "Kết quả bài thi", icon: Award, url: "/ai" },
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
     { title: "Thông báo", icon: Bell, url: "/notifications" },
@@ -37,8 +38,8 @@ const menuItems = {
   ],
 };
 
-const SidebarItem = ({ icon: Icon, text, url, active }) => (
-  <Link to={url}>
+const SidebarItem = ({ icon: Icon, text, url, active, onClick }) => (
+  <Link to={url} onClick={onClick}>
     <li className={`flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors ${active ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'}`}>
       <Icon size={20} />
       <span className="font-medium">{text}</span>
@@ -49,6 +50,7 @@ const SidebarItem = ({ icon: Icon, text, url, active }) => (
 const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Lấy thông tin user từ localStorage
   const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
@@ -128,7 +130,7 @@ const MainLayout = ({ children }) => {
       {/* [UPDATED] Thêm ToastContainer để hiển thị thông báo */}
       <ToastContainer />
 
-      {/* --- LEFT SIDEBAR --- */}
+      {/* --- LEFT SIDEBAR (Desktop) --- */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
         <div className="p-6">
           {/* Logo */}
@@ -174,18 +176,31 @@ const MainLayout = ({ children }) => {
       {/* --- RIGHT CONTENT --- */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-8 sticky top-0 z-10">
-          <div className="text-sm font-medium text-gray-500">
+        <header className="h-14 sm:h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 md:px-8 sticky top-0 z-20">
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5 text-gray-600" />
+            ) : (
+              <Menu className="w-5 h-5 text-gray-600" />
+            )}
+          </button>
+
+          <div className="text-xs sm:text-sm font-medium text-gray-500 flex-1 text-center md:text-left md:flex-none">
             {new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
 
           {/* User Info */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-gray-800">{mockUser.name}</p>
               <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
             </div>
-            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden">
+            <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden flex-shrink-0">
               {storedUser.avatar ? (
                 <img src={storedUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
@@ -195,8 +210,65 @@ const MainLayout = ({ children }) => {
           </div>
         </header>
 
+        {/* Mobile Sidebar Overlay */}
+        {mobileMenuOpen && (
+          <>
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <aside className="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 md:hidden flex flex-col shadow-xl">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-blue-600 rounded-lg shadow-lg shadow-blue-200">
+                    <GraduationCap className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-lg font-bold text-gray-800 tracking-tight">IGCSE Hub</span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
+                  <X className="w-5 h-5 text-gray-600" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Chuyển hướng</p>
+                    <ul className="space-y-1">
+                      {items.map((item) => (
+                        <SidebarItem
+                          key={item.title}
+                          icon={item.icon}
+                          text={item.title}
+                          url={item.url}
+                          active={location.pathname === item.url}
+                          onClick={() => setMobileMenuOpen(false)}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-4 border-t border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Tài khoản</p>
+                <ul className="space-y-1">
+                  <SidebarItem icon={User} text="Thông tin" url="/profile" active={location.pathname === "/profile"} onClick={() => setMobileMenuOpen(false)} />
+                  <li onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="flex items-center space-x-3 p-3 rounded-lg cursor-pointer text-gray-600 hover:bg-red-50 hover:text-red-600 transition-colors">
+                    <LogOut size={20} />
+                    <span className="font-medium">Đăng xuất</span>
+                  </li>
+                </ul>
+              </div>
+            </aside>
+          </>
+        )}
+
         {/* Main Scrollable Content */}
-        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto bg-slate-50 p-4 sm:p-6 md:p-8">
           <div className="max-w-7xl mx-auto">
             {children}
           </div>
