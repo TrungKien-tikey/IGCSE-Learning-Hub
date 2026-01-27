@@ -34,7 +34,7 @@ export default function ExamListPage() {
     if (storedUserId) {
       setUserId(storedUserId);
     } else {
-      setUserId(1)
+      setUserId(1);
       // Nếu không có userId, chuyển hướng về trang đăng nhập
       // navigate("/login");
     }
@@ -146,7 +146,7 @@ export default function ExamListPage() {
         }),
       });
 
-      if (!res.ok) throw new Error(errorData.message || "Không thể bắt đầu bài thi");
+      if (!res.ok) throw new Error("Không thể bắt đầu bài thi");
       const data = await res.json();
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
     } catch (error) {
