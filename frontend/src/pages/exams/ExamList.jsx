@@ -34,6 +34,7 @@ export default function ExamListPage() {
     if (storedUserId) {
       setUserId(storedUserId);
     } else {
+      setUserId(1)
       // Nếu không có userId, chuyển hướng về trang đăng nhập
       // navigate("/login");
     }
@@ -44,6 +45,8 @@ export default function ExamListPage() {
   // Effect 1: Tải danh sách bài thi
   useEffect(() => {
     // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
+    if (!userId) return;
+
     const timer = setInterval(() => setNow(new Date()), 60000);
 
     // A. Tải danh sách bài thi
@@ -59,7 +62,7 @@ export default function ExamListPage() {
 
     // B. Tải lịch sử làm bài (Dùng userId lấy từ localStorage)
     // Nếu userId null thì fallback là 1 để tránh lỗi API
-    const currentUserId = userId || 1;
+    const currentUserId = userId;
     fetch(`/api/exams/history?userId=${currentUserId}`)
       .then(res => (res.ok ? res.json() : []))
       .then(data => {
@@ -139,7 +142,7 @@ export default function ExamListPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           examId: examId,
-          userId: userId || 1 // Sử dụng userId động từ state
+          userId: userId // Sử dụng userId động từ state
         }),
       });
 
