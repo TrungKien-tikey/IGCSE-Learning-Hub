@@ -12,8 +12,9 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     // Tìm kiếm khóa học theo tên (chứa từ khóa, không phân biệt hoa thường)
     List<Course> findByTitleContainingIgnoreCase(String keyword);
 
-    // Tìm các khóa học do giáo viên giảng dạy
-    List<Course> findByTeacherId(Long teacherId);
+    // Tìm các khóa học do giáo viên giảng dạy (Kiểm tra cả teacherId và createdBy)
+    @Query("SELECT c FROM Course c WHERE c.teacherId = :teacherId OR c.createdBy = :teacherId")
+    List<Course> findByTeacherId(@Param("teacherId") Long teacherId);
 
     // 1. Tìm các khóa học mà User này ĐÃ đăng ký
     // (Dựa vào bảng Enrollment nối với Course)

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axiosClient from '../../api/axiosClient';
 import { PlayCircle, FileText, Bell, MessageSquare, LogOut } from 'lucide-react';
 import './LessonPage.css'; // <--- QUAN TRỌNG: Dùng chung CSS với trang Giáo viên
 
@@ -13,37 +13,22 @@ export default function StudentLearningPage() {
     const [courseTitle, setCourseTitle] = useState("Đang tải...");
 
     // Lấy role hoặc tên user từ storage để hiển thị (cho xịn)
-    // Giả sử bạn lưu userId, sau này có thể lưu thêm userName
     const userRole = localStorage.getItem('userRole') || "Student";
 
-    const API_URL = 'http://localhost:8079/api/courses';
+    const API_URL = '/courses';
 
     useEffect(() => {
         fetchCourseAndLessons();
     }, [courseId]);
 
     const fetchCourseAndLessons = async () => {
-        // Lấy Token
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('accessToken');
-
-        // Nếu không có token -> Đuổi về Login
-        if (!token) {
-            alert("Vui lòng đăng nhập để vào học.");
-            navigate('/login');
-            return;
-        }
-
-        const config = {
-            headers: { Authorization: `Bearer ${token}` }
-        };
-
         try {
-            // 1. Lấy thông tin khóa học (Kèm token)
-            const courseRes = await axios.get(`${API_URL}/${courseId}`, config);
+            // 1. Lấy thông tin khóa học
+            const courseRes = await axiosClient.get(`${API_URL}/${courseId}`);
             setCourseTitle(courseRes.data.title);
 
-            // 2. Lấy danh sách bài học (Kèm token)
-            const lessonRes = await axios.get(`${API_URL}/${courseId}/lessons`, config);
+            // 2. Lấy danh sách bài học
+            const lessonRes = await axiosClient.get(`${API_URL}/${courseId}/lessons`);
             setLessons(lessonRes.data);
 
             if (lessonRes.data.length > 0) {
@@ -68,11 +53,11 @@ export default function StudentLearningPage() {
     const handleOpenChat = () => {
         // Chuyển hướng sang trang /chat
         // Truyền kèm state (courseId và title) để trang Chat biết cần load danh sách nào
-        navigate('/chat', { 
-            state: { 
-                courseId: courseId, 
-                courseTitle: courseTitle 
-            } 
+        navigate('/chat', {
+            state: {
+                courseId: courseId,
+                courseTitle: courseTitle
+            }
         });
     };
 
@@ -90,10 +75,10 @@ export default function StudentLearningPage() {
 
                 {/* Các icon chức năng */}
                 <div className="lp-tools">
-                    <div 
-                        className="icon-btn" 
-                        title="Thảo luận cùng lớp" 
-                        onClick={handleOpenChat} 
+                    <div
+                        className="icon-btn"
+                        title="Thảo luận cùng lớp"
+                        onClick={handleOpenChat}
                         style={{ cursor: 'pointer' }} // Thêm con trỏ tay để biết là nút bấm
                     >
                         <MessageSquare size={20} />
