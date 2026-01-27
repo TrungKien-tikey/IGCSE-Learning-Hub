@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
     BookOpen, Target, Clock, Trophy, Users, ShieldCheck,
     FileText, TrendingUp, CalendarDays, Calculator, ClipboardList, PlayCircle, ShoppingCart,
-    Bot, Star, TrendingDown, ArrowRight, FileText as FileIcon
+    Bot, Star, TrendingDown, ArrowRight, FileText as FileIcon, MoreVertical, PlusCircle
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -12,6 +11,8 @@ import { useStudentData } from './ai/hooks/useStudentData';
 // Import AI Components
 import InsightCard from './ai/components/InsightCard';
 import RecommendationPanel from './ai/components/RecommendationPanel';
+
+import axiosClient from '../api/axiosClient';
 
 // Component Danh sách bài thi gần đây (Thay thế cho ô nhập ID thủ công)
 const RecentExamsCompact = ({ exams }) => {
@@ -67,10 +68,11 @@ const RecentExamsCompact = ({ exams }) => {
     );
 };
 
-// Dữ liệu User (Lấy từ sessionStorage nếu đã đăng nhập)
+// Dữ liệu User (Lấy từ localStorage đã đăng nhập)
+const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
 const user = {
-    name: localStorage.getItem("userName") || "User",
-    role: localStorage.getItem("userRole")?.toLowerCase() || "student"
+    name: storedUser.fullName || "User",
+    role: (localStorage.getItem("userRole") || "student").toLowerCase()
 };
 
 // Component thẻ thống kê (Đã chuẩn hóa Tailwind)
@@ -103,9 +105,9 @@ const StatCard = ({ title, value, icon: Icon, color, trend }) => {
 };
 
 const roleMessages = {
-    student: "Ready for another math challenge?",
-    teacher: "Managing your classes effectively.",
-    admin: "System administration and monitoring.",
+    student: "Bạn đã sẵn sàng cho một thử thách toán học khác chưa?",
+    teacher: "Quản lý lớp học của bạn một cách hiệu quả.",
+    admin: "Quản trị và giám sát hệ thống.",
 };
 
 const StudentDashboardGeneral = () => {
@@ -119,30 +121,46 @@ const StudentDashboardGeneral = () => {
     const [recommendedCourses, setRecommendedCourses] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    const API_URL = '/api/courses';
+    // Filter states
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState("all");
+
+    const API_URL = '/courses';
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const myRes = await axios.get(`${API_URL}/my-courses?userId=${studentId}`);
-                const myData = myRes.data;
-                const allRes = await axios.get(API_URL);
-                const allData = allRes.data;
-                const enrolledIds = myData.map(course => course.courseId);
-                const recData = allData.filter(course =>
-                    course.active === true && !enrolledIds.includes(course.courseId)
-                );
-                setMyCourses(myData);
-                setRecommendedCourses(recData);
+                // Gọi song song 2 API lấy khóa học của tôi và gợi ý
+                const [myRes, recRes] = await Promise.all([
+                    axiosClient.get(`${API_URL}/mine`),
+                    axiosClient.get(`${API_URL}/recommended`)
+                ]);
+
+                setMyCourses(myRes.data);
+                setRecommendedCourses(recRes.data);
             } catch (err) {
                 console.error("Lỗi tải dữ liệu Dashboard:", err);
                 setMyCourses([]);
+                setRecommendedCourses([]);
             } finally {
                 setLoading(false);
             }
         };
         fetchData();
     }, [studentId]);
+
+    // Filtering logic
+    const filteredCourses = myCourses.filter(course => {
+        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (course.courseId && course.courseId.toString().includes(searchTerm));
+
+        if (filterStatus === "all") return matchesSearch;
+        // Giả sử có thuộc tính status hoặc isActive
+        if (filterStatus === "active") return matchesSearch && (course.isActive !== false);
+        if (filterStatus === "inactive") return matchesSearch && (course.isActive === false);
+
+        return matchesSearch;
+    });
 
     const handleContinueLearning = (courseId) => navigate(`/learning/${courseId}`);
     const handleViewDetails = (courseId) => navigate(`/course-detail/${courseId}`);
@@ -152,11 +170,11 @@ const StudentDashboardGeneral = () => {
             <div className="space-y-8">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 className="text-3xl font-serif font-bold text-gray-900">
-                            {user?.role === 'student' ? 'Welcome back,' : 'Hello,'} <span className="text-blue-600">{user?.name}</span>
+                        <h1 className="text-2xl font-bold text-gray-800">
+                            Chào bạn, <span className="text-indigo-900">{user?.name}</span>! 👋
                         </h1>
-                        <p className="text-gray-500 mt-1">
-                            Role: <span className="capitalize font-semibold text-blue-500">{user?.role}</span> • {roleMessages[user?.role || 'student']}
+                        <p className="text-xs text-gray-400 mt-1 uppercase font-semibold tracking-wider">
+                            {roleMessages[user?.role || 'student']}
                         </p>
                     </div>
                 </div>
@@ -170,72 +188,145 @@ const StudentDashboardGeneral = () => {
                 </div>
 
                 {/* 2. KHÓA HỌC CỦA TÔI */}
-                <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold font-serif text-gray-800 flex items-center gap-2">
-                            <BookOpen className="w-5 h-5 text-blue-600" />
-                            Đang Học (My Courses)
-                        </h2>
-                        <button onClick={() => navigate('/my-courses')} className="text-sm text-blue-600 font-medium hover:underline">Xem tất cả</button>
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                        <h2 className="text-lg font-bold text-gray-800">Tổng quan về khóa học</h2>
                     </div>
 
-                    {loading ? <p>Đang tải...</p> : myCourses.length === 0 ? <p className="text-gray-500 italic">Bạn chưa đăng ký khóa học nào.</p> : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {myCourses.map((course) => (
-                                <div key={course.courseId} className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex gap-4 hover:shadow-md transition-all">
-                                    <div className="w-24 h-24 rounded-lg bg-blue-100 flex items-center justify-center text-2xl shrink-0">📚</div>
-                                    <div className="flex-1 flex flex-col justify-between">
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">{course.title}</h3>
-                                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{course.description || "Không có mô tả"}</p>
+                    {/* Filters */}
+                    <div className="px-6 py-4 flex gap-3 border-b border-gray-50 bg-gray-50/30">
+                        <select
+                            className="text-xs border border-gray-200 rounded px-3 py-1.5 bg-white text-gray-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            value={filterStatus}
+                            onChange={(e) => setFilterStatus(e.target.value)}
+                        >
+                            <option value="all">Tất cả</option>
+                            <option value="active">Đang học</option>
+                            <option value="inactive">Đã đóng</option>
+                        </select>
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm khóa học (Tên hoặc ID)..."
+                            className="text-xs border border-gray-200 rounded px-3 py-1.5 bg-white flex-1 max-w-[250px] focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="divide-y divide-gray-50">
+                        {loading ? (
+                            [1, 2].map(i => <div key={i} className="p-6 animate-pulse bg-gray-50/50"></div>)
+                        ) : filteredCourses.length === 0 ? (
+                            <div className="p-10 text-center text-gray-400 italic text-sm">
+                                {searchTerm || filterStatus !== 'all' ? "Không tìm thấy khóa học nào khớp với bộ lọc." : "Bạn chưa tham gia khóa học nào."}
+                            </div>
+                        ) : (
+                            filteredCourses.map((course, idx) => {
+                                // Mảng màu nền giả lập theo ảnh mẫu
+                                const bgColors = [
+                                    'bg-pink-400', 'bg-blue-500', 'bg-purple-500',
+                                    'bg-cyan-400', 'bg-amber-400', 'bg-emerald-400'
+                                ];
+                                const bgColor = bgColors[idx % bgColors.length];
+
+                                return (
+                                    <div
+                                        key={course.courseId}
+                                        className="p-6 flex items-start gap-5 hover:bg-gray-50/80 transition-colors cursor-pointer group"
+                                        onClick={() => handleContinueLearning(course.courseId)}
+                                    >
+                                        <div className={`w-32 h-20 rounded-lg ${bgColor} shrink-0 shadow-inner opacity-90 group-hover:opacity-100 transition-opacity flex items-center justify-center`}>
+                                            <div className="w-full h-full opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
                                         </div>
-                                        <div className="mt-2">
-                                            <div className="flex justify-between text-xs mb-1">
-                                                <span className="text-gray-600">Tiến độ</span>
-                                                <span className="font-bold text-blue-600">50%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 rounded-full h-2">
-                                                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
-                                            </div>
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
+                                                [{course.courseId || '0000'}] - {course.title}
+                                            </h3>
+                                            <p className="text-[11px] text-gray-400 mt-1 uppercase tracking-tight">
+                                                [CQ]_HKII2024-2025_IGCSE Learning Hub
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 mt-1 font-medium">
+                                                50% complete
+                                            </p>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <button onClick={() => handleContinueLearning(course.courseId)} className="p-3 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-600 hover:text-white transition-colors" title="Học tiếp">
-                                            <PlayCircle className="w-6 h-6" />
+                                        <button className="text-gray-300 hover:text-gray-600 p-1">
+                                            <MoreVertical size={18} />
                                         </button>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                );
+                            })
+                        )}
+                    </div>
                 </div>
 
                 {/* 3. KHÁM PHÁ KHÓA HỌC */}
-                <div className="space-y-4">
+                <div className="space-y-6">
                     <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold font-serif text-gray-800 flex items-center gap-2">
-                            <ShoppingCart className="w-5 h-5 text-amber-600" />
-                            Khóa Học Mới (Recommended)
-                        </h2>
-                        <button onClick={() => navigate('/all-courses')} className="text-sm text-blue-600 font-medium hover:underline">Xem thêm</button>
+                        <div>
+                            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                                <ShoppingCart className="w-5 h-5 text-indigo-600" />
+                                Khám Phá (Recommended)
+                            </h2>
+                            <p className="text-xs text-gray-500">Gợi ý những khóa học phù hợp nhất với hành trình của bạn.</p>
+                        </div>
+                        <button
+                            onClick={() => navigate('/all-courses')}
+                            className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-indigo-600 hover:text-white transition-all flex items-center gap-2"
+                        >
+                            Xem thêm <Star size={14} />
+                        </button>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {recommendedCourses.map((course) => (
-                            <div key={course.courseId} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all group">
-                                <div className="h-32 bg-amber-50 relative overflow-hidden flex items-center justify-center">
-                                    <span className="text-4xl">🎓</span>
-                                    <div className="absolute top-2 right-2 bg-white px-2 py-1 rounded-md text-xs font-bold shadow-sm">⭐ 4.5</div>
-                                </div>
-                                <div className="p-4">
-                                    <h3 className="font-bold text-gray-800 mb-1 truncate">{course.title}</h3>
-                                    <p className="text-xs text-gray-500 mb-3">Thời lượng: {course.duration}</p>
-                                    <div className="flex items-center justify-between mt-4">
-                                        <span className="text-lg font-bold text-blue-600">{course.price > 0 ? `$${course.price}` : 'Free'}</span>
-                                        <button onClick={() => handleViewDetails(course.courseId)} className="px-4 py-2 bg-amber-50 text-amber-700 text-sm font-bold rounded-lg hover:bg-amber-100 transition-colors">Xem Chi Tiết</button>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {loading ? (
+                            [1, 2, 3].map(i => <div key={i} className="h-64 bg-slate-50 rounded-2xl animate-pulse border border-slate-100"></div>)
+                        ) : recommendedCourses.length === 0 ? (
+                            <div className="col-span-full p-10 bg-slate-50 rounded-2xl border border-slate-100 text-center text-slate-400 text-sm">
+                                Hiện chưa có gợi ý mới.
+                            </div>
+                        ) : (
+                            recommendedCourses.map((course) => (
+                                <div
+                                    key={course.courseId}
+                                    className="group bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all duration-300 flex flex-col overflow-hidden"
+                                >
+                                    <div className="p-6 flex-1">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                                Gợi ý cho bạn
+                                            </div>
+                                            <div className="flex items-center gap-1 text-amber-500 font-bold text-xs bg-amber-50 px-2 py-0.5 rounded-full">
+                                                <Star size={12} fill="currentColor" /> 4.5
+                                            </div>
+                                        </div>
+                                        <h3 className="text-sm font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 mb-2">
+                                            {course.title}
+                                        </h3>
+                                        <p className="text-slate-500 text-[13px] line-clamp-2 min-h-[40px] mb-6">
+                                            {course.description || "Bắt đầu bài học ngay hôm nay để đạt kết quả tốt nhất."}
+                                        </p>
+
+                                        <div className="flex justify-between items-center bg-slate-50/50 p-3 rounded-xl border border-slate-50">
+                                            <span className="text-indigo-600 font-extrabold text-lg">{course.price > 0 ? `$${course.price}` : 'FREE'}</span>
+                                            <div className="flex items-center gap-1.5 text-slate-500 text-[11px] font-semibold">
+                                                <Clock size={14} />
+                                                {course.duration || '--'}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-slate-50/30 border-t border-slate-50">
+                                        <button
+                                            onClick={() => handleViewDetails(course.courseId)}
+                                            className="w-full py-2.5 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center justify-center gap-2"
+                                        >
+                                            <BookOpen size={16} />
+                                            Xem Chi Tiết
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 
