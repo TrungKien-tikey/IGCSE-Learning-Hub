@@ -9,6 +9,7 @@ import com.igcse.ai.service.common.StudyContextService;
 import com.igcse.ai.service.goiyLoTrinhHoc.IRecommendationService;
 import com.igcse.ai.service.phanTich.IInsightService;
 
+import com.igcse.ai.util.SecurityUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -49,20 +50,40 @@ public class AIController {
     }
 
     @GetMapping("/result/{attemptId}")
-    public ResponseEntity<AIResultResponse> getResult(@PathVariable Long attemptId) {
+    public ResponseEntity<?> getResult(@PathVariable Long attemptId) {
         logger.info("Get result request - attemptId: {}", attemptId);
 
         AIResult result = aiService.getResult(attemptId);
+
+        // Kiểm tra quyền truy cập (Học sinh chỉ xem bài của mình, Teacher/Admin xem
+        // hết)
+        if (!SecurityUtils.canAccessStudentData(result.getStudentId())) {
+            logger.warn("User {} attempted to access result for attempt {} of student {} without permission",
+                    SecurityUtils.getCurrentUserId(), attemptId, result.getStudentId());
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Bạn không có quyền truy cập kết quả của học sinh này"));
+        }
+
         AIResultResponse response = new AIResultResponse(result);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/result/{attemptId}/details")
-    public ResponseEntity<DetailedGradingResultDTO> getDetailedResult(
+    public ResponseEntity<?> getDetailedResult(
             @PathVariable Long attemptId) {
         logger.info("Get detailed result request - attemptId: {}", attemptId);
 
         DetailedGradingResultDTO result = aiService.getDetailedResult(attemptId);
+
+        // Kiểm tra quyền truy cập (Học sinh chỉ xem bài của mình, Teacher/Admin xem
+        // hết)
+        if (!SecurityUtils.canAccessStudentData(result.getStudentId())) {
+            logger.warn("User {} attempted to access detailed result for attempt {} of student {} without permission",
+                    SecurityUtils.getCurrentUserId(), attemptId, result.getStudentId());
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Bạn không có quyền truy cập kết quả của học sinh này"));
+        }
+
         return ResponseEntity.ok(result);
     }
 
@@ -108,7 +129,8 @@ public class AIController {
 
         Map<String, String> response = new HashMap<>();
         response.put("status", "ACCEPTED");
-        response.put("message", "Ingestion queued for " + studentIds.size() + " students. Processing will continue asynchronously.");
+        response.put("message",
+                "Ingestion queued for " + studentIds.size() + " students. Processing will continue asynchronously.");
         return ResponseEntity.accepted().body(response);
     }
 

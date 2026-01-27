@@ -43,7 +43,7 @@ public class EssayGradingStrategy implements GradingStrategy {
 
             // Kiểm tra câu trả lời trống
             if (studentAnswer == null || studentAnswer.trim().isEmpty() || "No answer provided".equals(studentAnswer)) {
-                return new GradingResult(
+                GradingResult gr = new GradingResult(
                         answer.getQuestionId(),
                         "ESSAY",
                         0.0,
@@ -52,6 +52,9 @@ public class EssayGradingStrategy implements GradingStrategy {
                         false,
                         1.0, // Confidence 100% là 0 điểm
                         "LOCAL_RULE_BASED");
+                gr.setTopic(answer.getTopic());
+                gr.setAssessmentObjective(answer.getAssessmentObjective());
+                return gr;
             }
 
             // Call LangChain4j AI Service
@@ -63,7 +66,7 @@ public class EssayGradingStrategy implements GradingStrategy {
                     aiLanguageName);
 
             // Output logic
-            return new GradingResult(
+            GradingResult gr = new GradingResult(
                     answer.getQuestionId(),
                     "ESSAY",
                     result.getScore(),
@@ -72,11 +75,14 @@ public class EssayGradingStrategy implements GradingStrategy {
                     result.getScore() >= maxScore * 0.5,
                     result.getConfidenceScore(),
                     "AI_GPT4_LANGCHAIN");
+            gr.setTopic(answer.getTopic());
+            gr.setAssessmentObjective(answer.getAssessmentObjective());
+            return gr;
 
         } catch (Exception e) {
             e.printStackTrace();
             // Fallback in case of AI failure
-            return new GradingResult(
+            GradingResult gr = new GradingResult(
                     answer.getQuestionId(),
                     "ESSAY",
                     0.0,
@@ -85,6 +91,9 @@ public class EssayGradingStrategy implements GradingStrategy {
                     false,
                     0.0,
                     "ERROR_FALLBACK");
+            gr.setTopic(answer.getTopic());
+            gr.setAssessmentObjective(answer.getAssessmentObjective());
+            return gr;
         }
     }
 

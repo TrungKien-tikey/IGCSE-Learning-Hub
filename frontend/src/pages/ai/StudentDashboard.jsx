@@ -107,6 +107,21 @@ export default function StudentDashboard() {
                     </button>
                 </div>
 
+                {/* PERSONA BADGE - Hiển thị phong cách học tập */}
+                {statistics?.persona && (
+                    <div className="mb-8 p-5 bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 rounded-2xl shadow-lg animate-fadeIn">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
+                                <span className="text-2xl">🎯</span>
+                            </div>
+                            <div className="flex-1 text-white">
+                                <p className="text-sm opacity-80 font-medium">Phong cách học tập của bạn</p>
+                                <p className="text-lg font-bold leading-snug">{statistics.persona}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* SECTION: Statistics Overview */}
                 {statistics && (
                     <section className="mb-10">

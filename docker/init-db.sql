@@ -47,20 +47,28 @@ CREATE TABLE IF NOT EXISTS ai_results (
     language VARCHAR(10) DEFAULT 'en' COMMENT 'Ngôn ngữ của feedback (en, vi)',
     confidence DOUBLE DEFAULT 1.0 COMMENT 'Độ tin cậy của điểm số (0.0-1.0)',
     student_id BIGINT COMMENT 'ID học sinh (từ exam_db.exam_attempts.user_id)',
-    exam_id BIGINT COMMENT 'ID bài thi (từ exam_db.exams.exam_id)',
-    details TEXT COMMENT 'JSON chứa chi tiết điểm từng câu (tham chiếu đến exam_db.exam_answers)',
-    evaluation_method VARCHAR(50) DEFAULT 'LOCAL_RULE_BASED' COMMENT 'Phương pháp chấm: AI_GPT4_LANGCHAIN hoặc LOCAL_RULE_BASED',
     student_name VARCHAR(255) COMMENT 'Tên học sinh (đồng bộ từ auth_db)',
+    exam_id BIGINT COMMENT 'ID bài thi (từ exam_db.exams.exam_id)',
+    class_id BIGINT COMMENT 'ID lớp học (từ NiFi/Study Context)',
+    details TEXT COMMENT 'JSON chứa chi tiết điểm từng câu',
+    evaluation_method VARCHAR(50) DEFAULT 'LOCAL_RULE_BASED' COMMENT 'Phương pháp chấm: AI_GPT4_LANGCHAIN hoặc LOCAL_RULE_BASED',
+    answers_hash VARCHAR(64) COMMENT 'MD5 hash của answers JSON để validate cache',
+    multiple_choice_score DOUBLE COMMENT 'Điểm phần trắc nghiệm',
+    essay_score DOUBLE COMMENT 'Điểm phần tự luận',
+    
     INDEX idx_attempt_id (attempt_id),
     INDEX idx_student_id (student_id),
     INDEX idx_exam_id (exam_id),
+    INDEX idx_class_id (class_id),
     INDEX idx_graded_at (graded_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- Bảng lưu phân tích (Insight)
 CREATE TABLE IF NOT EXISTS ai_insights (
     insight_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     student_id BIGINT NOT NULL,
+    class_id BIGINT COMMENT 'ID lớp học (cho Teacher Analytics)',
     overall_summary TEXT,
     key_strengths TEXT COMMENT 'JSON array',
     areas_for_improvement TEXT COMMENT 'JSON array',
@@ -74,6 +82,7 @@ CREATE TABLE IF NOT EXISTS ai_insights (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_student_id (student_id),
+    INDEX idx_class_id (class_id),
     INDEX idx_generated_at (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -81,6 +90,7 @@ CREATE TABLE IF NOT EXISTS ai_insights (
 CREATE TABLE IF NOT EXISTS ai_recommendations (
     recommendation_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     student_id BIGINT NOT NULL,
+    class_id BIGINT COMMENT 'ID lớp học (cho Teacher Analytics)',
     weak_topics TEXT COMMENT 'JSON array',
     strong_topics TEXT COMMENT 'JSON array',
     recommended_resources TEXT COMMENT 'JSON array',
@@ -94,6 +104,7 @@ CREATE TABLE IF NOT EXISTS ai_recommendations (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_student_id (student_id),
+    INDEX idx_class_id (class_id),
     INDEX idx_generated_at (generated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -103,12 +114,15 @@ CREATE TABLE IF NOT EXISTS study_contexts (
     student_id BIGINT NOT NULL UNIQUE,
     student_name VARCHAR(255),
     class_id BIGINT,
-    context_data TEXT COMMENT 'Dữ liệu JSON chi tiết từ NiFi (persona, chuyên cần...)',
+    course_title VARCHAR(255) COMMENT 'Tên khóa học (từ NiFi title)',
+    persona TEXT COMMENT 'Đặc điểm tính cách và thói quen học tập',
+    context_data TEXT COMMENT 'Dữ liệu JSON chi tiết từ NiFi (chuyên cần...)',
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_student_id (student_id),
     INDEX idx_updated_at (updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 
 USE ai_db;
