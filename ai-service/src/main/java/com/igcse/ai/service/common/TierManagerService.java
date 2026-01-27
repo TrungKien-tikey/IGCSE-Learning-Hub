@@ -280,7 +280,7 @@ public class TierManagerService {
                         sid = record.get("studentId");
 
                     if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
-                        String studentName = extractString(record, "full_name", "student_name", "name");
+                        String studentName = extractString(record, "full_name", "student_name", "name","studentName","fullName");
                         String courseName = extractString(record, "course_name", "title");
                         return new AnalysisMetadata(
                                 studentName != null ? studentName : "Học sinh",

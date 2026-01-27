@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
 
 export default function CreateExamPage() {
@@ -12,7 +13,7 @@ export default function CreateExamPage() {
     const date = new Date();
     date.setDate(date.getDate() + 1); // Cộng thêm 1 ngày
     // Chỉnh lại múi giờ địa phương để hiển thị đúng trên input
-    date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); 
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
     // Cắt chuỗi để lấy định dạng: "YYYY-MM-DDTHH:mm"
     return date.toISOString().slice(0, 16);
   };
@@ -49,7 +50,7 @@ export default function CreateExamPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+        toast.warning("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
         return;
       }
       const reader = new FileReader();
@@ -138,20 +139,20 @@ export default function CreateExamPage() {
 
   // --- LOGIC LƯU CÂU HỎI VÀO DANH SÁCH ---
   const saveQuestionToList = () => {
-    if (!draftQ.content.trim()) return alert("Nội dung câu hỏi không được để trống");
-    if (draftQ.score <= 0) return alert("Điểm phải lớn hơn 0");
+    if (!draftQ.content.trim()) return toast.warning("Nội dung câu hỏi không được để trống");
+    if (draftQ.score <= 0) return toast.warning("Điểm phải lớn hơn 0");
 
     if (draftQ.questionType === "MCQ") {
-      if (draftQ.options.length < 2) return alert("Câu trắc nghiệm cần ít nhất 2 lựa chọn");
+      if (draftQ.options.length < 2) return toast.warning("Câu trắc nghiệm cần ít nhất 2 lựa chọn");
       const hasCorrect = draftQ.options.some((opt) => opt.isCorrect);
-      if (!hasCorrect) return alert("Phải chọn ít nhất 1 đáp án đúng");
+      if (!hasCorrect) return toast.warning("Phải chọn ít nhất 1 đáp án đúng");
       const hasEmptyOption = draftQ.options.some((opt) => !opt.content.trim());
-      if (hasEmptyOption) return alert("Nội dung đáp án không được để trống");
+      if (hasEmptyOption) return toast.warning("Nội dung đáp án không được để trống");
     }
 
     if (draftQ.questionType === "ESSAY") {
       if (!draftQ.essayCorrectAnswer || !draftQ.essayCorrectAnswer.trim()) {
-        return alert("Vui lòng nhập đáp án tham khảo cho câu tự luận");
+        return toast.warning("Vui lòng nhập đáp án tham khảo cho câu tự luận");
       }
     }
 
@@ -183,8 +184,8 @@ export default function CreateExamPage() {
 
   // --- LOGIC SUBMIT LÊN SERVER ---
   const handleSubmitExam = async () => {
-    if (!examInfo.title.trim()) return alert("Vui lòng nhập tên bài thi");
-    if (questionsList.length === 0) return alert("Bài thi cần ít nhất 1 câu hỏi");
+    if (!examInfo.title.trim()) return toast.warning("Vui lòng nhập tên bài thi");
+    if (questionsList.length === 0) return toast.warning("Bài thi cần ít nhất 1 câu hỏi");
 
     setLoading(true);
 
@@ -216,11 +217,11 @@ export default function CreateExamPage() {
 
       if (!res.ok) throw new Error("Lỗi khi lưu bài thi");
 
-      alert("Tạo bài thi thành công!");
+      toast.success("Tạo bài thi thành công!");
       navigate("/exams/manage");
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra. Vui lòng thử lại.");
+      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }

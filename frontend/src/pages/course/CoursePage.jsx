@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom'; // Dùng để chuyển trang
 import './CoursePage.css';
@@ -26,7 +27,7 @@ export default function CoursePage() {
       setCourses(response.data);
     } catch (err) {
       console.error(err);
-      alert('Lỗi kết nối Backend! Hãy kiểm tra server.');
+      toast.error('Lỗi kết nối Backend! Hãy kiểm tra server.');
     } finally {
       setLoading(false);
     }
@@ -69,15 +70,15 @@ export default function CoursePage() {
     try {
       if (isEditing && currentId) {
         await axiosClient.put(`${API_URL}/${currentId}`, formData);
-        alert("Cập nhật thành công!");
+        toast.success("Cập nhật thành công!");
       } else {
         await axiosClient.post(API_URL, formData);
-        alert("Thêm mới thành công!");
+        toast.success("Thêm mới thành công!");
       }
       fetchCourses();
       closeModal();
     } catch (err) {
-      alert("Lỗi: " + (err.response?.data || err.message));
+      toast.error("Lỗi: " + (err.response?.data || err.message));
     }
   };
 
@@ -87,9 +88,9 @@ export default function CoursePage() {
         await axiosClient.delete(`${API_URL}/${courseId}`);
         // Cập nhật lại danh sách ngay lập tức
         setCourses(prev => prev.filter(c => c.courseId !== courseId));
-        alert("Đã xóa thành công!");
+        toast.success("Đã xóa thành công!");
       } catch (err) {
-        alert("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
+        toast.error("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
       }
     }
   };
@@ -100,15 +101,15 @@ export default function CoursePage() {
       try {
         // Gọi API deactivate
         await axiosClient.delete(`${API_URL}/${courseId}/deactivate`);
-        alert("Đã ẩn khóa học thành công!");
+        toast.success("Đã ẩn khóa học thành công!");
         fetchCourses(); // Load lại để thấy trạng thái "Đã ẩn"
       } catch (err) {
         console.error(err);
         // Nếu lỗi 404: Nghĩa là Backend chưa có API này -> Cần Restart Server Java
         if (err.response && err.response.status === 404) {
-          alert("Lỗi: Backend chưa cập nhật API ẩn. Hãy Restart Server Java!");
+          toast.error("Lỗi: Backend chưa cập nhật API ẩn. Hãy Restart Server Java!");
         } else {
-          alert("Lỗi: Không thể vô hiệu hóa.");
+          toast.error("Lỗi: Không thể vô hiệu hóa.");
         }
       }
     }
@@ -117,10 +118,10 @@ export default function CoursePage() {
   const handleActivate = async (courseId) => {
     try {
       await axiosClient.put(`${API_URL}/${courseId}/activate`);
-      alert("Khóa học đã hiển thị công khai!");
+      toast.success("Khóa học đã hiển thị công khai!");
       fetchCourses(); // Load lại danh sách
     } catch (err) {
-      alert("Lỗi hiện khóa học");
+      toast.error("Lỗi hiện khóa học");
     }
   };
 

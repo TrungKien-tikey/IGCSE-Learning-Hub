@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 import { PlayCircle } from 'lucide-react';
@@ -21,7 +22,7 @@ export default function MyCoursesPage() {
 
         // Nếu Backend trả về 401 (Unauthorized) -> Token hết hạn hoặc sai Key
         if (err.response && err.response.status === 401) {
-          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+          toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
           localStorage.removeItem('accessToken'); // Xóa token cũ
           localStorage.removeItem('userRole');
           localStorage.removeItem('userId');

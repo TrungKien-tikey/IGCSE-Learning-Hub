@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { MessageSquare } from 'lucide-react'; // Thêm icon từ lucide
 import './LessonPage.css';
@@ -9,7 +10,7 @@ export default function LessonPage() {
   const navigate = useNavigate();
 
   const [lessons, setLessons] = useState([]);
-  const [selectedLessonId, setSelectedLessonId] = useState(null); 
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
 
   const [formData, setFormData] = useState({
     title: '', content: '', videoUrl: '', orderIndex: 1
@@ -48,30 +49,30 @@ export default function LessonPage() {
     try {
       if (selectedLessonId) {
         await axiosClient.put(`${API_URL}/lessons/${selectedLessonId}`, formData);
-        alert("Cập nhật thành công!");
+        toast.success("Cập nhật thành công!");
       } else {
         await axiosClient.post(`${API_URL}/${courseId}/lessons`, formData);
-        alert("Thêm bài mới thành công!");
+        toast.success("Thêm bài mới thành công!");
       }
       fetchLessons();
       if (!selectedLessonId) handleCreateNew();
-    } catch (err) { alert("Lỗi lưu dữ liệu: " + (err.response?.data || err.message)); }
+    } catch (err) { toast.error("Lỗi lưu dữ liệu: " + (err.response?.data || err.message)); }
   };
 
   const handleDelete = async (e, lessonId) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
 
     if (window.confirm("Bạn có chắc chắn muốn xóa bài học này không?")) {
       try {
         await axiosClient.delete(`${API_URL}/lessons/${lessonId}`);
-        alert("Đã xóa thành công!");
-        fetchLessons(); 
+        toast.success("Đã xóa thành công!");
+        fetchLessons();
 
         if (selectedLessonId === lessonId) {
           handleCreateNew();
         }
       } catch (err) {
-        alert("Lỗi: Không thể xóa bài học này.");
+        toast.error("Lỗi: Không thể xóa bài học này.");
       }
     }
   };
@@ -85,7 +86,7 @@ export default function LessonPage() {
     navigate('/chat', {
       state: {
         courseId: courseId,
-        courseTitle: "Thảo luận lớp học" 
+        courseTitle: "Thảo luận lớp học"
       }
     });
   };
@@ -100,15 +101,15 @@ export default function LessonPage() {
         </div>
         <div className="lp-tools">
           {/* SỬA ICON BÌNH LUẬN TẠI ĐÂY */}
-          <div 
-            className="icon-btn" 
-            title="Thảo luận cùng lớp" 
+          <div
+            className="icon-btn"
+            title="Thảo luận cùng lớp"
             onClick={handleOpenChat}
             style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <MessageSquare size={20} />
           </div>
-          
+
           <div className="user-info">
             <span>Giáo viên A</span>
             <div className="avatar">GV</div>

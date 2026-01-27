@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
 
 export default function EditExamPage() {
@@ -76,7 +77,7 @@ export default function EditExamPage() {
       })
       .catch((err) => {
         console.error(err);
-        alert("Lỗi tải bài thi!");
+        toast.error("Lỗi tải bài thi!");
         navigate("/exams/manage");
       });
   }, [examId]);
@@ -86,7 +87,7 @@ export default function EditExamPage() {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return alert("Ảnh quá lớn (<2MB)");
+      if (file.size > 2 * 1024 * 1024) return toast.warning("Ảnh quá lớn (<2MB)");
       const reader = new FileReader();
       reader.onloadend = () =>
         setDraftQ((prev) => ({ ...prev, image: reader.result }));
@@ -164,11 +165,11 @@ export default function EditExamPage() {
 
   // Logic lưu câu hỏi (Thêm mới hoặc Cập nhật)
   const saveQuestionToList = () => {
-    if (!draftQ.content.trim()) return alert("Nhập nội dung câu hỏi");
+    if (!draftQ.content.trim()) return toast.warning("Nhập nội dung câu hỏi");
     if (draftQ.questionType === "MCQ" && draftQ.options.length < 2)
-      return alert("Cần ít nhất 2 đáp án");
+      return toast.warning("Cần ít nhất 2 đáp án");
     if (draftQ.questionType === "MCQ" && !draftQ.options.some((o) => o.isCorrect))
-      return alert("Chọn ít nhất 1 đáp án đúng");
+      return toast.warning("Chọn ít nhất 1 đáp án đúng");
 
     // Nếu id=0 -> Là tạo mới (dùng Date.now). Nếu id khác 0 -> Là sửa (giữ nguyên ID thật)
     const questionId = draftQ.id === 0 ? Date.now() : draftQ.id;
@@ -197,8 +198,8 @@ export default function EditExamPage() {
   };
 
   const handleUpdateExam = async () => {
-    if (!examInfo.title.trim()) return alert("Vui lòng nhập tên bài thi");
-    if (questionsList.length === 0) return alert("Cần ít nhất 1 câu hỏi");
+    if (!examInfo.title.trim()) return toast.warning("Vui lòng nhập tên bài thi");
+    if (questionsList.length === 0) return toast.warning("Cần ít nhất 1 câu hỏi");
 
     setLoading(true);
 
@@ -229,10 +230,10 @@ export default function EditExamPage() {
       });
 
       if (!res.ok) throw new Error("Lỗi khi cập nhật");
-      alert("Cập nhật bài thi thành công!");
+      toast.success("Cập nhật bài thi thành công!");
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra.");
+      toast.error("Có lỗi xảy ra.");
     } finally {
       setLoading(false);
     }
