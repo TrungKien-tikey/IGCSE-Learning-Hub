@@ -97,7 +97,7 @@ export default function ChatPage() {
         const fetchParticipants = async () => {
             try {
                 // Sử dụng axiosClient để tận dụng baseURL và interceptor
-                const resIds = await axiosClient.get(`http://localhost:8079/api/courses/${courseId}/participants`);
+                const resIds = await axiosClient.get(`http://localhost:8000/api/courses/${courseId}/participants`);
                 const userIds = resIds.data;
 
                 const userPromises = userIds.map(async (id) => {
