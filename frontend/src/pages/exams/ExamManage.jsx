@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
 // Import thêm component và icon
 import CommentRoom from "../../components/CommentRoom";
@@ -50,13 +51,13 @@ export default function ManageExamsPage() {
                         exam.examId === examId ? { ...exam, isActive: false } : exam
                     )
                 );
-                alert("Đã ẩn bài thi thành công!");
+                toast.success("Đã ẩn bài thi thành công!");
             } else {
-                alert("Lỗi khi xử lý.");
+                toast.error("Lỗi khi xử lý.");
             }
         } catch (error) {
             console.error("Lỗi:", error);
-            alert("Lỗi kết nối đến server.");
+            toast.error("Lỗi kết nối đến server.");
         }
     };
 
@@ -105,7 +106,7 @@ export default function ManageExamsPage() {
 
         } catch (error) {
             console.error(error);
-            alert("Có lỗi khi tải bảng điểm.");
+            toast.error("Có lỗi khi tải bảng điểm.");
         } finally {
             setLoadingAttempts(false);
         }
@@ -223,7 +224,7 @@ export default function ManageExamsPage() {
                                             onClick={() => handleViewScores(exam.examId)}
                                             className={`p-2 rounded-full transition flex items-center gap-1 border ${expandedExamId === exam.examId ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'text-gray-500 hover:bg-gray-100'}`}
                                             title="Xem bảng điểm"
-                                        >                                   
+                                        >
                                             <span className="text-xs font-semibold hidden md:inline">Điểm</span>
                                             {expandedExamId === exam.examId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </button>

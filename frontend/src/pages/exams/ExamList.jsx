@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
 import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from '../../components/CommentRoom';
@@ -26,7 +27,7 @@ export default function ExamListPage() {
   // --- 1. LẤY USERID VỚI VALIDATION (Giống StudentDashboardGeneral) ---
   const userId = useMemo(() => {
     let id = localStorage.getItem("userId");
-    
+
     // Validate userId: không được undefined/null string
     if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
       // Thử lấy từ JWT token nếu có
@@ -39,19 +40,19 @@ export default function ExamListPage() {
           // Ignore decode error
         }
       }
-      
+
       // Fallback cuối cùng
       if (!id || id === "undefined" || id === "null") {
         id = "1";
       }
     }
-    
+
     // Final validation: phải là số hợp lệ
     const numId = Number(id);
     if (isNaN(numId) || numId <= 0) {
       return "1";
     }
-    
+
     return String(numId);
   }, []);
 
@@ -81,7 +82,7 @@ export default function ExamListPage() {
       setHistoryMap({});
       return;
     }
-    
+
     fetch(`/api/exams/history?userId=${currentUserId}`)
       .then(res => {
         if (!res.ok) {
@@ -165,7 +166,7 @@ export default function ExamListPage() {
     const currentUserId = Number(userId);
     if (isNaN(currentUserId) || currentUserId <= 0) {
       console.error("Invalid userId for start exam:", userId);
-      alert("Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.");
+      toast.error("Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.");
       return;
     }
     try {
@@ -182,7 +183,7 @@ export default function ExamListPage() {
       const data = await res.json();
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
     } catch (error) {
-      alert(error.message || "Lỗi khi bắt đầu bài thi.");
+      toast.error(error.message || "Lỗi khi bắt đầu bài thi.");
     }
   };
 

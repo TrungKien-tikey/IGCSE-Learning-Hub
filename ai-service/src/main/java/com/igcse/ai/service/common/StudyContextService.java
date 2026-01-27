@@ -47,7 +47,7 @@ public class StudyContextService {
                     Long studentId = Long.valueOf(sid.toString());
 
                     // Trích xuất các thông tin Metadata khác (dùng full_name và course_id)
-                    String studentName = extractString(record, "full_name", "student_name", "name");
+                    String studentName = extractString(record, "full_name", "student_name", "name","studentName","fullName");
                     Long courseId = extractLong(record, "course_id", "class_id");
                     String courseTitle = extractString(record, "title", "course_title", "courseName");
                     String persona = extractString(record, "persona", "habits", "behavior");

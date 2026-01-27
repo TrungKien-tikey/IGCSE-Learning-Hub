@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import axiosClient from '../api/axiosClient';
 import {
     Users, BookOpen, Clock, CheckCircle,
@@ -42,12 +43,12 @@ export default function TeacherDashboard() {
                 fullURL: (err.config?.baseURL || '') + (err.config?.url || '')
             });
             if (err.response && err.response.status === 401) {
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
+                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại!");
                 navigate('/login');
             } else if (err.response && err.response.status === 404) {
-                alert(`Lỗi 404: Không tìm thấy đường dẫn ${err.config?.url}. Kiểm tra cấu hình Backend/Kong.`);
+                toast.error(`Lỗi 404: Không tìm thấy đường dẫn ${err.config?.url}. Kiểm tra cấu hình Backend/Kong.`);
             } else {
-                alert("Lỗi khi tải danh sách lớp học. Vui lòng thử lại!");
+                toast.error("Lỗi khi tải danh sách lớp học. Vui lòng thử lại!");
             }
         } finally {
             setLoading(false);
@@ -99,7 +100,7 @@ export default function TeacherDashboard() {
             closeModal();
         } catch (err) {
             console.error("Lỗi lưu khóa học:", err);
-            alert("Lỗi: " + (err.response?.data || err.message));
+            toast.error("Lỗi: " + (err.response?.data || err.message));
         }
     };
 
@@ -110,7 +111,7 @@ export default function TeacherDashboard() {
                 await axiosClient.delete(`${API_URL}/${courseId}`);
                 setCourses(prev => prev.filter(c => c.courseId !== courseId));
             } catch (err) {
-                alert("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
+                toast.error("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
             }
         }
     };
@@ -122,7 +123,7 @@ export default function TeacherDashboard() {
                 await axiosClient.delete(`${API_URL}/${courseId}/deactivate`);
                 fetchCourses();
             } catch (err) {
-                alert("Lỗi: Không thể vô hiệu hóa.");
+                toast.error("Lỗi: Không thể vô hiệu hóa.");
             }
         }
     };
@@ -133,7 +134,7 @@ export default function TeacherDashboard() {
             await axiosClient.put(`${API_URL}/${courseId}/activate`, {});
             fetchCourses();
         } catch (err) {
-            alert("Lỗi hiện khóa học");
+            toast.error("Lỗi hiện khóa học");
         }
     };
 

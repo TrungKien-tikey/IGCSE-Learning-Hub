@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Eye } from 'lucide-react';
 import './AdminCourseApprovalPage.css'; // Chúng ta sẽ tạo file CSS này ở bước 2
@@ -26,14 +27,14 @@ export default function AdminCourseApprovalPage() {
     try {
       const config = getAuthConfig();
       const res = await axios.get(API_URL, config);
-      
+
       // Logic: Chỉ lấy những khóa có active === false (hoặc null)
       const unapproved = res.data.filter(c => !c.active);
       setPendingCourses(unapproved);
     } catch (err) {
       console.error("Lỗi tải dữ liệu:", err);
       if (err.response?.status === 401) {
-        alert("Phiên làm việc hết hạn. Vui lòng đăng nhập lại.");
+        toast.error("Phiên làm việc hết hạn. Vui lòng đăng nhập lại.");
         navigate('/login');
       }
     } finally {
@@ -51,12 +52,12 @@ export default function AdminCourseApprovalPage() {
       try {
         // API: PUT /api/courses/{id}/activate
         await axios.put(`${API_URL}/${courseId}/activate`, {}, getAuthConfig());
-        alert("✅ Đã duyệt khóa học thành công!");
-        
+        toast.success("✅ Đã duyệt khóa học thành công!");
+
         // Refresh lại danh sách (Loại bỏ khóa vừa duyệt)
         setPendingCourses(prev => prev.filter(c => c.courseId !== courseId));
       } catch (err) {
-        alert("Lỗi khi duyệt: " + (err.response?.data || err.message));
+        toast.error("Lỗi khi duyệt: " + (err.response?.data || err.message));
       }
     }
   };
@@ -69,17 +70,17 @@ export default function AdminCourseApprovalPage() {
       try {
         // Gọi API Xóa (Hoặc bạn có thể viết thêm API /reject riêng để đổi trạng thái)
         await axios.delete(`${API_URL}/${courseId}`, getAuthConfig());
-        alert("Đã từ chối và xóa khóa học.");
+        toast.success("Đã từ chối và xóa khóa học.");
         setPendingCourses(prev => prev.filter(c => c.courseId !== courseId));
       } catch (err) {
-        alert("Lỗi khi từ chối: " + err.message);
+        toast.error("Lỗi khi từ chối: " + err.message);
       }
     }
   };
 
   // Xem chi tiết (Chuyển sang trang detail hoặc modal)
   const handleViewDetail = (courseId) => {
-    navigate(`/course-detail/${courseId}`); 
+    navigate(`/course-detail/${courseId}`);
   };
 
   if (loading) return <div className="admin-loading">Đang tải danh sách chờ duyệt...</div>;
@@ -119,22 +120,22 @@ export default function AdminCourseApprovalPage() {
                   <td>{course.duration}</td>
                   <td>
                     <div className="action-buttons">
-                      <button 
-                        className="btn-icon btn-view" 
+                      <button
+                        className="btn-icon btn-view"
                         title="Xem nội dung"
                         onClick={() => handleViewDetail(course.courseId)}
                       >
                         <Eye size={18} />
                       </button>
-                      <button 
-                        className="btn-icon btn-approve" 
+                      <button
+                        className="btn-icon btn-approve"
                         title="Duyệt"
                         onClick={() => handleApprove(course.courseId)}
                       >
                         <CheckCircle size={18} /> Duyệt
                       </button>
-                      <button 
-                        className="btn-icon btn-reject" 
+                      <button
+                        className="btn-icon btn-reject"
                         title="Từ chối"
                         onClick={() => handleReject(course.courseId)}
                       >

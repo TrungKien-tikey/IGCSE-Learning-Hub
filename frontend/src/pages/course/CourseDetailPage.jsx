@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
@@ -51,7 +52,7 @@ export default function CourseDetailPage() {
         const token = localStorage.getItem('accessToken');
 
         if (!token) {
-            alert("Vui lòng đăng nhập để mua khóa học!");
+            toast.warning("Vui lòng đăng nhập để mua khóa học!");
             navigate('/login');
             return;
         }
@@ -65,16 +66,16 @@ export default function CourseDetailPage() {
                     {}
                 );
 
-                alert("🎉 Đăng ký thành công! Chào mừng bạn vào học.");
+                toast.success("🎉 Đăng ký thành công! Chào mừng bạn vào học.");
                 setIsEnrolled(true);
             }
         } catch (err) {
             console.error(err);
             if (err.response?.status === 401) {
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 navigate('/login');
             } else {
-                alert("Lỗi đăng ký: " + (err.response?.data || "Có lỗi xảy ra"));
+                toast.error("Lỗi đăng ký: " + (err.response?.data || "Có lỗi xảy ra"));
             }
         }
     };

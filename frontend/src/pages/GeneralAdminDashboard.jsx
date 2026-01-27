@@ -25,7 +25,7 @@ export default function GeneralAdminDashboard() {
         { id: 'communication', name: "Communication Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
     ]);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    
+
     // State cho tổng số người dùng
     const [totalUsers, setTotalUsers] = useState(0);
 
@@ -85,7 +85,7 @@ export default function GeneralAdminDashboard() {
                     size: 1
                 }
             });
-            
+
             if (response.data && response.data.totalElements !== undefined) {
                 setTotalUsers(response.data.totalElements);
             }
@@ -165,78 +165,51 @@ export default function GeneralAdminDashboard() {
                     ))}
                 </div>
 
-                {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* System Monitor */}
-                    <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                            <h2 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Activity className="w-5 h-5 text-emerald-500" />
-                                Monitor các Service
-                            </h2>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={checkHealth}
-                                    disabled={isRefreshing}
-                                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    {isRefreshing ? "Đang tải..." : " Refresh"}
-                                </button>
-                                {/* LINK SANG GRAFANA */}
-                                <a
-                                    href="http://localhost:3001"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 flex items-center gap-1 transition-colors"
-                                >
-                                    <ExternalLink size={12} /> Grafana
-                                </a>
-                            </div>
-                        </div>
-                        <div className="p-6 space-y-4">
-                            {serviceHealth.map((svc, i) => (
-                                <div key={i} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100">
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-2.5 h-2.5 rounded-full ${svc.bg}`}></div>
-                                        <span className="font-medium text-slate-700">{svc.name}</span>
-                                    </div>
-                                    <div className="flex gap-8 text-sm items-center">
-                                        {/* Uptime giả lập vì /actuator/health mặc định ko trả uptime, muốn có phải config thêm */}
-                                        <span className="text-slate-400 hidden sm:block">Region: Local</span>
-                                        <span className={`font-mono font-bold ${svc.color}`}>
-                                            [{svc.status.toUpperCase()}]
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
+                {/* Main Content - Full Width Monitor */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                    <div className="p-5 border-b border-slate-100 flex justify-between items-center">
+                        <h2 className="font-bold text-slate-800 flex items-center gap-2">
+                            <Activity className="w-5 h-5 text-emerald-500" />
+                            Monitor các Service
+                        </h2>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={checkHealth}
+                                disabled={isRefreshing}
+                                className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isRefreshing ? "Đang tải..." : "Refresh"}
+                            </button>
+                            {/* LINK SANG GRAFANA */}
+                            <a
+                                href="http://localhost:3001"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded hover:bg-gray-200 flex items-center gap-1 transition-colors"
+                            >
+                                <ExternalLink size={12} /> Grafana
+                            </a>
                         </div>
                     </div>
-
-                    {/* Quick Logs (Mockup - Vì log thật cần ElasticSearch/Loki)
-                    <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
-                        <h2 className="font-bold text-slate-800 flex items-center gap-2">
-                            <FileText className="w-5 h-5 text-blue-500" />
-                            Log hệ thống gần đây
-                        </h2>
-                        <div className="space-y-4">
-                            <div className="text-xs space-y-1">
-                                <p className="text-slate-400">19:15:32 - INFO</p>
-                                <p className="text-slate-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis">New user registered: user_1293</p>
+                    {/* Grid layout for services - more compact */}
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {serviceHealth.map((svc, i) => (
+                            <div key={i} className="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors border border-slate-100">
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${svc.bg}`}></div>
+                                    <span className="font-medium text-slate-700">{svc.name}</span>
+                                </div>
+                                <div className="flex gap-4 text-sm items-center">
+                                    <span className="text-slate-400 text-xs hidden sm:block">Region: Local</span>
+                                    <span className={`font-mono font-bold text-xs ${svc.color}`}>
+                                        [{svc.status.toUpperCase()}]
+                                    </span>
+                                </div>
                             </div>
-                            <div className="text-xs space-y-1">
-                                <p className="text-slate-400">19:10:05 - WARN</p>
-                                <p className="text-slate-700 font-medium">High latency detected on Exam Service</p>
-                            </div>
-                            <div className="text-xs space-y-1">
-                                <p className="text-slate-400">18:45:12 - INFO</p>
-                                <p className="text-slate-700 font-medium text-blue-600">Scheduler Service started</p>
-                            </div>
-                        </div>
-                        <button className="w-full py-3 bg-slate-100 text-slate-700 rounded-xl font-bold hover:bg-slate-200 transition">
-                            Xem nhật ký chi tiết
-                        </button>
-                    </div> */}
+                        ))}
+                    </div>
                 </div>
+
             </div>
         </MainLayout>
     );

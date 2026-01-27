@@ -16,7 +16,7 @@ const menuItems = {
   student: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Bài kiểm tra", icon: GraduationCap, url: "/exams" },
-    { title: "Kết quả bài thi", icon: Award, url: "/ai" },
+    // { title: "Kết quả bài thi", icon: Award, url: "/ai" },
     { title: "Mua Khóa Học", icon: ShoppingCart, url: "/all-courses" },
     { title: "Vào Lớp Học", icon: PlayCircle, url: "/my-courses" },
     { title: "Thông báo", icon: Bell, url: "/notifications" },

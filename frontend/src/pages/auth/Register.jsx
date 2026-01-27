@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import authService from '../../services/authService';
 import './Register.css'; // Đảm bảo file css nằm cùng thư mục
 
@@ -109,7 +110,7 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // 👇 1. Chạy validate client trước
     if (!validateForm()) {
       return; // Nếu có lỗi thì dừng ngay
@@ -130,13 +131,13 @@ function Register() {
       });
 
       console.log("Đăng ký thành công:", response.data);
-      alert("Đăng ký thành công! Hãy đăng nhập ngay.");
-      navigate('/login'); 
+      toast.success("Đăng ký thành công! Hãy đăng nhập ngay.");
+      navigate('/login');
 
     } catch (error) {
       console.error("Lỗi đăng ký:", error);
       const message = error.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại!";
-      alert(message);
+      toast.error(message);
     }
   };
 
@@ -144,19 +145,19 @@ function Register() {
     <div className="register-container">
       <div className="register-box">
         <h2>Đăng Ký Tài Khoản</h2>
-        
+
         {/* 👇 noValidate: Tắt popup mặc định của trình duyệt */}
         <form onSubmit={handleSubmit} noValidate>
-          
+
           {/* --- Họ tên --- */}
           <div className="input-group">
             <label>Họ và tên</label>
-            <input 
-              type="text" 
-              name="fullName" 
+            <input
+              type="text"
+              name="fullName"
               placeholder="Ví dụ: Nguyễn Văn A"
-              value={formData.fullName} 
-              onChange={handleChange} 
+              value={formData.fullName}
+              onChange={handleChange}
               // Thêm class lỗi nếu có
               className={errors.fullName ? "input-error" : ""}
             />
@@ -167,12 +168,12 @@ function Register() {
           {/* --- Email --- */}
           <div className="input-group">
             <label>Email</label>
-            <input 
-              type="email" 
-              name="email" 
+            <input
+              type="email"
+              name="email"
               placeholder="email@example.com"
-              value={formData.email} 
-              onChange={handleChange} 
+              value={formData.email}
+              onChange={handleChange}
               onBlur={handleCheckEmail}
               className={(errors.email || apiEmailError) ? "input-error" : ""}
             />
@@ -199,15 +200,15 @@ function Register() {
           <div className="input-group">
             <label>Mật khẩu</label>
             <div className="password-input-wrapper">
-              <input 
+              <input
                 type={showPassword ? "text" : "password"}
-                name="password" 
+                name="password"
                 placeholder="******"
-                value={formData.password} 
-                onChange={handleChange} 
+                value={formData.password}
+                onChange={handleChange}
                 className={errors.password ? "input-error" : ""}
               />
-              <span 
+              <span
                 className="password-toggle-icon"
                 onClick={() => setShowPassword(!showPassword)}
               >
@@ -216,20 +217,20 @@ function Register() {
             </div>
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
-          
+
           {/* --- Nhập lại mật khẩu --- */}
           <div className="input-group">
             <label>Nhập lại mật khẩu</label>
             <div className="password-input-wrapper">
-              <input 
+              <input
                 type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword" 
+                name="confirmPassword"
                 placeholder="******"
-                value={formData.confirmPassword} 
-                onChange={handleChange} 
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 className={errors.confirmPassword ? "input-error" : ""}
               />
-              <span 
+              <span
                 className="password-toggle-icon"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
@@ -240,8 +241,8 @@ function Register() {
           </div>
 
           {/* Nút Đăng ký */}
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-submit"
             disabled={!!apiEmailError} // Chỉ disable khi bị trùng email từ server
             style={apiEmailError ? { backgroundColor: '#ccc', cursor: 'not-allowed' } : {}}
@@ -249,7 +250,7 @@ function Register() {
             Đăng Ký Ngay
           </button>
         </form>
-        
+
         <p className="redirect-text">
           Đã có tài khoản? <Link to="/login">Đăng nhập tại đây</Link>
         </p>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { PlayCircle, FileText, Bell, MessageSquare, LogOut } from 'lucide-react';
 import './LessonPage.css'; // <--- QUAN TRỌNG: Dùng chung CSS với trang Giáo viên
@@ -38,7 +39,7 @@ export default function StudentLearningPage() {
             console.error(err);
             // Nếu lỗi 401 hoặc 403 (Không có quyền truy cập khóa học này)
             if (err.response && (err.response.status === 401 || err.response.status === 403)) {
-                alert("Bạn chưa mua khóa học này hoặc phiên đăng nhập hết hạn!");
+                toast.error("Bạn chưa mua khóa học này hoặc phiên đăng nhập hết hạn!");
                 navigate('/my-courses');
             }
         }
