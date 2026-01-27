@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     BookOpen, Target, Clock, Trophy, Users, ShieldCheck,
     FileText, TrendingUp, CalendarDays, Calculator, ClipboardList, PlayCircle, ShoppingCart,
@@ -21,40 +21,40 @@ const RecentExamsCompact = ({ exams }) => {
     if (!exams || exams.length === 0) return null;
 
     return (
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-50 rounded-lg flex items-center justify-center">
-                        <FileIcon className="w-5 h-5 text-indigo-600" />
+        <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                        <FileIcon className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800">Kết quả bài thi</h3>
+                    <h3 className="text-base sm:text-xl font-bold text-gray-800">Kết quả bài thi</h3>
                 </div>
                 <button
                     onClick={() => navigate('/ai')}
-                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider flex-shrink-0"
                 >
                     Chi tiết
                 </button>
             </div>
 
-            <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            <div className="space-y-2 sm:space-y-3 flex-1 overflow-y-auto pr-1">
                 {exams.slice(0, 4).map((exam) => (
                     <div
                         key={exam.attemptId}
                         onClick={() => navigate(`/ai/results/${exam.attemptId}`)}
-                        className="flex items-center justify-between p-3 rounded-xl border border-transparent hover:border-indigo-100 hover:bg-indigo-50/50 transition-all cursor-pointer group"
+                        className="flex items-center justify-between p-2.5 sm:p-3 rounded-lg sm:rounded-xl border border-transparent hover:border-indigo-100 hover:bg-indigo-50/50 transition-all cursor-pointer group"
                     >
-                        <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-400 group-hover:text-indigo-500 group-hover:border-indigo-200 transition-colors">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-[9px] sm:text-[10px] font-bold text-gray-400 group-hover:text-indigo-500 group-hover:border-indigo-200 transition-colors flex-shrink-0">
                                 #{exam.attemptId}
                             </div>
-                            <div>
-                                <p className="text-sm font-bold text-gray-700">Exam Attempt</p>
-                                <p className="text-[10px] text-gray-500">{new Date(exam.date).toLocaleDateString('vi-VN')}</p>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-xs sm:text-sm font-bold text-gray-700 truncate">Exam Attempt</p>
+                                <p className="text-[9px] sm:text-[10px] text-gray-500">{new Date(exam.date).toLocaleDateString('vi-VN')}</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className={`text-sm font-black ${exam.totalScore >= 8 ? "text-emerald-500" :
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+                            <span className={`text-xs sm:text-sm font-black ${exam.totalScore >= 8 ? "text-emerald-500" :
                                 exam.totalScore >= 5 ? "text-indigo-500" : "text-orange-500"
                                 }`}>
                                 {exam.totalScore?.toFixed(1) || "0.0"}
@@ -89,17 +89,17 @@ const StatCard = ({ title, value, icon: Icon, color, trend }) => {
     const iconBg = selectedColor.replace("border-l-", "").split(" ")[1];
 
     return (
-        <div className={`bg-white p-6 rounded-xl border border-gray-100 shadow-sm border-l-4 ${selectedColor.split(" ")[0]} hover:shadow-md transition-shadow`}>
-            <div className="flex justify-between items-start mb-4">
-                <div>
-                    <p className="text-gray-500 text-sm font-medium mb-1">{title}</p>
-                    <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
+        <div className={`bg-white p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-gray-100 shadow-sm border-l-4 ${selectedColor.split(" ")[0]} hover:shadow-md transition-shadow`}>
+            <div className="flex justify-between items-start mb-2 sm:mb-3 md:mb-4">
+                <div className="flex-1 min-w-0">
+                    <p className="text-gray-500 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 truncate">{title}</p>
+                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">{value}</h3>
                 </div>
-                <div className={`p-3 rounded-lg ${iconBg} bg-opacity-50`}>
-                    <Icon className="w-6 h-6" />
+                <div className={`p-2 sm:p-2.5 md:p-3 rounded-lg ${iconBg} bg-opacity-50 flex-shrink-0 ml-2`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
                 </div>
             </div>
-            <p className="text-xs font-medium text-gray-500">{trend}</p>
+            <p className="text-[10px] sm:text-xs font-medium text-gray-500 line-clamp-1">{trend}</p>
         </div>
     );
 };
@@ -113,7 +113,39 @@ const roleMessages = {
 const StudentDashboardGeneral = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const studentId = searchParams.get("studentId") || localStorage.getItem("userId") || "1";
+    
+    // Get studentId with validation - sử dụng useMemo để chỉ tính toán một lần
+    const studentId = useMemo(() => {
+        let id = searchParams.get("studentId") || localStorage.getItem("userId");
+        
+        // Validate studentId: không được undefined/null string
+        if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
+            // Thử lấy từ JWT token nếu có
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                try {
+                    const decoded = JSON.parse(atob(token.split('.')[1]));
+                    id = decoded.userId || decoded.id || decoded.sub || null;
+                } catch (e) {
+                    // Ignore decode error
+                }
+            }
+            
+            // Fallback cuối cùng
+            if (!id || id === "undefined" || id === "null") {
+                id = "1";
+            }
+        }
+        
+        // Final validation: phải là số hợp lệ
+        const numId = Number(id);
+        if (isNaN(numId) || numId <= 0) {
+            // Fallback về "1" nếu không hợp lệ (không log warning vì đây là fallback bình thường)
+            return "1";
+        }
+        
+        return String(numId);
+    }, [searchParams]);
 
     const { statistics, insights, recommendations } = useStudentData(studentId);
 
@@ -180,7 +212,7 @@ const StudentDashboardGeneral = () => {
                 </div>
 
                 {/* 1. Thẻ Thống Kê (AI Data) */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4 lg:gap-6">
                     <StatCard title="Tổng bài thi" value={statistics?.totalExams || "0"} icon={FileText} color="blue" trend="Cập nhật từ hệ thống" />
                     <StatCard title="Điểm trung bình" value={statistics?.averageScore?.toFixed(1) || "0.0"} icon={TrendingUp} color="teal" trend="+0.2 so với kỳ trước" />
                     <StatCard title="Điểm cao nhất" value={statistics?.highestScore?.toFixed(1) || "0.0"} icon={Trophy} color="amber" trend="Thành tích tốt nhất" />
@@ -265,7 +297,7 @@ const StudentDashboardGeneral = () => {
                         <div>
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <ShoppingCart className="w-5 h-5 text-indigo-600" />
-                                Khám Phá (Recommended)
+                                Khám Phá 
                             </h2>
                             <p className="text-xs text-gray-500">Gợi ý những khóa học phù hợp nhất với hành trình của bạn.</p>
                         </div>
@@ -344,33 +376,36 @@ const StudentDashboardGeneral = () => {
                     </button>
                 </div>
 
-                <div className={`grid ${statistics?.recentExams?.length > 0 ? "md:grid-cols-3" : "md:grid-cols-2"} gap-6`}>
+                {/* Layout responsive: Mobile stack dọc, Tablet 2 cột, Desktop 3 cột */}
+                <div className={`grid grid-cols-1 ${statistics?.recentExams?.length > 0 ? "lg:grid-cols-3" : "lg:grid-cols-2"} gap-4 sm:gap-6`}>
                     {/* Kết quả Phân tích AI */}
-                    <div className="md:col-span-1">
+                    <div className="lg:col-span-1">
                         {insights ? (
                             <InsightCard insight={insights} />
                         ) : (
-                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm text-center py-10 h-full flex items-center justify-center">
-                                <p className="text-gray-500 italic">Đang phân tích dữ liệu học tập...</p>
+                            <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm text-center py-8 sm:py-10 h-full flex items-center justify-center min-h-[200px]">
+                                <p className="text-gray-500 italic text-sm sm:text-base">Đang phân tích dữ liệu học tập...</p>
                             </div>
                         )}
                     </div>
 
                     {/* Gợi ý lộ trình học tập */}
-                    <div className="md:col-span-1">
+                    <div className="lg:col-span-1">
                         {recommendations ? (
                             <RecommendationPanel data={recommendations} />
                         ) : (
-                            <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm text-center py-10 h-full flex items-center justify-center">
-                                <p className="text-gray-500 italic">Đang chuẩn bị gợi ý cho bạn...</p>
+                            <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-sm text-center py-8 sm:py-10 h-full flex items-center justify-center min-h-[200px]">
+                                <p className="text-gray-500 italic text-sm sm:text-base">Đang chuẩn bị gợi ý cho bạn...</p>
                             </div>
                         )}
                     </div>
 
                     {/* Kết quả gần đây (Thay thế cho QuickResultCard) */}
-                    <div className="md:col-span-1">
-                        <RecentExamsCompact exams={statistics?.recentExams} />
-                    </div>
+                    {statistics?.recentExams?.length > 0 && (
+                        <div className="lg:col-span-1">
+                            <RecentExamsCompact exams={statistics?.recentExams} />
+                        </div>
+                    )}
                 </div>
             </div>
         </MainLayout>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
 import MainLayout from '../../layouts/MainLayout';
@@ -9,9 +9,6 @@ import CommentRoom from '../../components/CommentRoom';
 export default function ExamListPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
-  // --- 1. STATE QUẢN LÝ USER (Thay cho hằng số cứng) ---
-  const [userId, setUserId] = useState(null);
 
   // State dữ liệu
   const [allExams, setAllExams] = useState([]);
@@ -24,29 +21,45 @@ export default function ExamListPage() {
 
   // State quản lý việc mở khung comment (mới thêm)
   const [activeSection, setActiveSection] = useState(null);
-  const currentUser = JSON.parse(localStorage.getItem('user'));
+  const currentUser = JSON.parse(localStorage.getItem('user') || "{}");
 
-  // --- 2. EFFECT KIỂM TRA QUYỀN VÀ CHUYỂN HƯỚNG ---
-  useEffect(() => {
-    // Lấy thông tin từ localStorage (khớp với file Login.jsx của bạn)
-    const storedUserId = localStorage.getItem("userId");
-
-    if (storedUserId) {
-      setUserId(storedUserId);
-    } else {
-      setUserId(1);
-      // Nếu không có userId, chuyển hướng về trang đăng nhập
-      // navigate("/login");
+  // --- 1. LẤY USERID VỚI VALIDATION (Giống StudentDashboardGeneral) ---
+  const userId = useMemo(() => {
+    let id = localStorage.getItem("userId");
+    
+    // Validate userId: không được undefined/null string
+    if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
+      // Thử lấy từ JWT token nếu có
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]));
+          id = decoded.userId || decoded.id || decoded.sub || null;
+        } catch (e) {
+          // Ignore decode error
+        }
+      }
+      
+      // Fallback cuối cùng
+      if (!id || id === "undefined" || id === "null") {
+        id = "1";
+      }
     }
+    
+    // Final validation: phải là số hợp lệ
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) {
+      return "1";
+    }
+    
+    return String(numId);
   }, []);
 
   // --- 3. EFFECT TẢI DỮ LIỆU (Chỉ chạy khi đã xác định Role và KHÔNG PHẢI Teacher) ---
 
   // Effect 1: Tải danh sách bài thi
   useEffect(() => {
-    // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
-    if (!userId) return;
-
+    // userId đã được validate và luôn có giá trị hợp lệ (ít nhất là "1")
     const timer = setInterval(() => setNow(new Date()), 60000);
 
     // A. Tải danh sách bài thi
@@ -60,11 +73,23 @@ export default function ExamListPage() {
         }
       }).catch((err) => console.error("Lỗi tải bài thi:", err));
 
-    // B. Tải lịch sử làm bài (Dùng userId lấy từ localStorage)
-    // Nếu userId null thì fallback là 1 để tránh lỗi API
-    const currentUserId = userId;
+    // B. Tải lịch sử làm bài (userId đã được validate từ useMemo)
+    // Đảm bảo userId là số hợp lệ trước khi gọi API
+    const currentUserId = Number(userId);
+    if (isNaN(currentUserId) || currentUserId <= 0) {
+      console.error("Invalid userId for history API:", userId);
+      setHistoryMap({});
+      return;
+    }
+    
     fetch(`/api/exams/history?userId=${currentUserId}`)
-      .then(res => (res.ok ? res.json() : []))
+      .then(res => {
+        if (!res.ok) {
+          console.error("Failed to fetch exam history:", res.status);
+          return [];
+        }
+        return res.json();
+      })
       .then(data => {
         const map = {};
         if (Array.isArray(data)) {
@@ -136,13 +161,20 @@ export default function ExamListPage() {
   }, [filteredExams, location.state]);
 
   const startExam = async (examId) => {
+    // Validate userId trước khi gọi API
+    const currentUserId = Number(userId);
+    if (isNaN(currentUserId) || currentUserId <= 0) {
+      console.error("Invalid userId for start exam:", userId);
+      alert("Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.");
+      return;
+    }
     try {
       const res = await fetch(`/api/exams/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           examId: examId,
-          userId: userId // Sử dụng userId động từ state
+          userId: currentUserId // Sử dụng userId đã được validate
         }),
       });
 

@@ -1,6 +1,5 @@
 package com.igcse.ai.controller;
 
-import com.igcse.ai.dto.thongKe.ClassStatisticsDTO;
 import com.igcse.ai.service.thongKe.IStatisticsService;
 import com.igcse.ai.util.SecurityUtils;
 import lombok.RequiredArgsConstructor;
