@@ -52,13 +52,38 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Lấy thông tin user từ localStorage
-  const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+  // State quản lý User để trigger re-render khi cập nhật
+  const [currentUser, setCurrentUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // Fetch user profile if missing
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!currentUser.fullName || !currentUser.email) {
+        try {
+          const res = await axiosClient.get('/users/me', { baseURL: '/api' });
+          if (res.data) {
+            setCurrentUser(res.data);
+            localStorage.setItem("user", JSON.stringify(res.data));
+            // Update role if needed
+            if (res.data.role) {
+              localStorage.setItem("userRole", res.data.role);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch user profile in layout:", error);
+        }
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const mockUser = {
-    name: storedUser.fullName || "User",
-    role: (localStorage.getItem("userRole") || "student").toLowerCase(),
-    username: storedUser.email?.split('@')[0] || "user"
+    name: currentUser.fullName || "User",
+    role: (currentUser.role || localStorage.getItem("userRole") || "student").toLowerCase(),
+    username: currentUser.email?.split('@')[0] || "user"
   };
 
   // Xác định menu dựa trên role
@@ -86,43 +111,43 @@ const MainLayout = ({ children }) => {
   };
 
   // --- [UPDATED] LOGIC NOTIFICATION BẮT ĐẦU TẠI ĐÂY ---
- useEffect(() => {
-  const registerFCMToken = async () => {
-    try {
-      // 1. Gọi đúng tên hàm requestForToken từ file firebase.ts
-      const fcmToken = await requestForToken(); 
-      
-      if (fcmToken) {
-        // 2. Gọi đúng endpoint /subscribe đã định nghĩa trong NotificationController
-        // 3. Gửi dữ liệu dưới dạng JSON Body (Map) thay vì Query Parameter
-        await axiosClient.post("/notifications/subscribe", { 
-          token: fcmToken 
-        });
-        console.log("FCM Token registered and subscribed to 'students' topic");
+  useEffect(() => {
+    const registerFCMToken = async () => {
+      try {
+        // 1. Gọi đúng tên hàm requestForToken từ file firebase.ts
+        const fcmToken = await requestForToken();
 
+        if (fcmToken) {
+          // 2. Gọi đúng endpoint /subscribe đã định nghĩa trong NotificationController
+          // 3. Gửi dữ liệu dưới dạng JSON Body (Map) thay vì Query Parameter
+          await axiosClient.post("/notifications/subscribe", {
+            token: fcmToken
+          });
+          console.log("FCM Token registered and subscribed to 'students' topic");
+
+        }
+      } catch (error) {
+        console.error("Error registering FCM token:", error);
       }
-    } catch (error) {
-      console.error("Error registering FCM token:", error);
+    };
+
+    if (currentUser && (currentUser.id || currentUser.userId)) {
+      registerFCMToken();
     }
-  };
 
-  if (storedUser && (storedUser.id || storedUser.userId)) {
-    registerFCMToken();
-  }
+    // Lắng nghe tin nhắn khi App đang mở (Foreground)
+    onMessageListener()
+      .then((payload) => {
+        // Hiển thị Toast cho giao diện web
+        toast.info(`${payload.notification.title}: ${payload.notification.body}`);
 
-  // Lắng nghe tin nhắn khi App đang mở (Foreground)
-  onMessageListener()
-    .then((payload) => {
-       // Hiển thị Toast cho giao diện web
-       toast.info(`${payload.notification.title}: ${payload.notification.body}`);
-       
-       // Ép trình duyệt hiển thị thông báo hệ thống ngay cả khi đang mở Tab
-       new Notification(payload.notification.title, {
-         body: payload.notification.body,
-         icon: '/vite.svg'
-       });
-    });
-}, []); // Chỉ chạy 1 lần khi component mount
+        // Ép trình duyệt hiển thị thông báo hệ thống ngay cả khi đang mở Tab
+        new Notification(payload.notification.title, {
+          body: payload.notification.body,
+          icon: '/vite.svg'
+        });
+      });
+  }, []); // Chỉ chạy 1 lần khi component mount
   // --- [UPDATED] KẾT THÚC LOGIC NOTIFICATION ---
 
   return (
@@ -201,8 +226,8 @@ const MainLayout = ({ children }) => {
               <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
             </div>
             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden flex-shrink-0">
-              {storedUser.avatar ? (
-                <img src={storedUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
+              {currentUser.avatar ? (
+                <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
                 mockUser.name.charAt(0).toUpperCase()
               )}
