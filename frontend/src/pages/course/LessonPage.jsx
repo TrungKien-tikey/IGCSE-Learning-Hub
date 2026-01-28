@@ -96,7 +96,7 @@ export default function LessonPage() {
       {/* 1. HEADER */}
       <header className="lp-header">
         <div className="lp-brand">
-          <button onClick={() => navigate('/courses')} className="btn-back">⬅ Quay lại</button>
+          <button onClick={() => navigate('/')} className="btn-back">⬅ Quay lại</button>
           <span className="lp-course-name">Quản lý nội dung khóa học</span>
         </div>
         <div className="lp-tools">
@@ -110,11 +110,11 @@ export default function LessonPage() {
             <MessageSquare size={20} />
           </div>
 
-          <div className="user-info">
+          {/* <div className="user-info">
             <span>Giáo viên A</span>
             <div className="avatar">GV</div>
-          </div>
-          <button onClick={handleLogout} className="btn-logout" style={{ marginLeft: 10, cursor: 'pointer' }}>Đăng xuất</button>
+          </div> */}
+          {/* <button onClick={handleLogout} className="btn-logout" style={{ marginLeft: 10, cursor: 'pointer' }}>Đăng xuất</button> */}
         </div>
       </header>
 
