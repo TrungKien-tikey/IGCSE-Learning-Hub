@@ -44,7 +44,7 @@ public class InsightService implements IInsightService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AIInsightDTO getInsight(Long studentId) {
 
         logger.info("Getting insights for studentId: {}", studentId);
@@ -127,6 +127,7 @@ public class InsightService implements IInsightService {
             String logContext = recentLogics.stream()
                     .limit(3)
                     .map(AIInsight::getOverallSummary)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.joining("\n---\n"));
 
             // Lấy bản AI chuyên sâu gần nhất làm bối cảnh so sánh (Context)
@@ -141,8 +142,13 @@ public class InsightService implements IInsightService {
                     "\n\nHãy so sánh sự tiến bộ dựa trên bối cảnh cũ và các mẩu phân tích mới để đưa ra đánh giá đúc kết sâu sắc.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            AIInsightDTO synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    metadata.personaInfo(), aiLanguageName);
+            AIInsightDTO synthesisResult = null;
+            try {
+                synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                        metadata.personaInfo(), aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for insight synthesis: {}", e.getMessage());
+            }
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -239,8 +245,13 @@ public class InsightService implements IInsightService {
 
             TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    metadata.personaInfo(), aiLanguageName);
+            try {
+                insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                        metadata.personaInfo(), aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for attempt insight synthesis (AttemptId: {}): {}", attemptId,
+                        e.getMessage());
+            }
 
             if (insight != null) {
                 insight.setStudentId(studentId);
@@ -270,6 +281,10 @@ public class InsightService implements IInsightService {
         dto.setStudentId(entity.getStudentId());
         dto.setOverallSummary(entity.getOverallSummary());
         dto.setActionPlan(entity.getActionPlan());
+
+        // Đảm bảo các List không bao giờ null
+        dto.setKeyStrengths(new ArrayList<>());
+        dto.setAreasForImprovement(new ArrayList<>());
 
         // Parse JSON arrays
         try {

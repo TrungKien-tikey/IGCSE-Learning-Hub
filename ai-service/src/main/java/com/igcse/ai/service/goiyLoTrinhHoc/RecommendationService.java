@@ -130,6 +130,7 @@ public class RecommendationService implements IRecommendationService {
             String logContext = recentLogics.stream()
                     .limit(3)
                     .map(AIRecommendation::getLearningPathSuggestion)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.joining("\n---\n"));
 
             // Lấy bản AI chuyên sâu gần nhất làm bối cảnh (Context)
@@ -145,8 +146,13 @@ public class RecommendationService implements IRecommendationService {
                     "\n\nHãy phân tích sự thay đổi và cập nhật lộ trình học tập mới nhất.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            LearningRecommendationDTO synthesisResult = recommendationAiService.generateRecommendation(
-                    combinedSummary, metadata.studentName(), metadata.personaInfo(), aiLanguageName);
+            LearningRecommendationDTO synthesisResult = null;
+            try {
+                synthesisResult = recommendationAiService.generateRecommendation(
+                        combinedSummary, metadata.studentName(), metadata.personaInfo(), aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for recommendation synthesis: {}", e.getMessage());
+            }
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -222,6 +228,12 @@ public class RecommendationService implements IRecommendationService {
         LearningRecommendationDTO dto = new LearningRecommendationDTO();
         dto.setStudentId(entity.getStudentId());
         dto.setLearningPathSuggestion(entity.getLearningPathSuggestion());
+
+        // Đảm bảo các List không bao giờ null
+        dto.setWeakTopics(new ArrayList<>());
+        dto.setStrongTopics(new ArrayList<>());
+        dto.setRecommendedResources(new ArrayList<>());
+        dto.setRoadmapSteps(new ArrayList<>());
 
         try {
             if (entity.getWeakTopics() != null && !entity.getWeakTopics().isEmpty()) {
