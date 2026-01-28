@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
-import { PlayCircle } from 'lucide-react';
+import { PlayCircle, ArrowLeft } from 'lucide-react';
 import './CoursePage.css';
 
 export default function MyCoursesPage() {
@@ -40,11 +40,36 @@ export default function MyCoursesPage() {
   return (
     <div className="course-page">
       <div className="container">
-        <div className="page-header">
+        <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 className="page-title">Khóa Học Của Tôi</h1>
             <p style={{ color: '#666' }}>Tiếp tục hành trình chinh phục kiến thức</p>
           </div>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-back"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              border: '1px solid #1976d2',
+              color: '#1976d2',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#e3f2fd';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+          >
+            <ArrowLeft size={18} /> Quay lại Dashboard
+          </button>
         </div>
 
         <div className="course-grid">
@@ -58,6 +83,7 @@ export default function MyCoursesPage() {
               >
                 Tìm khóa học ngay
               </button>
+
             </div>
           ) : (
             courses.map((course) => (

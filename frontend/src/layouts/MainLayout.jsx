@@ -25,7 +25,7 @@ const menuItems = {
     { title: "Tổng quan", icon: LayoutDashboard, url: "/" },
     // { title: "Quản lý giảng dạy", icon: FileText, url: "/course/courses" },
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
-    { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
+    // { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
   ],
   admin: [
     { title: "Tổng quan", icon: Home, url: "/" },
