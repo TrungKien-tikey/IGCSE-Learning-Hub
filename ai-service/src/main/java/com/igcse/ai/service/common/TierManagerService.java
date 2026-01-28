@@ -83,6 +83,11 @@ public class TierManagerService {
             AIRecommendation latest = latestOpt.get();
 
             // 1. Kiểm tra Cooldown (Ví dụ: 3 phút)
+            if (latest.getGeneratedAt() == null) {
+                logger.warn("Latest analysis for student {} has null generatedAt. Forcing re-analysis.", studentId);
+                return true;
+            }
+
             long timeSinceLastAnalysis = System.currentTimeMillis() - latest.getGeneratedAt().getTime();
             if (timeSinceLastAnalysis < ANALYSIS_COOLDOWN_MS) {
                 logger.debug("Học sinh {} vừa được phân tích cách đây {}ms. Bỏ qua (Cooldown).", studentId,
@@ -131,6 +136,11 @@ public class TierManagerService {
             AIInsight latest = latestOpt.get();
 
             // 1. Kiểm tra Cooldown
+            if (latest.getGeneratedAt() == null) {
+                logger.warn("Latest insight for student {} has null generatedAt. Forcing re-analysis.", studentId);
+                return true;
+            }
+
             long timeSinceLastAnalysis = System.currentTimeMillis() - latest.getGeneratedAt().getTime();
             if (timeSinceLastAnalysis < ANALYSIS_COOLDOWN_MS) {
                 logger.debug("Học sinh {} vừa được phân tích Insight cách đây {}ms. Bỏ qua (Cooldown).", studentId,
@@ -160,16 +170,25 @@ public class TierManagerService {
             return new AnalysisData(0, 0, 0, 0, 0, List.of(), List.of(), 0.0);
 
         double averageScore = results.stream()
-                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                .average().orElse(0.0);
+                .map(AIResult::getScore)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .average()
+                .orElse(0.0);
 
         double maxScore = results.stream()
-                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                .max().orElse(0.0);
+                .map(AIResult::getScore)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .max()
+                .orElse(0.0);
 
         double minScore = results.stream()
-                .mapToDouble(r -> r.getScore() != null ? r.getScore() : 0.0)
-                .min().orElse(0.0);
+                .map(AIResult::getScore)
+                .filter(Objects::nonNull)
+                .mapToDouble(Double::doubleValue)
+                .min()
+                .orElse(0.0);
 
         long passCount = results.stream().filter(AIResult::isPassed).count();
         double passRate = (double) passCount / results.size() * 100;
@@ -204,9 +223,10 @@ public class TierManagerService {
                         Map<String, Object> meta = jsonService.getObjectMapper().readValue(r.getDetails(),
                                 new TypeReference<Map<String, Object>>() {
                                 });
-                        return meta.containsKey("duration_seconds")
-                                ? Double.valueOf(meta.get("duration_seconds").toString())
-                                : 0.0;
+                        if (!meta.containsKey("duration_seconds") || meta.get("duration_seconds") == null) {
+                            return 0.0;
+                        }
+                        return Double.valueOf(meta.get("duration_seconds").toString());
                     } catch (Exception e) {
                         return 0.0;
                     }
@@ -279,8 +299,9 @@ public class TierManagerService {
                     if (sid == null)
                         sid = record.get("studentId");
 
-                    if (sid != null && studentId.equals(Long.valueOf(sid.toString()))) {
-                        String studentName = extractString(record, "full_name", "student_name", "name","studentName","fullName");
+                    if (sid != null && studentId.toString().equals(sid.toString())) {
+                        String studentName = extractString(record, "full_name", "student_name", "name", "studentName",
+                                "fullName");
                         String courseName = extractString(record, "course_name", "title");
                         return new AnalysisMetadata(
                                 studentName != null ? studentName : "Học sinh",
