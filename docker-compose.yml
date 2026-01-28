@@ -359,6 +359,26 @@ services:
     networks:
       - igcse-network
 
+  # =========================================
+  # PHẦN 5: FRONTEND (React + Vite + Nginx)
+  # =========================================
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - kong
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 # =========================================
 
 # CONFIG CHUNG
