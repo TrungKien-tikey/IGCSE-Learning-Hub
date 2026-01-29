@@ -25,12 +25,22 @@ export default function ManageExamsPage() {
 
     const navigate = useNavigate();
 
+    const accessToken = localStorage.getItem("accessToken");
+
     useEffect(() => {
-        fetch("/api/exams")
-            .then((res) => res.json())
+        fetch("/api/exams", {
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${accessToken}`
+            }
+        })
+            .then((res) => {
+                if (!res.ok) throw new Error("Unauthorized");
+                return res.json();
+            })
             .then((data) => setExams(Array.isArray(data) ? data : []))
             .catch((err) => console.error("Lỗi tải danh sách:", err));
-    }, []);
+    }, [accessToken]);
 
     const formatDate = (dateString) => {
         if (!dateString) return "Không thời hạn";
@@ -43,7 +53,12 @@ export default function ManageExamsPage() {
         const confirmDelete = window.confirm("Bạn muốn ẩn bài thi này? Học sinh sẽ không nhìn thấy bài thi nữa, nhưng dữ liệu điểm số vẫn được giữ lại.");
         if (!confirmDelete) return;
         try {
-            const res = await fetch(`/api/exams/${examId}`, { method: "DELETE" });
+            const res = await fetch(`/api/exams/${examId}`, { 
+                method: "DELETE",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            });
 
             if (res.ok) {
                 setExams((prevExams) =>
@@ -77,7 +92,11 @@ export default function ManageExamsPage() {
         try {
             // Bước 3.1: Lấy danh sách bài làm từ Exam Service
             // Giả sử API là: /api/exams/attempts/{examId} (Bạn cần đảm bảo Backend có API này)
-            const res = await fetch(`/api/exams/attempts/${examId}`)
+            const res = await fetch(`/api/exams/attempts/${examId}`, {
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`
+                }
+            });
 
             if (!res.ok) throw new Error("Không tải được danh sách điểm");
 
@@ -88,7 +107,11 @@ export default function ManageExamsPage() {
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {
                 try {
                     // Gọi sang Auth Service lấy tên
-                    const userRes = await fetch(`/api/v1/auth/users/${attempt.userId}`)
+                    const userRes = await fetch(`/api/v1/auth/users/${attempt.userId}`, {
+                        headers: {
+                            "Authorization": `Bearer ${accessToken}`
+                        }
+                    });
 
                     let fullName = `User #${attempt.userId}`;
                     if (userRes.ok) {
@@ -109,8 +132,8 @@ export default function ManageExamsPage() {
             toast.error("Có lỗi khi tải bảng điểm.");
         } finally {
             setLoadingAttempts(false);
-        }
-    };
+            }
+        };
 
     const filteredExams = exams.filter((exam) => {
         // 1. Lọc theo tên
@@ -224,7 +247,7 @@ export default function ManageExamsPage() {
                                             onClick={() => handleViewScores(exam.examId)}
                                             className={`p-2 rounded-full transition flex items-center gap-1 border ${expandedExamId === exam.examId ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'text-gray-500 hover:bg-gray-100'}`}
                                             title="Xem bảng điểm"
-                                        >
+                                        >                                   
                                             <span className="text-xs font-semibold hidden md:inline">Điểm</span>
                                             {expandedExamId === exam.examId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </button>

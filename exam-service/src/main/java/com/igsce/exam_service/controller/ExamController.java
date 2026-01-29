@@ -2,11 +2,14 @@ package com.igsce.exam_service.controller;
 
 import com.igsce.exam_service.entity.*;
 import com.igsce.exam_service.service.*;
+import com.igsce.exam_service.util.SecurityUtils;
 import com.igsce.exam_service.dto.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+
 import lombok.*;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/exams")
@@ -54,17 +57,21 @@ public class ExamController {
     }
 
     @GetMapping("/history")
-    public ResponseEntity<?> getUserExamHistory(@RequestParam Long userId) {
-        try {
-            return ResponseEntity.ok(examService.getAttemptsByUserId(userId));
-        } catch (Exception e) {
-            return ResponseEntity.status(500).body("Lỗi lấy lịch sử: " + e.getMessage());
-        }
+    public ResponseEntity<List<ExamAttempt>> getHistory() {
+        Long userId = SecurityUtils.getCurrentUserId();
+        return ResponseEntity.ok(examService.getAttemptsByUserId(userId));
     }
 
     @PostMapping("/start")
-    public ResponseEntity<ExamAttempt> startExam(@RequestBody StartExamRequest request) {
-        return ResponseEntity.ok(examService.startExam(request.getExamId(), request.getUserId()));
+    public ResponseEntity<?> startExam(@RequestBody Map<String, Long> requestBody) {
+        try {
+            Long examId = requestBody.get("examId");
+            Long userId = SecurityUtils.getCurrentUserId();
+            ExamAttempt attempt = examService.startExam(examId, userId);
+            return ResponseEntity.ok(Map.of("attemptId", attempt.getAttemptId()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/submit")

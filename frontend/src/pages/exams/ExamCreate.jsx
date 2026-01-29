@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
@@ -9,11 +9,20 @@ export default function CreateExamPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  const accessToken = localStorage.getItem("accessToken");
+
+  useEffect(() => {
+    if (!accessToken) {
+      alert("Vui lòng đăng nhập để tạo bài thi!");
+      navigate("/login");
+    }
+  }, [accessToken, navigate]);
+
   const getDefaultEndTime = () => {
     const date = new Date();
     date.setDate(date.getDate() + 1); // Cộng thêm 1 ngày
     // Chỉnh lại múi giờ địa phương để hiển thị đúng trên input
-    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); 
     // Cắt chuỗi để lấy định dạng: "YYYY-MM-DDTHH:mm"
     return date.toISOString().slice(0, 16);
   };
@@ -211,9 +220,16 @@ export default function CreateExamPage() {
     try {
       const res = await fetch("/api/exams", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}` 
+        },
         body: JSON.stringify(payload),
       });
+
+      if (res.status === 401) {
+          throw new Error("Unauthorized");
+      }
 
       if (!res.ok) throw new Error("Lỗi khi lưu bài thi");
 
@@ -221,7 +237,12 @@ export default function CreateExamPage() {
       navigate("/exams/manage");
     } catch (error) {
       console.error(error);
-      toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
+      if (error.message === "Unauthorized") {
+          alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+          navigate("/login");
+      } else {
+          toast.error("Có lỗi xảy ra. Vui lòng thử lại.");
+      }
     } finally {
       setLoading(false);
     }
