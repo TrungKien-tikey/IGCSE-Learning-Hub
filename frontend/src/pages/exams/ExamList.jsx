@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
@@ -11,61 +11,55 @@ export default function ExamListPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const accessToken = localStorage.getItem("accessToken");
+  console.log("Current Token:", accessToken);
+  // --- 1. STATE QUẢN LÝ USER (Thay cho hằng số cứng) ---
+  const [userId, setUserId] = useState(null);
+
   // State dữ liệu
   const [allExams, setAllExams] = useState([]);
   const [filteredExams, setFilteredExams] = useState([]);
-  const [userAttempts, setUserAttempts] = useState({}); // Đếm số lượt làm bài
+  const [historyMap, setHistoryMap] = useState({});
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [now, setNow] = useState(new Date());
-  const [historyMap, setHistoryMap] = useState({});
+  const [userAttempts, setUserAttempts] = useState({}); // Đếm số lượt làm bài
 
   // State quản lý việc mở khung comment (mới thêm)
   const [activeSection, setActiveSection] = useState(null);
-  const currentUser = JSON.parse(localStorage.getItem('user') || "{}");
+  const currentUser = JSON.parse(localStorage.getItem('user'));
 
-  // --- 1. LẤY USERID VỚI VALIDATION (Giống StudentDashboardGeneral) ---
-  const userId = useMemo(() => {
-    let id = localStorage.getItem("userId");
-
-    // Validate userId: không được undefined/null string
-    if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
-      // Thử lấy từ JWT token nếu có
-      const token = localStorage.getItem('accessToken');
-      if (token) {
-        try {
-          const decoded = JSON.parse(atob(token.split('.')[1]));
-          id = decoded.userId || decoded.id || decoded.sub || null;
-        } catch (e) {
-          // Ignore decode error
-        }
-      }
-
-      // Fallback cuối cùng
-      if (!id || id === "undefined" || id === "null") {
-        id = "1";
-      }
+  useEffect(() => {
+    // Nếu không có token, đá về login
+    if (!accessToken) {
+      // navigate("/login"); // Bỏ comment nếu muốn bắt buộc login
     }
-
-    // Final validation: phải là số hợp lệ
-    const numId = Number(id);
-    if (isNaN(numId) || numId <= 0) {
-      return "1";
-    }
-
-    return String(numId);
-  }, []);
+  }, [accessToken, navigate]);
 
   // --- 3. EFFECT TẢI DỮ LIỆU (Chỉ chạy khi đã xác định Role và KHÔNG PHẢI Teacher) ---
 
   // Effect 1: Tải danh sách bài thi
   useEffect(() => {
-    // userId đã được validate và luôn có giá trị hợp lệ (ít nhất là "1")
+    // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
+    if (!accessToken) return;
+
     const timer = setInterval(() => setNow(new Date()), 60000);
 
+    // Header dùng chung cho các request
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${accessToken}` // Quan trọng: Gửi Token để Backend dùng SecurityUtils
+    };
+
     // A. Tải danh sách bài thi
-    fetch("/api/exams")
-      .then((res) => res.ok ? res.json() : [])
+    fetch("/api/exams", { headers }) // Moved { headers } inside fetch
+      .then((res) => {
+        if (res.status === 401) {
+             navigate("/login");
+             throw new Error("Unauthorized");
+        }
+        return res.ok ? res.json() : [];
+      })
       .then((data) => {
         if (Array.isArray(data)) {
           const activeExams = data.filter((exam) => exam.isActive === true);
@@ -74,23 +68,10 @@ export default function ExamListPage() {
         }
       }).catch((err) => console.error("Lỗi tải bài thi:", err));
 
-    // B. Tải lịch sử làm bài (userId đã được validate từ useMemo)
-    // Đảm bảo userId là số hợp lệ trước khi gọi API
-    const currentUserId = Number(userId);
-    if (isNaN(currentUserId) || currentUserId <= 0) {
-      console.error("Invalid userId for history API:", userId);
-      setHistoryMap({});
-      return;
-    }
+    // B. Tải lịch sử làm bài (Dùng userId lấy từ localStorage)
 
-    fetch(`/api/exams/history?userId=${currentUserId}`)
-      .then(res => {
-        if (!res.ok) {
-          console.error("Failed to fetch exam history:", res.status);
-          return [];
-        }
-        return res.json();
-      })
+    fetch(`/api/exams/history`, { headers })
+      .then(res => (res.ok ? res.json() : []))
       .then(data => {
         const map = {};
         if (Array.isArray(data)) {
@@ -110,7 +91,7 @@ export default function ExamListPage() {
       .catch(err => console.error("Lỗi tải lịch sử:", err));
 
     return () => clearInterval(timer);
-  }, [userId]); // Chạy lại khi userId thay đổi
+  }, [accessToken]); // Chạy lại khi userId thay đổi
 
   // Effect 4: Logic Lọc dữ liệu
   useEffect(() => {
@@ -162,28 +143,23 @@ export default function ExamListPage() {
   }, [filteredExams, location.state]);
 
   const startExam = async (examId) => {
-    // Validate userId trước khi gọi API
-    const currentUserId = Number(userId);
-    if (isNaN(currentUserId) || currentUserId <= 0) {
-      console.error("Invalid userId for start exam:", userId);
-      toast.error("Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.");
-      return;
-    }
     try {
       const res = await fetch(`/api/exams/start`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${accessToken}` // Gửi Token
+        },
         body: JSON.stringify({
           examId: examId,
-          userId: currentUserId // Sử dụng userId đã được validate
         }),
       });
 
-      if (!res.ok) throw new Error("Không thể bắt đầu bài thi");
+      toast.error("Lỗi khi bắt đầu bài thi.");
       const data = await res.json();
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
     } catch (error) {
-      toast.error(error.message || "Lỗi khi bắt đầu bài thi.");
+      toast.error("Lỗi khi bắt đầu bài thi.");
     }
   };
 

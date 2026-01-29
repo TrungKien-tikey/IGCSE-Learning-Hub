@@ -10,6 +10,8 @@ export default function EditExamPage() {
   const params = useParams();
   const examId = params.id;
 
+  const accessToken = localStorage.getItem("accessToken");
+
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
 
@@ -42,9 +44,19 @@ export default function EditExamPage() {
   // --- 1. LOAD DỮ LIỆU CŨ TỪ SERVER ---
   useEffect(() => {
     if (!examId) return;
+    if (!accessToken) {
+      navigate("/login");
+      return;
+    }
 
-    fetch(`/api/exams/${examId}`)
+    fetch(`/api/exams/${examId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${accessToken}`
+      }
+    })
       .then((res) => {
+        if (res.status === 401) throw new Error("Unauthorized");
         if (!res.ok) throw new Error("Không tìm thấy bài thi");
         return res.json();
       })
@@ -77,17 +89,22 @@ export default function EditExamPage() {
       })
       .catch((err) => {
         console.error(err);
-        toast.error("Lỗi tải bài thi!");
-        navigate("/exams/manage");
+        if (err.message === "Unauthorized") {
+          alert("Phiên đăng nhập hết hạn.");
+          navigate("/login");
+        } else {
+          toast.error("Lỗi tải bài thi!");
+          navigate("/exams/manage");
+        }
       });
-  }, [examId]);
+  }, [examId, accessToken, navigate]);
 
   // --- LOGIC FORM ---
   // Xóa : React.ChangeEvent...
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) return toast.warning("Ảnh quá lớn (<2MB)");
+      if (file.size > 2 * 1024 * 1024) return alert("Ảnh quá lớn (<2MB)");
       const reader = new FileReader();
       reader.onloadend = () =>
         setDraftQ((prev) => ({ ...prev, image: reader.result }));
@@ -225,15 +242,25 @@ export default function EditExamPage() {
     try {
       const res = await fetch(`/api/exams/${examId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
         body: JSON.stringify(payload),
       });
 
+      if (res.status === 401) throw new Error("Unauthorized");
       if (!res.ok) throw new Error("Lỗi khi cập nhật");
+
       toast.success("Cập nhật bài thi thành công!");
     } catch (error) {
       console.error(error);
-      toast.error("Có lỗi xảy ra.");
+      if (error.message === "Unauthorized") {
+        alert("Phiên đăng nhập hết hạn.");
+        navigate("/login");
+      } else {
+        toast.error("Có lỗi xảy ra.");
+      }
     } finally {
       setLoading(false);
     }
