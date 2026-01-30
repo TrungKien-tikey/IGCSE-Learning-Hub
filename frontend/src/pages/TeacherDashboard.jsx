@@ -243,7 +243,7 @@ export default function TeacherDashboard() {
                                             </p>
 
                                             <div className="flex justify-between items-center bg-slate-50/50 p-3 rounded-xl border border-slate-50">
-                                                <span className="text-indigo-600 font-extrabold">{course.price ? `$${course.price}` : 'Free'}</span>
+                                                <span className="text-indigo-600 font-extrabold">{course.price ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
                                                 <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold">
                                                     <Clock size={14} />
                                                     {course.duration || '--'}
@@ -298,8 +298,8 @@ export default function TeacherDashboard() {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="form-group flex-1">
-                                        <label>Giá ($)</label>
-                                        <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="0" />
+                                        <label>Giá (VNĐ)</label>
+                                        <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="VD: 500000" step="10000" />
                                     </div>
                                     <div className="form-group flex-1">
                                         <label>Thời lượng</label>

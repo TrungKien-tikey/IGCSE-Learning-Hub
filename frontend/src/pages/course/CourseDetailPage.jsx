@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
+import { purchaseCourse } from '../../api/paymentService'; // Import payment API
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
 export default function CourseDetailPage() {
@@ -12,6 +13,7 @@ export default function CourseDetailPage() {
     const [lessons, setLessons] = useState([]);
     const [isEnrolled, setIsEnrolled] = useState(false); // Trạng thái: Đã mua hay chưa?
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null); // User info
 
     // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
     const API_URL = '/courses';
@@ -44,6 +46,20 @@ export default function CourseDetailPage() {
             }
         };
         fetchData();
+
+        // Fetch User Info for Payment
+        const fetchUser = async () => {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                try {
+                    const res = await axiosClient.get('/users/me');
+                    setCurrentUser(res.data);
+                } catch (e) {
+                    console.error("Error fetching user", e);
+                }
+            }
+        };
+        fetchUser();
     }, [courseId]);
 
     // Xử lý khi bấm nút Đăng Ký
@@ -58,16 +74,30 @@ export default function CourseDetailPage() {
         }
 
         try {
-            if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá $${course.price}?`)) {
+            if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá ${course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'miễn phí'}?`)) {
 
-                // 2. Gọi API enroll kiểu mới:
-                await axiosClient.post(
-                    `${API_URL}/${courseId}/enroll`,
-                    {}
-                );
+                // 2. Logic thanh toán
+                const paymentData = {
+                    studentId: currentUser?.userId || currentUser?.id, // Fallback ID
+                    studentName: currentUser?.fullName || currentUser?.username || "Student",
+                    courseId: course.id || course.courseId,
+                    teacherId: course.teacherId || 1, // Default teacher ID if missing (mock)
+                    amount: course.price,
+                    paymentMethod: "BANK_TRANSFER"
+                };
 
-                toast.success("🎉 Đăng ký thành công! Chào mừng bạn vào học.");
-                setIsEnrolled(true);
+                const result = await purchaseCourse(paymentData);
+
+                if (result.success) {
+                    toast.success(result.message);
+                    // Alert Payment Info
+                    alert(`Vui lòng chuyển khoản ${Number(course.price).toLocaleString('vi-VN')} ₫ đến STK: 123456789 (Vietcombank)\nNội dung: "KHOA HOC ${result.transactionId}"\n\nAdmin sẽ kích hoạt khóa học sau khi nhận được thanh toán.`);
+                    // Note: isEnrolled remains false until confirmed by Admin. 
+                    // Ideally should show "Pending" status.
+                } else {
+                    // Nếu amount = 0 hoặc logic khác
+                    setIsEnrolled(true);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -153,8 +183,8 @@ export default function CourseDetailPage() {
                         </div>
                         <div className="card-content">
                             <div className="price-row">
-                                <span className="price-current">{course.price > 0 ? `$${course.price}` : 'Miễn phí'}</span>
-                                {course.price > 0 && <span className="price-original">${course.price * 1.5}</span>}
+                                <span className="price-current">{course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
+                                {course.price > 0 && <span className="price-original">{Number(course.price * 1.5).toLocaleString('vi-VN')} ₫</span>}
                             </div>
 
                             {/* LOGIC NÚT BẤM QUAN TRỌNG */}
