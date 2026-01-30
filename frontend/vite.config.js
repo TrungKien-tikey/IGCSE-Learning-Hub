@@ -19,6 +19,19 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // =================================================================
+      // PAYMENT SERVICE (Trực tiếp, tạm thời chưa qua Kong)
+      // =================================================================
+      '/api/payment': {
+        target: 'http://127.0.0.1:8084',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/api/admin/statistics': {
+        target: 'http://127.0.0.1:8084',
+        changeOrigin: true,
+        secure: false,
+      },
       // ===================================
       // MONITORING PROXY (Actuator bypasses Kong for direct speed)
       // ===================================
@@ -28,6 +41,7 @@ export default defineConfig({
       '/health/course': { target: 'http://127.0.0.1:8079', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/course/, '/actuator/health') },
       '/health/exam': { target: 'http://127.0.0.1:8085', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/exam/, '/actuator/health') },
       '/health/communication': { target: 'http://127.0.0.1:8089', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/communication/, '/actuator/health') },
+      '/health/payment': { target: 'http://127.0.0.1:8084', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/payment/, '/actuator/health') },
     },
   },
 })

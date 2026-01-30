@@ -25,11 +25,13 @@ const menuItems = {
     { title: "Tổng quan", icon: LayoutDashboard, url: "/" },
     // { title: "Quản lý giảng dạy", icon: FileText, url: "/course/courses" },
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
+    { title: "Mua Suất Học", icon: ShoppingCart, url: "/teacher/buy-slots" },
     // { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
   ],
   admin: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
+    { title: "Gói suất học", icon: ShoppingCart, url: "/admin/slot-packages" },
   ],
   parent: [
     { title: "Tổng quan", icon: Home, url: "/" },

@@ -159,7 +159,7 @@ export default function CoursePage() {
                 </h2>
                 <p className="course-desc">{course.description}</p>
                 <div className="card-meta">
-                  <span className="price-tag">{course.price ? `$${course.price}` : 'Free'}</span>
+                  <span className="price-tag">{course.price ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
                   <span className="duration-tag">⏱ {course.duration}</span>
                 </div>
               </div>
@@ -224,8 +224,8 @@ export default function CoursePage() {
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
-                      <label>Giá ($)</label>
-                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" />
+                      <label>Giá (VNĐ)</label>
+                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="VD: 500000" step="10000" />
                     </div>
                     <div className="form-group" style={{ flex: 1 }}>
                       <label>Thời lượng</label>

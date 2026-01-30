@@ -31,18 +31,18 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
-    
+
     // 1. [FIX] ĐÃ KHAI BÁO THÊM BIẾN NÀY ĐỂ HẾT LỖI
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     public AuthService(UserRepository userRepository,
-                       PasswordEncoder passwordEncoder,
-                       JwtUtils jwtUtils,
-                       AuthenticationManager authenticationManager,
-                       RabbitTemplate rabbitTemplate,
-                       EmailService emailService,
-                       // 2. [FIX] ĐÃ TIÊM (INJECT) VÀO CONSTRUCTOR
-                       BlacklistedTokenRepository blacklistedTokenRepository) {
+            PasswordEncoder passwordEncoder,
+            JwtUtils jwtUtils,
+            AuthenticationManager authenticationManager,
+            RabbitTemplate rabbitTemplate,
+            EmailService emailService,
+            // 2. [FIX] ĐÃ TIÊM (INJECT) VÀO CONSTRUCTOR
+            BlacklistedTokenRepository blacklistedTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
@@ -80,13 +80,11 @@ public class AuthService {
                     savedUser.getId(),
                     savedUser.getEmail(),
                     savedUser.getFullName(),
-                    savedUser.getRole()
-            );
+                    savedUser.getRole());
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.USER_EXCHANGE,
                     RabbitMQConfig.USER_SYNC_ROUTING_KEY,
-                    syncData
-            );
+                    syncData);
             System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail());
         } catch (Exception e) {
             System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
@@ -98,8 +96,7 @@ public class AuthService {
     // 2. Đăng nhập
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
@@ -116,7 +113,7 @@ public class AuthService {
     // 4. Đổi mật khẩu
     public void changePassword(ChangePasswordRequest request, Principal connectedUser) {
         String userEmail = connectedUser.getName();
-        
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
@@ -172,34 +169,33 @@ public class AuthService {
 
     // 7. Kiểm tra email tồn tại
     public boolean checkEmailExists(String email) {
-        return userRepository.existsByEmail(email); 
+        return userRepository.existsByEmail(email);
     }
 
     public UserSyncDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Khong tim thay User ID: " + id));
-        
+
         return new UserSyncDTO(
-            user.getId(),
-            user.getEmail(),
-            user.getFullName(),
-            user.getRole()
-        );
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole());
     }
 
     // 8. [FIX] Đăng xuất (Đã sửa tên biến cho khớp)
-    public void logout(String token){
+    public void logout(String token) {
         // Sửa jwtUtil -> jwtUtils (thêm 's' cho giống tên biến ở trên)
         if (jwtUtils.isTokenExpired(token)) {
-            return; 
+            return;
         }
-        
+
         // Sửa jwtUtil -> jwtUtils
         BlacklistedToken blacklistedToken = BlacklistedToken.builder()
-            .token(token)
-            .expirationTime(jwtUtils.extractExpiration(token)) 
-            .build();
-            
+                .token(token)
+                .expirationTime(jwtUtils.extractExpiration(token))
+                .build();
+
         // Giờ biến này đã được khai báo nên sẽ hết lỗi
         blacklistedTokenRepository.save(blacklistedToken);
     }

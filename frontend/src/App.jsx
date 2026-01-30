@@ -18,6 +18,9 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
+import AdminSlotPackagesPage from './pages/AdminSlotPackagesPage';
+
+import TeacherSlotPurchasePage from './pages/TeacherSlotPurchasePage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -115,6 +118,15 @@ function App() {
         />
 
         <Route
+          path="/teacher/buy-slots"
+          element={
+            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherSlotPurchasePage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
           path="/ai/dashboard/admin"
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN']}>
@@ -128,6 +140,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
               <AdminCourseApprovalPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/slot-packages"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminSlotPackagesPage />
             </RoleProtectedRoute>
           }
         />
