@@ -31,6 +31,11 @@ public class JwtUtils {
     }
 
     // --- 2. Các hàm hỗ trợ cơ bản ---
+    public String extractRole(String token) {
+        final Claims claims = extractAllClaims(token);
+        return claims.get("role", String.class);
+    }
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -58,13 +63,18 @@ public class JwtUtils {
 
     // Kiểm tra token có hợp lệ không (chữ ký đúng + chưa hết hạn)
     public boolean validateToken(String token) {
-        try {
-            if (isTokenExpired(token))
-                return false;
-            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+    try {
+        Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
+        return true;
+    } catch (io.jsonwebtoken.ExpiredJwtException e) {
+        System.out.println(">>> Lỗi: Token đã hết hạn!");
+        return false;
+    } catch (io.jsonwebtoken.security.SignatureException e) {
+        System.out.println(">>> Lỗi: Sai chữ ký (Secret Key không khớp)!");
+        return false;
+    } catch (Exception e) {
+        System.out.println(">>> Lỗi JWT khác: " + e.getMessage());
+        return false;
     }
+}
 }
