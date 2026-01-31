@@ -9,12 +9,31 @@ export default function StudentLearningPage() {
     const { courseId } = useParams();
     const navigate = useNavigate();
 
+    // 1. Phải lấy "cái hộp" user ra TRƯỚC
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // 2. Sau đó mới trích xuất các thông tin bên trong
+    const userRole = user.role || "STUDENT";
+    const userId = user.userId;
+    const role = (user.role || "");
+
+    // 3. States khác
     const [lessons, setLessons] = useState([]);
     const [currentLesson, setCurrentLesson] = useState(null);
     const [courseTitle, setCourseTitle] = useState("Đang tải...");
 
+    // 4. Hàm thoát
+    const handleExit = () => {
+        if (role === 'MANAGER' || role === 'ADMIN') {
+            navigate('/course-approval');
+        } else if (role === 'TEACHER') {
+            navigate('/teacher-courses');
+        } else {
+            navigate('/my-courses');
+        }
+    };
+
     // Lấy role hoặc tên user từ storage để hiển thị (cho xịn)
-    const userRole = localStorage.getItem('userRole') || "Student";
 
     const API_URL = '/courses';
 
@@ -67,10 +86,12 @@ export default function StudentLearningPage() {
             {/* --- 1. HEADER (Giống hệt trang Giáo viên) --- */}
             <header className="lp-header">
                 <div className="lp-brand">
-                    <button onClick={() => navigate('/my-courses')} className="btn-back">⬅ Thoát</button>
+                    <button onClick={handleExit} className="btn-back">⬅ Thoát</button>
                     <div style={{ display: 'flex', flexDirection: 'column', marginLeft: '10px' }}>
-                        <span className="lp-course-name" style={{ fontSize: '1rem', fontWeight: 'bold' }}>{courseTitle}</span>
-                        <span style={{ fontSize: '0.8rem', color: '#666' }}>Học viên: An Nguyen</span>
+                        <span className="lp-course-name">{courseTitle}</span>
+                        <span style={{ fontSize: '0.8rem', color: '#666' }}>
+                            {userRole}: {user.fullName || "User"}
+                        </span>
                     </div>
                 </div>
 
@@ -118,8 +139,18 @@ export default function StudentLearningPage() {
                                     </div>
                                 </div>
 
-                                {/* Checkbox đã học xong (Giả lập) */}
-                                <input type="checkbox" checked={false} onChange={() => { }} style={{ cursor: 'pointer' }} title="Đánh dấu đã học" />
+                                {/* CHECKBOX ĐÃ XỬ LÝ ROLE */}
+                                {userRole === 'STUDENT' && (
+                                    <input
+                                        type="checkbox"
+                                        checked={false}
+                                        onChange={(e) => {
+                                            e.stopPropagation(); // Ngăn việc bấm checkbox làm nhảy bài học
+                                            // Gọi API Task hoàn thành ở đây
+                                        }}
+                                        style={{ cursor: 'pointer' }}
+                                    />
+                                )}
                             </div>
                         ))}
                     </div>

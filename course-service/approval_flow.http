@@ -1,0 +1,69 @@
+# ==========================================
+# CẤU HÌNH CHUNG
+# ==========================================
+@authUrl = http://localhost:8080/api/v1/auth
+@courseUrl = http://localhost:8079/api/v1/courses
+@contentType = application/json
+
+# ==========================================
+# 1. ĐĂNG NHẬP (QUAN TRỌNG: Cần User Role MANAGER hoặc ADMIN)
+# ==========================================
+# @name login
+POST {{authUrl}}/login
+Content-Type: {{contentType}}
+
+{
+    "email": "C@gmail.com", 
+    "password": "Kienz*123"
+}
+
+###
+# Tự động lấy token từ response bên trên gán vào biến authToken
+@authToken = {{login.response.body.token}}
+
+# ==========================================
+# 2. TẠO KHÓA HỌC MỚI (Mặc định sẽ là active = false)
+# ==========================================
+# @name createCourse
+POST {{courseUrl}}
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+{
+    "title": "Khóa học Java Spring Boot Test Approval",
+    "description": "Khóa học này tạo ra để test chức năng duyệt bài",
+    "price": 200.0,
+    "duration": "10h"
+    
+}
+
+###
+# Tự động lấy ID khóa học vừa tạo để dùng cho bước sau
+@courseId = {{createCourse.response.body.courseId}}
+
+
+# ==========================================
+# 3. KIỂM TRA (Dành cho Admin/Manager)
+# API này phải trả về tất cả khóa học (bao gồm active = false)
+# ==========================================
+GET {{courseUrl}}/admin/all
+Authorization: Bearer {{authToken}}
+
+
+# Thêm 3 dấu thăng ở đây để ngăn cách với API trước đó
+### 
+# ==========================================
+# 4. DUYỆT KHÓA HỌC (APPROVE)
+# ==========================================
+PUT {{courseUrl}}/{{}}/approve
+Authorization: Bearer {{authToken}}
+Content-Type: {{contentType}}
+
+
+# Thêm 3 dấu thăng ở đây
+###
+# ==========================================
+# 5. KIỂM TRA (Dành cho Học sinh)
+# ==========================================
+GET {{courseUrl}}/published
+Content-Type: {{contentType}}
