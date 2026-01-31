@@ -27,6 +27,10 @@ const menuItems = {
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
     // { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
   ],
+  manager: [
+    { title: "Tổng quan", icon: Home, url: "/" },
+    { title: "Thông báo", icon: Bell, url: "/notifications" },
+  ],
   admin: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
