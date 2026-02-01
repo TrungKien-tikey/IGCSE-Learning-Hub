@@ -30,6 +30,10 @@ public class Exam {
     @JsonProperty("isActive")
     private boolean isActive;
 
+    @Column(name = "is_strict") 
+    @JsonProperty("isStrict")
+    private Boolean isStrict = false;
+
     private int maxAttempts = 1; // Số lần làm bài tối đa, mặc định là 1
 
     @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
