@@ -22,6 +22,8 @@ public class GradingResult {
     private boolean isCorrect; // Đúng/Sai (chủ yếu cho trắc nghiệm)
     private Double confidence; // Độ tin cậy của điểm số (0.0 - 1.0)
     private String evaluationMethod; // Phương pháp chấm: AI_GPT4_LANGCHAIN hoặc LOCAL_RULE_BASED
+    private String topic; // Chủ đề giáo dục
+    private String assessmentObjective; // Mục tiêu đánh giá (AO1, AO2, AO3)
 
     public GradingResult(Long questionId, String questionType, Double score,
             Double maxScore, String feedback, boolean isCorrect) {
@@ -36,7 +38,14 @@ public class GradingResult {
     }
 
     public GradingResult(Long questionId, String questionType, Double score,
-            Double maxScore, String feedback, boolean isCorrect, Double confidence) {
+            Double maxScore, String feedback, boolean isCorrect, String topic, String assessmentObjective) {
+        this(questionId, questionType, score, maxScore, feedback, isCorrect);
+        this.topic = topic;
+        this.assessmentObjective = assessmentObjective;
+    }
+
+    public GradingResult(Long questionId, String questionType, Double score,
+            Double maxScore, String feedback, boolean isCorrect, Double confidence, String evaluationMethod) {
         this.questionId = questionId;
         this.questionType = questionType;
         this.score = score;
@@ -44,7 +53,7 @@ public class GradingResult {
         this.feedback = feedback;
         this.isCorrect = isCorrect;
         this.confidence = confidence;
-        this.evaluationMethod = "LOCAL_RULE_BASED";
+        this.evaluationMethod = evaluationMethod;
     }
 
     @JsonIgnore

@@ -26,21 +26,21 @@ export default function StatisticsCard({ icon, label, value, color = "blue" }) {
     const iconBgClass = iconBgMap[color] || iconBgMap.blue;
 
     return (
-        <div className={`rounded-2xl p-5 shadow-sm ${colorClasses}`}>
-            <div className="flex items-center gap-4">
+        <div className={`rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-5 shadow-sm ${colorClasses}`}>
+            <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                 {/* Icon */}
-                <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${iconBgClass}`}>
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgClass}`}>
                     {typeof icon === "string" ? (
-                        <span className="text-2xl">{icon}</span>
+                        <span className="text-xl sm:text-2xl">{icon}</span>
                     ) : (
-                        <span className="w-7 h-7">{icon}</span>
+                        <span className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7">{icon}</span>
                     )}
                 </div>
 
                 {/* Content */}
-                <div className="flex-1">
-                    <p className="text-sm opacity-80 font-medium">{label}</p>
-                    <p className="text-3xl font-bold tracking-tight">{value}</p>
+                <div className="flex-1 min-w-0">
+                    <p className="text-xs sm:text-sm opacity-80 font-medium truncate">{label}</p>
+                    <p className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">{value}</p>
                 </div>
             </div>
         </div>

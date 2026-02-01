@@ -20,6 +20,12 @@ public class AIInsight {
     @Column(name = "student_id", nullable = false)
     private Long studentId;
 
+    @Column(name = "class_id")
+    private Long classId;
+
+    @Column(name = "student_name")
+    private String studentName;
+
     @Column(name = "overall_summary", columnDefinition = "TEXT")
     private String overallSummary;
 
@@ -38,8 +44,11 @@ public class AIInsight {
     @Column(name = "is_ai_generated", nullable = false)
     private Boolean isAiGenerated;
 
-    @Column(name = "progress_id")
-    private Long progressId;
+    @Column(name = "total_exams_analyzed")
+    private Integer totalExamsAnalyzed;
+
+    @Column(name = "avg_score_analyzed")
+    private Double avgScoreAnalyzed;
 
     @Column(name = "generated_at", nullable = false, updatable = false)
     private Date generatedAt;
@@ -62,83 +71,4 @@ public class AIInsight {
     protected void onUpdate() {
         this.updatedAt = new Date();
     }
-
-    // public Long getInsightId(){
-    // return insightId;
-    // }
-
-    // public void setInsightId(Long insightId){
-    // this.insightId = insightId;
-    // }
-
-    // public Long getStudentId(){
-    // return studentId;
-    // }
-
-    // public void setStudentId(Long studentId){
-    // this.studentId = studentId;
-    // }
-
-    // public String getOverallSummary(){
-    // return overallSummary;
-    // }
-
-    // public void setOverallSummary(String overallSummary){
-    // this.overallSummary = overallSummary;
-    // }
-
-    // public String getKeyStrengths(){
-    // return keyStrengths;
-    // }
-
-    // public void setKeyStrengths(String keyStrengths){
-    // this.keyStrengths = keyStrengths;
-    // }
-
-    // public String getAreasForImprovement(){
-    // return areasForImprovement;
-    // }
-    // public void setAreasForImprovement(String areasForImprovement) {
-    // this.areasForImprovement = areasForImprovement;
-    // }
-
-    // public String getActionPlan() {
-    // return actionPlan;
-    // }
-
-    // public void setActionPlan(String actionPlan) {
-    // this.actionPlan = actionPlan;
-    // }
-
-    // public String getLanguage() {
-    // return language;
-    // }
-
-    // public void setLanguage(String language) {
-    // this.language = language;
-    // }
-
-    // public Boolean getIsAiGenerated() {
-    // return isAiGenerated;
-    // }
-
-    // public void setIsAiGenerated(Boolean isAiGenerated) {
-    // this.isAiGenerated = isAiGenerated;
-    // }
-
-    // public Date getGeneratedAt() {
-    // return generatedAt;
-    // }
-
-    // public void setGeneratedAt(Date generatedAt) {
-    // this.generatedAt = generatedAt;
-    // }
-
-    // public Date getUpdatedAt() {
-    // return updatedAt;
-    // }
-
-    // public void setUpdatedAt(Date updatedAt) {
-    // this.updatedAt = updatedAt;
-    // }
 }

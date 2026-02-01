@@ -10,7 +10,8 @@ import com.igcse.ai.entity.AIInsight;
 public interface AIInsightRepository extends JpaRepository<AIInsight, Long> {
     Optional<AIInsight> findTopByStudentIdOrderByGeneratedAtDesc(Long studentId);
 
-    List<AIInsight> findTop5ByStudentIdAndProgressIdIsNullOrderByGeneratedAtDesc(Long studentId);
+    Optional<AIInsight> findTopByStudentIdAndIsAiGeneratedTrueOrderByGeneratedAtDesc(Long studentId);
 
-    void deleteByStudentId(Long studentId);
+    List<AIInsight> findTop5ByStudentIdOrderByGeneratedAtDesc(Long studentId);
+
 }

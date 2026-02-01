@@ -15,31 +15,35 @@ import com.igcse.ai.dto.aiChamDiem.DetailedGradingResultDTO;
 import com.igcse.ai.service.aiChamDiem.IGradingService;
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
+import com.igcse.ai.service.common.TierManagerService;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AIService {
     private static final Logger logger = LoggerFactory.getLogger(AIService.class);
-    private static final double PASSING_SCORE = 5.0;
     private final JsonService jsonService;
     private final AIResultRepository aiResultRepository;
     private final IGradingService gradingService;
     private final ILanguageService languageService;
+    private final TierManagerService tierManagerService;
 
     public AIService(
             JsonService jsonService,
             AIResultRepository aiResultRepository,
             IGradingService gradingService,
-            ILanguageService languageService) {
+            ILanguageService languageService,
+            TierManagerService tierManagerService) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
         this.languageService = languageService;
+        this.tierManagerService = tierManagerService;
     }
 
     /**
@@ -102,8 +106,8 @@ public class AIService {
                     maxScore = gradingService.calculateMaxScore(detailsList);
 
                 return new DetailedGradingResultDTO(
-                        attemptId, cachedResult.getScore(), maxScore, cachedResult.getFeedback(),
-                        cachedResult.getConfidence(), lang, detailsList);
+                        attemptId, cachedResult.getStudentId(), cachedResult.getScore(), maxScore,
+                        cachedResult.getFeedback(), cachedResult.getConfidence(), lang, detailsList);
             }
             // else fall through
         }
@@ -125,6 +129,21 @@ public class AIService {
             }
         }
 
+        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
+
+        // Tính toán điểm chi tiết theo phần
+        double mcScore = 0.0;
+        double essayScore = 0.0;
+        for (GradingResult gr : gradingResults) {
+            if (gr.getScore() != null) {
+                if ("MULTIPLE_CHOICE".equalsIgnoreCase(gr.getQuestionType())) {
+                    mcScore += gr.getScore();
+                } else if ("ESSAY".equalsIgnoreCase(gr.getQuestionType())) {
+                    essayScore += gr.getScore();
+                }
+            }
+        }
+
         // Lưu DB
         AIResult result = existingResult.orElse(new AIResult(attemptId, score, feedback, lang, confidence));
         result.setScore(score);
@@ -133,44 +152,26 @@ public class AIService {
         result.setConfidence(confidence);
         result.setStudentId(attempt.getStudentId());
         result.setExamId(attempt.getExamId());
+        result.setMultipleChoiceScore(mcScore);
+        result.setEssayScore(essayScore);
         result.setEvaluationMethod(overallMethod);
         result.setGradedAt(new java.util.Date());
         result.setAnswersHash(currentAnswersHash);
         result.setDetails(jsonService.toJson(gradingResults));
 
+        // Lưu Metadata (bao gồm classId) vào AIResult
+        if (metadata != null) {
+            result.setStudentName(metadata.studentName());
+            if (metadata.classId() != null) {
+                result.setClassId(metadata.classId());
+            }
+        }
+
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
 
-        // Invalidate cache (Đã chuyển sang TierManagerService kiểm soát Tầng 2)
-        // Không xóa DB bừa bãi ở đây nữa để tránh mất lịch sử Tầng 2 khi chưa đủ bài
-        // thi
-
         return new DetailedGradingResultDTO(
-                attemptId, score, maxScore, feedback, confidence, lang, gradingResults);
-    }
-
-    public String analyzeAnswers(Long attemptId, String language, ExamAnswersDTO attemptDTO) {
-        logger.info("Analyzing answers for attemptId: {}", attemptId);
-
-        Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
-
-        AIResult result = aiResultRepository.findByAttemptId(attemptId).orElse(null);
-
-        if (result != null) {
-            logger.debug("Returning cached feedback for attemptId: {}", attemptId);
-            return result.getFeedback();
-        }
-
-        logger.debug("Evaluating exam from provided DTO for attemptId: {}", attemptId);
-        if (attemptDTO == null) {
-            throw new ExamGradingException("Cannot analyze answers: DTO is missing and legacy pull is disabled",
-                    attemptId);
-        }
-        evaluateExamFromDTO(attemptDTO);
-        result = aiResultRepository.findByAttemptId(attemptId)
-                .orElseThrow(() -> new ExamGradingException("Failed to grade exam", attemptId));
-
-        return result.getFeedback();
+                attemptId, attempt.getStudentId(), score, maxScore, feedback, confidence, lang, gradingResults);
     }
 
     public AIResult getResult(Long attemptId) {
@@ -186,9 +187,7 @@ public class AIService {
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
 
         AIResult result = getResult(attemptId);
-        List<GradingResult> detailsList = new java.util.ArrayList<>();
-
-        detailsList = jsonService.parseGradingDetails(result.getDetails());
+        List<GradingResult> detailsList = jsonService.parseGradingDetails(result.getDetails());
 
         Double maxScore = 10.0;
         if (!detailsList.isEmpty()) {
@@ -197,6 +196,7 @@ public class AIService {
 
         return new DetailedGradingResultDTO(
                 result.getAttemptId(),
+                result.getStudentId(),
                 result.getScore(),
                 maxScore,
                 result.getFeedback(),
@@ -209,13 +209,6 @@ public class AIService {
         return LanguageService.ENGLISH.equals(language) ||
                 LanguageService.VIETNAMESE.equals(language) ||
                 LanguageService.AUTO.equals(language);
-    }
-
-    /**
-     * Lấy điểm đạt tối thiểu
-     */
-    public double getPassingScore() {
-        return PASSING_SCORE;
     }
 
     /**
@@ -243,6 +236,22 @@ public class AIService {
         } catch (Exception e) {
             logger.error("Error calculating hash for answers", e);
             return null;
+        }
+    }
+
+    @Transactional
+    public void updateComponentScores(Long attemptId, Double mcScore, Double essayScore, Long classId) {
+        logger.info("Updating component scores for attemptId: {}, MC: {}, Essay: {}, Class: {}",
+                attemptId, mcScore, essayScore, classId);
+        Optional<AIResult> resultOpt = aiResultRepository.findByAttemptId(attemptId);
+        if (resultOpt.isPresent()) {
+            AIResult result = resultOpt.get();
+            result.setMultipleChoiceScore(mcScore);
+            result.setEssayScore(essayScore);
+            if (classId != null) {
+                result.setClassId(classId);
+            }
+            aiResultRepository.save(result);
         }
     }
 }

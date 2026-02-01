@@ -57,3 +57,6 @@ src/FE_Preview/node_modules/
 src/FE_Preview/dist/
 src/FE_Preview/.env.local
 src/FE_Preview/.env.*.local
+
+application.properties
+.env

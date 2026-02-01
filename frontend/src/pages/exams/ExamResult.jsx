@@ -43,7 +43,7 @@ export default function ExamResultPage() {
     useEffect(() => {
         if (!hasPendingEssay) return;
 
-        console.log("⏳ Đang chờ AI chấm điểm... Polling...");
+        console.log("Đang chờ AI chấm điểm... Polling...");
         const interval = setInterval(() => {
             fetchResult(false);
         }, 3000);
@@ -78,14 +78,14 @@ export default function ExamResultPage() {
                 {hasPendingEssay && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
                         <p className="text-amber-700 text-sm flex items-center justify-center gap-2 font-medium">
-                            <span className="animate-bounce">⏳</span> AI đang chấm điểm các câu tự luận...
+                            <span className="animate-bounce"></span> AI đang chấm điểm các câu tự luận...
                         </p>
                         <button
                             onClick={() => fetchResult(true)}
                             disabled={isRefreshing}
                             className="mt-3 bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-full text-sm font-bold transition-all shadow-md disabled:bg-gray-300"
                         >
-                            {isRefreshing ? "Đang cập nhật..." : "🔄 Cập nhật điểm ngay"}
+                            {isRefreshing ? "Đang cập nhật..." : "Cập nhật điểm ngay"}
                         </button>
                     </div>
                 )}
@@ -95,7 +95,7 @@ export default function ExamResultPage() {
                         onClick={() => navigate("/exams")}
                         className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-semibold"
                     >
-                        Về trang chủ
+                        Quay về
                     </button>
                     <button
                         onClick={() => window.print()}
@@ -109,7 +109,7 @@ export default function ExamResultPage() {
             {/* CHI TIẾT CÂU TRẢ LỜI */}
             <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    📑 Chi tiết bài làm
+                    Chi tiết bài làm
                 </h3>
 
                 {result.answers?.map((ans, index) => {
@@ -152,19 +152,18 @@ export default function ExamResultPage() {
                                             const isRightOption = opt.isCorrect;
 
                                             let borderClass = "border-gray-200";
-                                            let icon = "⚪";
-
+                                    
                                             if (isSelected) {
                                                 borderClass = isRightOption ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50";
-                                                icon = isRightOption ? "✅" : "❌";
+                                              
                                             } else if (isRightOption) {
                                                 borderClass = "border-green-500 border-dashed bg-green-50/30";
-                                                icon = "✔️";
+                                              
                                             }
 
                                             return (
                                                 <div key={opt.optionId} className={`flex items-center p-3 border-2 rounded-lg transition-all ${borderClass}`}>
-                                                    <span className="mr-3">{icon}</span>
+                   
                                                     <span className={`flex-1 ${isSelected ? 'font-bold' : ''}`}>
                                                         {opt.content}
                                                     </span>
@@ -186,8 +185,7 @@ export default function ExamResultPage() {
                                 )}
 
                                 {/* NHẬN XÉT VÀ FEEDBACK */}
-                                <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-100/50' : isPending ? 'bg-amber-100/50' : 'bg-red-100/50'}`}>
-                                    <span className="text-xl">💬</span>
+                                <div className={`mt-4 p-4 rounded-lg flex gap-3 ${isCorrect ? 'bg-green-100/50' : isPending ? 'bg-amber-100/50' : 'bg-red-100/50'}`}>             
                                     <div>
                                         <p className="text-xs font-bold text-gray-500 uppercase">Nhận xét từ {isEssay ? 'AI Grading' : 'Hệ thống'}:</p>
                                         <p className={`text-sm font-medium ${isCorrect ? 'text-green-700' : isPending ? 'text-amber-700' : 'text-red-700'}`}>

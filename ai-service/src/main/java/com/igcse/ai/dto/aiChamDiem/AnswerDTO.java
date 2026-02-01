@@ -17,4 +17,6 @@ import lombok.Setter;
 public class AnswerDTO {
     protected Long questionId;
     protected String type;
+    protected String topic; // Ví dụ: Calculus, Algebra, Mechanics
+    protected String assessmentObjective; // Ví dụ: AO1, AO2, AO3
 }

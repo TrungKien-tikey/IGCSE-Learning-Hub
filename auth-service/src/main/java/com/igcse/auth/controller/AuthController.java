@@ -1,14 +1,21 @@
 package com.igcse.auth.controller;
 
 import com.igcse.auth.dto.AuthResponse;
+import com.igcse.auth.dto.ChangePasswordRequest;
 import com.igcse.auth.dto.LoginRequest;
 import com.igcse.auth.dto.RegisterRequest;
+import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.service.AuthService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
+
 @RestController
-@RequestMapping("/api/v1/auth") // <--- SỬA 1: Thêm v1 vào đây cho khớp Kong Gateway
+@RequestMapping("/api/v1/auth")
 public class AuthController {
 
     private final AuthService authService;
@@ -17,30 +24,100 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // <--- SỬA 2: Thêm hàm này để test kết nối (GET Method)
+    // 1. Health Check
     @GetMapping("/health")
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Auth Service is connecting to Gateway successfully!");
     }
 
+    // 2. Đăng ký
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        System.out.println("GỌI VÀO REGISTER: " + request.getEmail());
         return ResponseEntity.ok(authService.register(request));
     }
 
+    // 3. Đăng nhập
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    // 4. Verify Token
     @PostMapping("/verify-token")
     public ResponseEntity<Boolean> verifyToken(@RequestParam String token) {
         return ResponseEntity.ok(authService.verifyToken(token));
     }
 
+    // 5. Đổi mật khẩu (ĐÃ SỬA: Thêm try-catch để bắt lỗi sai pass)
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestBody com.igcse.auth.dto.ChangePasswordRequest request) {
-        return ResponseEntity.ok(authService.changePassword(request));
+    public ResponseEntity<String> changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Principal connectedUser
+    ) {
+        try {
+            authService.changePassword(request, connectedUser);
+            return ResponseEntity.ok("Doi mat khau thanh cong!");
+        } catch (Exception e) {
+            // Trả về lỗi 400 nếu mật khẩu cũ sai hoặc confirm không khớp
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
+    }
+
+    // 6. Quên mật khẩu (Gửi email)
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        try {
+            authService.forgotPassword(email);
+            return ResponseEntity.ok("Link dat lai mat khau da duoc gui vao email cua ban.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
+    }
+
+    // 7. Đặt lại mật khẩu (Reset)
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(
+            @RequestParam String token,
+            @RequestParam String newPassword
+    ) {
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok("Mat khau da duoc dat lai thanh cong! Ban co the dang nhap ngay.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Loi: " + e.getMessage());
+        }
+    }
+
+
+    // 8. API Check trùng Email
+    @GetMapping("/check-email")
+    public ResponseEntity<Boolean> checkEmail(@RequestParam String email) {
+        return ResponseEntity.ok(authService.checkEmailExists(email));
+    }
+
+   @GetMapping("/users/{id}")
+    public ResponseEntity<com.igcse.auth.dto.UserSyncDTO> getUserById(@PathVariable Long id) {
+        try {
+            // Đảm bảo AuthService đã có hàm getUserById (đã thêm ở bước trước)
+            return ResponseEntity.ok(authService.getUserById(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
+
+    }
+
+    // 9. Đăng xuất (Logout)
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+    // Lấy token từ header "Authorization: Bearer ..."
+        String authHeader = request.getHeader("Authorization");
+    
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            authService.logout(token);
+            return ResponseEntity.ok("Dang xuat thanh cong (Token da bi vo hieu hoa)");
+        }
+    
+        return ResponseEntity.badRequest().body("Token khong hop le");
     }
 }

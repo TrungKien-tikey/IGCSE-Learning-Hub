@@ -62,10 +62,39 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động cập nhật bảng nếu code thay đổi
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      - mysql-db
+      - rabbitmq
     networks:
       - igcse-network
 
-  # 1.4 AI SERVICE (Java Spring Boot - Tự động hóa!)
+  # 1.4 USER SERVICE (Java Spring Boot)
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/user_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
+
+  # 1.5 AI SERVICE (Java Spring Boot - Tự động hóa!)
   ai-service:
     build: ./ai-service
     container_name: ai-service
@@ -73,21 +102,32 @@ services:
     ports:
       - "8082:8082"
     environment:
-      # Kết nối DB qua tên service dùng chung "igcse_mysql" (tùy thuộc vào container_name hoặc service name)
-      # Trong docker-compose này, mysql service đặt tên là "mysql-db"
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/ai_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      # Kết nối DB qua tên service dùng chung "mysql-db"
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/ai_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
-      - SPRING_RABBITMQ_HOST=rabbitmq
-      # QUAN TRỌNG: Tự động cập nhật Database (Thêm bảng/cột mới) mà không cần chạy SQL thủ công
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
-      - EXAM_SERVICE_URL=http://exam-service:8085
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
+      # RabbitMQ
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
+      # Profile
+      - SPRING_PROFILES_ACTIVE=prod
+      # OpenAI API Key - Đọc từ .env file
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - mysql-db
       - rabbitmq
     networks:
       - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/api/ai/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 
   # 1.5 EXAM SERVICE (Java Spring Boot - Tự động hóa!)
   exam-service:
@@ -97,18 +137,79 @@ services:
     ports:
       - "8085:8085"
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/exam_db?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
       # Tự động tạo bảng/cột cho Exam Service
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
       - SPRING_RABBITMQ_HOST=rabbitmq
     depends_on:
       - mysql-db
       - rabbitmq
     networks:
       - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+  communication-service:
+    build: ./communication-service
+    container_name: communication-service
+    restart: always
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./communication-service/src/main/resources/serviceAccountKey.json:/app/serviceAccountKey.json:ro
+    environment:
+     # Thêm biến múi giờ cho hệ thống container
+      - TZ=Asia/Ho_Chi_Minh
+      # Thêm tham số serverTimezone vào URL để đồng bộ với Database
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/communication_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true&serverTimezone=Asia/Ho_Chi_Minh
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      # Thêm cấu hình để Jackson (trả về JSON) hiểu đúng múi giờ Việt Nam
+      - SPRING_JACKSON_TIME_ZONE=Asia/Ho_Chi_Minh
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8089/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
 
+  # 1.6 COURSE SERVICE (Java Spring Boot)
+  course-service:
+    build: ./course-service
+    container_name: course-service
+    restart: always
+    ports:
+      - "8079:8079" # Map port máy thật vào container
+    environment:
+      # Ghi đè cấu hình DB trong application.properties
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/course_db?useSSL=false&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=root
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      # Nếu sau này bạn dùng RabbitMQ (như các service khác), hãy uncomment dòng dưới:
+      # - SPRING_RABBITMQ_HOST=rabbitmq
+    depends_on:
+      - mysql-db
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8079/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
   # =========================================
   # PHẦN 2: KONG API GATEWAY
   # =========================================
@@ -142,6 +243,7 @@ services:
       KONG_PG_HOST: kong-database
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kongpass
+      KONG_PG_TIMEOUT: 60000
     depends_on:
       kong-database:
         condition: service_healthy
@@ -158,6 +260,7 @@ services:
       KONG_PG_HOST: kong-database
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kongpass
+      KONG_PG_TIMEOUT: 60000
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_ADMIN_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
@@ -197,9 +300,21 @@ services:
       - "8091:8443"
     environment:
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
-      - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123 # Yêu cầu ít nhất 12 ký tự
+      - SINGLE_USER_CREDENTIALS_PASSWORD=thinhnguyen123
       - NIFI_WEB_HTTPS_PORT=8443
+      - NIFI_WEB_HTTPS_HOST=0.0.0.0
       - NIFI_WEB_PROXY_HOST=localhost:8091
+      - NIFI_JVM_HEAP_INIT=512m
+      - NIFI_JVM_HEAP_MAX=1g
+      - NIFI_JVM_DEBUG=false
+      - NIFI_CLUSTER_IS_NODE=false
+      - NIFI_CLUSTER_NODE_PROTOCOL_PORT=
+      - NIFI_ZK_CONNECT_STRING=
+      - NIFI_ELECTION_MAX_WAIT=30 sec
+      - NIFI_SENSITIVE_PROPS_KEY=
+      - NIFI_STATE_MANAGEMENT_CONFIG_FILE=/opt/nifi/nifi-current/conf/state-management.xml
+      - NIFI_STATE_MANAGEMENT_LOCAL_PROVIDER_ID=local-provider
+      - NIFI_STATE_MANAGEMENT_START_CLUSTERS=
     volumes:
       - nifi_conf:/opt/nifi/nifi-current/conf
       - nifi_database_repository:/opt/nifi/nifi-current/database_repository
@@ -209,8 +324,63 @@ services:
       - ./docker/nifi/drivers:/opt/nifi/nifi-current/lib/drivers
     networks:
       - igcse-network
+    mem_limit: 2g
+    mem_reservation: 1g
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f 'nifi' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  # =========================================
+  # PHẦN 4: MONITORING (Prometheus & Grafana)
+  # =========================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: igcse_prometheus
+    restart: always
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - '9090:9090'
+    networks:
+      - igcse-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: igcse_grafana
+    restart: always
+    ports:
+      - '3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - igcse-network
+
+  # =========================================
+  # PHẦN 5: FRONTEND (React + Vite + Nginx)
+  # =========================================
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - kong
+    networks:
+      - igcse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
 
 # =========================================
+
 # CONFIG CHUNG
 # =========================================
 networks:
