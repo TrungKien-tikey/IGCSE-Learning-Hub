@@ -6,5 +6,5 @@ import lombok.Data;
 public class CreateExamResponse {
     private Long examId;
     private boolean success;
-    
+    private Boolean isStrict;
 }

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+import axiosClient from "../../api/axiosClient";
+
 export default function ExamResultPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -14,38 +16,25 @@ export default function ExamResultPage() {
     const [loading, setLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
 
-    const fetchResult = (showLoading = true) => {
+    const fetchResult = async (showLoading = true) => {
         if (showLoading) setIsRefreshing(true);
 
-        fetch(`/api/exams/attempt/${attemptId}`, {
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${accessToken}`
-            }
-        })
-            .then((res) => {
-                if (res.status === 401) {
-                    throw new Error("Unauthorized");
-                }
-                if (!res.ok) {
-                    throw new Error("Lỗi tải kết quả");
-                }
-                return res.json();
-            })
-            .then((data) => {
-                setResult(data);
-                setLoading(false);
-                setIsRefreshing(false);
-            })
-            .catch((err) => {
-                console.error("Lỗi fetch:", err);
-                if (err.message === "Unauthorized") {
-                    alert("Phiên đăng nhập hết hạn.");
-                    navigate("/login");
-                }
-                setLoading(false);
-                setIsRefreshing(false);
+        try {
+            const res = await axiosClient.get(`/api/exams/attempt/${attemptId}`, {
+                baseURL: ''
             });
+
+            setResult(res.data);
+        } catch (err) {
+            console.error("Lỗi fetch:", err);
+            if (err.response && err.response.status === 401) {
+                alert("Phiên đăng nhập hết hạn.");
+                navigate("/login");
+            }
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
+        }
     };
 
     useEffect(() => {

@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from '../../components/CommentRoom';
+import axiosClient from '../../api/axiosClient';
 
 export default function ExamListPage() {
   const navigate = useNavigate();
@@ -40,43 +41,43 @@ export default function ExamListPage() {
 
   // Effect 1: Tải danh sách bài thi
   useEffect(() => {
-    // Nếu chưa load xong user hoặc là Teacher (đang redirect) thì không tải API
     if (!accessToken) return;
-
     const timer = setInterval(() => setNow(new Date()), 60000);
 
-    // Header dùng chung cho các request
-    const headers = {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${accessToken}` // Quan trọng: Gửi Token để Backend dùng SecurityUtils
-    };
-
     // A. Tải danh sách bài thi
-    fetch("/api/exams", { headers }) // Moved { headers } inside fetch
-      .then((res) => {
-        if (res.status === 401) {
-             navigate("/login");
-             throw new Error("Unauthorized");
-        }
-        return res.ok ? res.json() : [];
-      })
-      .then((data) => {
+    const fetchExams = async () => {
+      try {
+        const res = await axiosClient.get('/api/exams', { 
+            baseURL: '' // <--- CẤU HÌNH GHI ĐÈ Ở ĐÂY
+        });
+        const data = res.data; // Axios trả dữ liệu trong .data
+
         if (Array.isArray(data)) {
           const activeExams = data.filter((exam) => exam.isActive === true);
           setAllExams(activeExams);
           setFilteredExams(activeExams);
         }
-      }).catch((err) => console.error("Lỗi tải bài thi:", err));
+      } catch (err) {
+        console.error("Lỗi tải bài thi:", err);
+        if (err.response && err.response.status === 401) {
+          navigate("/login");
+        }
+      }
+    };
 
     // B. Tải lịch sử làm bài (Dùng userId lấy từ localStorage)
 
-    fetch(`/api/exams/history`, { headers })
-      .then(res => (res.ok ? res.json() : []))
-      .then(data => {
+    const fetchHistory = async () => {
+      try {
+        const res = await axiosClient.get('/api/exams/history', { 
+            baseURL: '' // <--- CẤU HÌNH GHI ĐÈ Ở ĐÂY
+        });
+        const data = res.data;
+
         const map = {};
         if (Array.isArray(data)) {
           // Sắp xếp attempt mới nhất lên đầu
-          data.sort((a, b) => new Date(a.startedAt) - new Date(b.startedAt));
+          data.sort((b, a) => new Date(b.startedAt) - new Date(a.startedAt));
 
           data.forEach(attempt => {
             const eId = attempt.exam?.examId || attempt.examId;
@@ -87,11 +88,16 @@ export default function ExamListPage() {
           });
         }
         setHistoryMap(map);
-      })
-      .catch(err => console.error("Lỗi tải lịch sử:", err));
+      } catch (err) {
+        console.error("Lỗi tải lịch sử:", err);
+      }
+    };
+
+    fetchExams();
+    fetchHistory();
 
     return () => clearInterval(timer);
-  }, [accessToken]); // Chạy lại khi userId thay đổi
+  }, [accessToken, navigate]); // Chạy lại khi userId thay đổi
 
   // Effect 4: Logic Lọc dữ liệu
   useEffect(() => {
@@ -142,24 +148,28 @@ export default function ExamListPage() {
     }
   }, [filteredExams, location.state]);
 
-  const startExam = async (examId) => {
-    try {
-      const res = await fetch(`/api/exams/start`, {
-        method: "POST",
-        headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${accessToken}` // Gửi Token
-        },
-        body: JSON.stringify({
-          examId: examId,
-        }),
-      });
+  const handleExamAction = async (examId, unfinishedAttempt) => {
+    // 1. Nếu có bài đang làm dở -> Vào thẳng bài đó (Không gọi API tạo mới)
+    if (unfinishedAttempt) {
+      navigate(`/exams/${examId}/attempt?attemptId=${unfinishedAttempt.attemptId}`);
+      return;
+    }
 
-      toast.error("Lỗi khi bắt đầu bài thi.");
-      const data = await res.json();
+    // 2. Nếu không -> Gọi API tạo bài mới
+    try {
+      const res = await axiosClient.post('/api/exams/start', 
+        { examId: examId }, // Body data
+        { baseURL: '' }     // <--- Config ghi đè baseURL nằm ở tham số thứ 3
+      );
+      
+      // Axios sẽ nhảy vào catch nếu lỗi, nên nếu chạy đến đây là thành công (2xx)
+      const data = res.data;
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
+      
     } catch (error) {
-      toast.error("Lỗi khi bắt đầu bài thi.");
+      // Lấy message lỗi từ response của server
+      const message = error.response?.data?.message || "Không thể bắt đầu bài thi";
+      toast.error(message);
     }
   };
 
@@ -176,6 +186,10 @@ export default function ExamListPage() {
     return new Date(dateString).toLocaleString("vi-VN", {
       hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric"
     });
+  };
+
+  const isAttemptSubmitted = (attempt) => {
+    return !!(attempt.endTime || attempt.submittedAt);
   };
 
   return (
@@ -214,12 +228,13 @@ export default function ExamListPage() {
             const isExpired = hasEndTime && new Date(exam.endTime) < now;
 
             const examHistory = historyMap[exam.examId] || [];
+            const unfinishedAttempt = examHistory.find(att => !isAttemptSubmitted(att));
             const attemptsMade = examHistory.length;
             const maxAttempts = exam.maxAttempts || 1;
             const isLimitReached = attemptsMade >= maxAttempts;
 
             const isOpen = !isExpired;
-            const canTakeExam = isOpen && !isLimitReached;
+            const canTakeExam = (isOpen && !isLimitReached) || !!unfinishedAttempt;
             const hasTaken = attemptsMade > 0;
             const isCommentOpen = activeSection?.type === 'COMMENT' && activeSection?.examId === exam.examId;
             const isScoreOpen = activeSection?.type === 'SCORE' && activeSection?.examId === exam.examId;
@@ -267,16 +282,27 @@ export default function ExamListPage() {
 
                   <div className="flex flex-col gap-2 items-end">
                     <button
-                      onClick={() => startExam(exam.examId)}
-                      disabled={!canTakeExam}
-                      className={`px-5 py-2 rounded transition font-medium min-w-[140px] shadow-sm text-center
-                        ${canTakeExam
-                          ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
-                          : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'
+                      onClick={() => handleExamAction(exam.examId, unfinishedAttempt)}
+                      disabled={!canTakeExam && !unfinishedAttempt}
+                      className={`px-5 py-2 rounded transition font-medium min-w-[140px] shadow-sm text-center flex justify-center items-center gap-2
+                        ${unfinishedAttempt
+                          ? 'bg-orange-500 text-white hover:bg-orange-600 animate-pulse' // Style cho nút Làm tiếp
+                          : canTakeExam
+                            ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                            : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'
                         }
                       `}
                     >
-                      {isLimitReached ? 'Hết lượt' : (isOpen ? 'Làm bài' : 'Hết hạn')}
+                      {/* LOGIC HIỂN THỊ CHỮ TRÊN NÚT */}
+                      {unfinishedAttempt ? (
+                        <> Làm tiếp </>
+                      ) : isLimitReached ? (
+                        'Hết lượt'
+                      ) : isOpen ? (
+                        <>Làm bài </>
+                      ) : (
+                        'Hết hạn'
+                      )}
                     </button>
 
                     {/* [MỚI] NÚT XEM ĐIỂM */}
@@ -315,6 +341,7 @@ export default function ExamListPage() {
                             <th className="px-4 py-3 text-center">Lần thi</th>
                             <th className="px-4 py-3 text-center">Thời gian nộp</th>
                             <th className="px-4 py-3 text-center">Điểm số</th>
+                            <th className="px-4 py-3 text-center">Chi tiết</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -342,6 +369,24 @@ export default function ExamListPage() {
                                     </span>
                                   ) : (
                                     <span className="text-gray-400">--</span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {attempt.totalScore !== null ? (
+                                    <button
+                                      onClick={() => navigate(`/exams/review/${attempt.attemptId}`)}
+                                      className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition"
+                                      title="Xem lại bài làm"
+                                    >
+                                      Xem
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleExamAction(exam.examId, attempt)}
+                                      className="text-orange-500 hover:text-orange-700 font-medium hover:underline text-xs"
+                                    >
+                                      Làm tiếp
+                                    </button>
                                   )}
                                 </td>
                               </tr>

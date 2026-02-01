@@ -7,6 +7,7 @@ import com.igsce.exam_service.enums.QuestionType;
 
 @Data
 public class QuestionRequest {
+    private Long questionId;
     private String content;
     private Double score;
     private Integer orderIndex;
