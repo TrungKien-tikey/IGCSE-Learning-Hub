@@ -21,6 +21,9 @@ public class CreateExamRequest {
     @JsonProperty("isActive")
     private boolean isActive; 
 
+    @JsonProperty("isStrict")
+    private Boolean isStrict;
+
     // Danh sách câu hỏi
     private List<QuestionRequest> questions;
 

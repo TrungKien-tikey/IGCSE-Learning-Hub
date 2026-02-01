@@ -26,6 +26,8 @@ import EditExamPage from "./pages/exams/ExamEdit";
 import ExamAttemptPage from "./pages/exams/ExamAttempt";
 import ExamResultPage from "./pages/exams/ExamResult";
 import CreateExamPage from './pages/exams/ExamCreate';
+import TeacherGradingPage from "./pages/exams/TeacherGradingPage";
+import ExamReviewPage from "./pages/exams/ExamReviewPage";
 
 // AI Pages
 import AIHomePage from './pages/ai/AIHomePage';
@@ -79,6 +81,8 @@ function App() {
         <Route path="/exams/edit/:id" element={<EditExamPage />} />
         <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
         <Route path="/exams/result" element={<ExamResultPage />} />
+        <Route path="/teacher/grading" element={<TeacherGradingPage />} />
+        <Route path="/exams/review/:attemptId" element={<ExamReviewPage />} />
 
         {/* --- COURSE ROUTES --- */}
         <Route path="course/courses" element={<CoursePage />} />
