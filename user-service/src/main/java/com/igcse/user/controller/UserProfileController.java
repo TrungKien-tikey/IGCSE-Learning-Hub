@@ -16,6 +16,16 @@ public class UserProfileController {
     @Autowired
     private UserService userService;
 
+    // API: Lấy danh sách users (Admin dùng để xem, duyệt GV, v.v)
+    @GetMapping
+    public org.springframework.data.domain.Page<User> getAllUsers(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String role,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return userService.getUsers(keyword, role, page, size);
+    }
+
     // API: Xem thông tin chính mình (Dùng Token)
     @GetMapping("/me")
     public ResponseEntity<User> getMyProfile() {
@@ -33,7 +43,10 @@ public class UserProfileController {
                 request.getPhone(),
                 request.getAddress(),
                 request.getBio(),
-                request.getAvatar());
+                request.getAvatar(),
+                request.getQualifications(),
+                request.getSubjects(),
+                request.getVerificationDocument());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -51,5 +64,17 @@ public class UserProfileController {
     @GetMapping("/{id}")
     public User getUser(@PathVariable Long id) {
         return userService.getUserById(id);
+    }
+
+    // API: Admin duyệt giáo viên (Yêu cầu Role ADMIN - sẽ cấu hình Security sau)
+    @PutMapping("/{id}/verify")
+    public ResponseEntity<User> verifyTeacher(@PathVariable Long id,
+            @RequestParam com.igcse.user.enums.VerificationStatus status) {
+        // TODO: Check Admin Permission here or via SecurityConfig
+        User updatedUser = userService.verifyTeacher(id, status);
+        if (updatedUser != null) {
+            return ResponseEntity.ok(updatedUser);
+        }
+        return ResponseEntity.notFound().build();
     }
 }
