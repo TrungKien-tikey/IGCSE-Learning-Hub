@@ -8,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import com.igcse.ai.config.RabbitConfig;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 @Component
 @RequiredArgsConstructor
@@ -15,7 +17,7 @@ public class GradingMessageListener {
 
     private static final Logger logger = LoggerFactory.getLogger(GradingMessageListener.class);
     private final AIService aiService;
-    private final org.springframework.amqp.rabbit.core.RabbitTemplate rabbitTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     @RabbitListener(queues = "exam.grading.queue")
     public void receiveGradingRequest(ExamAnswersDTO examAnswersDTO) {
@@ -28,11 +30,11 @@ public class GradingMessageListener {
             if (result != null) {
                 // Tạo message kết quả để gửi lại cho Exam Service (Response Queue)
                 logger.info(">>> [RabbitMQ] Grading passed. Sending result to result queue: {}",
-                        com.igcse.ai.config.RabbitConfig.RESULT_QUEUE_NAME);
+                        RabbitConfig.RESULT_QUEUE_NAME);
 
                 rabbitTemplate.convertAndSend(
-                        com.igcse.ai.config.RabbitConfig.RESULT_EXCHANGE_NAME,
-                        com.igcse.ai.config.RabbitConfig.RESULT_ROUTING_KEY,
+                        RabbitConfig.RESULT_EXCHANGE_NAME,
+                        RabbitConfig.RESULT_ROUTING_KEY,
                         result);
             } else {
                 logger.warn(">>> [RabbitMQ] Grading returned null result for attemptId: {}",

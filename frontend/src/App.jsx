@@ -1,13 +1,23 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Register from './pages/Register';
-import Login from './pages/Login';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// --- AUTH PAGES (Đã chuyển vào thư mục auth) ---
+import Register from './pages/auth/Register';
+import Login from './pages/auth/Login';
+import ForgotPassword from './pages/auth/ForgotPassword'; // File sắp tạo
+import ResetPassword from './pages/auth/ResetPassword';   // File sắp tạo
+
+// --- USER PAGES (Của bạn User Service) ---
+import Profile from './pages/Profile';
+
+// --- CÁC TRANG KHÁC (Giữ nguyên) ---
 import Dashboard from './pages/Dashboard';
 
-import TestNotificationPage from './pages/TestNotifyPage'
-import ChatPage from "./pages/ChatPage";
 import AdminDashboard from './pages/AdminDashboard';
-import Profile from './pages/Profile';
-import ProtectedRoute from './components/ProtectedRoute'; // <--- Quan trọng: Import file bảo vệ
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleProtectedRoute from './components/RoleProtectedRoute';
+import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -21,15 +31,26 @@ import CreateExamPage from './pages/exams/ExamCreate';
 import AIHomePage from './pages/ai/AIHomePage';
 import AIResultPage from './pages/ai/AIResultPage';
 import StudentDashboard from './pages/ai/StudentDashboard';
+import TeacherDashboard from './pages/ai/TeacherDashboard';
+import AdminDashboardAI from './pages/ai/AdminDashboard';
 
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
+import LessonPage from './pages/course/LessonPage';
+import CourseDetailPage from './pages/course/CourseDetailPage';
+import AllCoursesPage from './pages/course/AllCoursesPage';
+import MyCoursesPage from './pages/course/MyCoursesPage';
+import StudentLearningPage from './pages/course/StudentLearningPage';
+
+//Comunication page
+import NotificationsPage from './pages/communication/NotificationsPage';
+import ChatPage from "./pages/communication/ChatPage";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* --- KHU VỰC ĐƯỢC BẢO VỆ (Cần đăng nhập mới vào được) --- */}
+        {/* --- KHU VỰC ĐƯỢC BẢO VỆ --- */}
         <Route
           path="/"
           element={
@@ -39,35 +60,95 @@ function App() {
           }
         />
 
-        {/* --- KHU VỰC CÔNG KHAI (Ai cũng vào được) --- */}
+        {/* --- KHU VỰC AUTH (Login, Register, Quên MK) --- */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-                <Route path="/register" element={<Register />} />
-                <Route path="/testnotify" element={<TestNotificationPage />} />
-                <Route path="/chat" element={<ChatPage />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/exams" element={<ExamListPage />} />
-                <Route path="/exams/create" element={<CreateExamPage />} />
-                <Route path="/exams/manage" element={<ManageExamsPage />} />
-                <Route path="/exams/edit/:id" element={<EditExamPage />} />
-                <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
-                <Route path="/exams/result" element={<ExamResultPage />} />
-                <Route path="course/courses" element={<CoursePage />} />
-                <Route path="/profile" element={<Profile />} />
+        {/* 👉 2 Route mới cho chức năng Quên Mật Khẩu */}
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* --- AI SECTIONS (Dùng để test NiFi integration) --- */}
+        {/* --- CÁC TRANG CÔNG KHAI KHÁC --- */}
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/profile" element={<Profile />} />
+
+        {/* --- EXAM ROUTES --- */}
+        <Route path="/exams" element={<ExamListPage />} />
+        <Route path="/exams/create" element={<CreateExamPage />} />
+        <Route path="/exams/manage" element={<ManageExamsPage />} />
+        <Route path="/exams/edit/:id" element={<EditExamPage />} />
+        <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
+        <Route path="/exams/result" element={<ExamResultPage />} />
+
+        {/* --- COURSE ROUTES --- */}
+        <Route path="course/courses" element={<CoursePage />} />
+        <Route path="/courses/:courseId/lessons" element={<LessonPage />} />
+        <Route path="/course-detail/:courseId" element={<CourseDetailPage />} />
+        <Route path="/all-courses" element={<AllCoursesPage />} />
+        <Route path="/my-courses" element={<MyCoursesPage />} />
+        <Route path="/learning/:courseId" element={<StudentLearningPage />} />
+
+        {/* --- AI ROUTES --- */}
         <Route path="/ai" element={<AIHomePage />} />
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
-        <Route path="/ai/dashboard/student" element={<StudentDashboard />} />
 
-        {/* --- XỬ LÝ LỖI --- */}
-        {/* Nếu gõ đường dẫn linh tinh thì tự động về Login */}
+        {/* --- Comunication ROUTES --- */}
+        <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/chat" element={<ChatPage />} />
+
+        <Route
+          path="/ai/dashboard/student"
+          element={
+            <RoleProtectedRoute allowedRoles={['STUDENT', 'ADMIN', 'TEACHER', 'PARENT']}>
+              <StudentDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/teacher"
+          element={
+            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/admin"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/course-approval"
+          element={
+            <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
+              <AdminCourseApprovalPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* --- XỬ LÝ LỖI (404) --- */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </BrowserRouter>
   );
-
 }
 
 export default App;

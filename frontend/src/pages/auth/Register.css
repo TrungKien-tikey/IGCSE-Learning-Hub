@@ -1,0 +1,131 @@
+.register-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100%;
+  background-color: #f0f2f5;
+  font-family: Arial, sans-serif;
+}
+
+.register-box {
+  background: white;
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  width: 400px;
+  text-align: center;
+}
+
+.register-box h2 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.input-group {
+  margin-bottom: 15px;
+  text-align: left;
+}
+
+.input-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #555;
+}
+
+.input-group input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box; 
+  outline: none; /* Bỏ viền xanh mặc định khi click vào */
+  transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+  border-color: #007bff; /* Màu xanh khi focus */
+}
+
+/* 👇 CLASS MỚI: VIỀN ĐỎ KHI CÓ LỖI 👇 */
+.input-group input.input-error {
+  border-color: #dc3545; /* Màu đỏ Bootstrap */
+  background-color: #fff8f8; /* Nền hơi hồng nhẹ */
+}
+
+/* 👇 CLASS MỚI: DÒNG CHỮ ĐỎ THÔNG BÁO LỖI 👇 */
+.error-message {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+  font-style: italic;
+}
+
+/* Style cho thẻ Select vai trò */
+.role-select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-top: 10px;
+}
+
+.btn-submit:hover {
+  background-color: #0056b3;
+}
+
+.redirect-text {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.redirect-text a {
+  color: #007bff;
+  text-decoration: none;
+}
+
+/* --- PHẦN CSS CHO ICON MẮT --- */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  padding-right: 40px; 
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 10px;      
+  top: 50%;         
+  transform: translateY(-50%); 
+  cursor: pointer;  
+  color: #666;      
+  font-size: 18px; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.password-toggle-icon:hover {
+  color: #007bff;   
+}
