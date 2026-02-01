@@ -63,12 +63,21 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-
+        
+        // --- LOGIC BẢO MẬT ROLE MỚI ---
+        // Chỉ cho phép đăng ký là PARENT hoặc STUDENT.
+        // Nếu cố tình nhập ADMIN, TEACHER... sẽ bị ép về STUDENT.
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
-        if ("PARENT".equals(requestedRole)) {
-            user.setRole("PARENT");
-        } else {
-            user.setRole("STUDENT");
+        switch (requestedRole) {
+            case "TEACHER":
+                user.setRole("TEACHER");
+                break;
+            case "PARENT":
+                user.setRole("PARENT");
+                break;
+            default:
+                user.setRole("STUDENT");
+                break;
         }
 
         user.setActive(true);
