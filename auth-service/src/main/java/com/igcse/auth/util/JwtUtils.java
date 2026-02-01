@@ -2,30 +2,27 @@ package com.igcse.auth.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
-import org.springframework.security.core.userdetails.UserDetails; // <--- Import cái này để check User
 import org.springframework.stereotype.Component;
-
 import java.security.Key;
 import java.util.Date;
-import java.util.function.Function; // <--- Import để dùng Function
 
 @Component
 public class JwtUtils {
 
-    // Key bí mật (Trong thực tế nên để trong file application.properties)
+    // Key bí mật
     private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789"; 
     
-    // Thời gian hết hạn token: 1 ngày (86400000 ms)
+    // Thời gian hết hạn Access Token: 1 ngày
     private static final long EXPIRATION_TIME = 86400000L; 
+
+    // [MỚI] Thời gian hết hạn Refresh Token: 7 ngày (604800000 ms)
+    private static final long REFRESH_EXPIRATION_TIME = 604800000L;
 
     private Key getSigningKey() {
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    // ==================================================================
-    // 1. CÁC HÀM TẠO TOKEN
-    // ==================================================================
-
+    // 1. Tạo Access Token (Ngắn hạn)
     public String generateToken(String email, String role, Long userId) {
         return Jwts.builder()
                 .setSubject(email)
@@ -37,71 +34,52 @@ public class JwtUtils {
                 .compact();
     }
 
-    // ==================================================================
-    // 2. CÁC HÀM HỖ TRỢ FILTER & SECURITY (MỚI THÊM)
-    // ==================================================================
-
-    // Lấy Username (Email) từ Token - Dùng cho Filter
-    public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+    // [MỚI] 2. Tạo Refresh Token (Dài hạn - 7 ngày)
+    // Hàm này giống hệt hàm trên, chỉ khác thời gian hết hạn
+    public String generateRefreshToken(String email, String role, Long userId) {
+        return Jwts.builder()
+                .setSubject(email)
+                .claim("role", role)
+                .claim("userId", userId)
+                .claim("type", "REFRESH") // Đánh dấu đây là token refresh
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + REFRESH_EXPIRATION_TIME)) // Dùng thời gian 7 ngày
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
     }
 
-    // Lấy ngày hết hạn từ Token
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
-    }
-
-    // Hàm tổng quát để lấy bất kỳ thông tin nào trong Claims
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
-    }
-
-    // Parse toàn bộ Token để lấy Claims (Payload)
-    private Claims extractAllClaims(String token) {
+    // 3. Lấy email từ Token
+    public String extractEmail(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody();
+                .getBody()
+                .getSubject();
     }
-
-    // Kiểm tra xem Token đã hết hạn chưa
+    
+    // [MỚI] Lấy thời gian hết hạn (Dùng cho Logout nếu cần)
+    public Date extractExpiration(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(getSigningKey())
+                .build()
+                .parseClaimsJws(token)
+                .getBody()
+                .getExpiration();
+    }
+    
+    // [MỚI] Kiểm tra token hết hạn chưa
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    // ==================================================================
-    // 3. CÁC HÀM KIỂM TRA HỢP LỆ (VALIDATION)
-    // ==================================================================
-
-    /**
-     * Kiểm tra Token có hợp lệ với UserDetails không (Dùng cho Security Filter)
-     * Check 2 điều kiện:
-     * 1. Email trong token phải trùng với User trong Database
-     * 2. Token chưa hết hạn
-     */
-    public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
-    }
-
-    /**
-     * Kiểm tra nhanh Token có đúng chữ ký không (Dùng cho API verify-token đơn giản)
-     */
+    // 4. Kiểm tra Token hợp lệ
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return true;
-        } catch (MalformedJwtException e) {
-            System.err.println("Invalid JWT token: " + e.getMessage());
-        } catch (ExpiredJwtException e) {
-            System.err.println("JWT token is expired: " + e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            System.err.println("JWT token is unsupported: " + e.getMessage());
-        } catch (IllegalArgumentException e) {
-            System.err.println("JWT claims string is empty: " + e.getMessage());
+        } catch (Exception e) {
+            return false;
         }
-        return false;
     }
 }
