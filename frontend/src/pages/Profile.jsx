@@ -7,7 +7,7 @@ import {
     LayoutDashboard, Lock
 } from 'lucide-react';
 import authService from '../services/authService';
-import axiosClient from '../api/axiosClient';
+import userClient from '../api/userClient';
 import MainLayout from '../layouts/MainLayout';
 
 export default function ProfilePage() {
@@ -38,10 +38,8 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Sử dụng axiosClient đi qua Proxy (/api/users/me)
-                const res = await axiosClient.get('/users/me', {
-                    baseURL: '/api'
-                });
+                // Sử dụng userClient cho user-service API
+                const res = await userClient.get('/me');
 
                 const data = res.data;
                 setUser(data);
@@ -78,11 +76,9 @@ export default function ProfilePage() {
             const base64String = reader.result;
 
             try {
-                const res = await axiosClient.put('/users/me', {
+                const res = await userClient.put('/me', {
                     fullName: user?.fullName,
                     avatar: base64String
-                }, {
-                    baseURL: '/api'
                 });
 
                 const updatedUser = res.data;
@@ -99,14 +95,12 @@ export default function ProfilePage() {
 
     const handleSave = async () => {
         try {
-            const res = await axiosClient.put('/users/me', {
+            const res = await userClient.put('/me', {
                 fullName: formData.fullName,
                 phone: formData.phone,
                 address: formData.address,
                 bio: formData.bio,
                 avatar: user?.avatar
-            }, {
-                baseURL: '/api'
             });
 
             const updatedUser = res.data;

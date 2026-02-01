@@ -36,6 +36,7 @@ import AIResultPage from './pages/ai/AIResultPage';
 import StudentDashboard from './pages/ai/StudentDashboard';
 import TeacherDashboard from './pages/ai/TeacherDashboard';
 import AdminDashboardAI from './pages/ai/AdminDashboard';
+import ParentDashboard from './pages/ai/ParentDashboard';
 
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
@@ -48,6 +49,9 @@ import StudentLearningPage from './pages/course/StudentLearningPage';
 //Comunication page
 import NotificationsPage from './pages/communication/NotificationsPage';
 import ChatPage from "./pages/communication/ChatPage";
+
+// Payment Pages
+import VNPayReturnPage from './pages/VNPayReturnPage';
 
 function App() {
   return (
@@ -99,6 +103,9 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/chat" element={<ChatPage />} />
 
+        {/* --- PAYMENT ROUTES --- */}
+        <Route path="/payment/vnpay-return" element={<VNPayReturnPage />} />
+
         <Route
           path="/ai/dashboard/student"
           element={
@@ -131,6 +138,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN']}>
               <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/parent/:studentId"
+          element={
+            <RoleProtectedRoute allowedRoles={['PARENT', 'ADMIN', 'TEACHER', 'STUDENT']}>
+              <ParentDashboard />
             </RoleProtectedRoute>
           }
         />

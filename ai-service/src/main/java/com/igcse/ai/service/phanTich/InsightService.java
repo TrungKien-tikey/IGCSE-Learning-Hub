@@ -118,7 +118,8 @@ public class InsightService implements IInsightService {
         }
 
         try {
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData,
+                    null);
 
             // Lấy các bản phân tích cũ làm ngữ cảnh so sánh
             List<AIInsight> recentLogics = aiInsightRepository
@@ -243,7 +244,7 @@ public class InsightService implements IInsightService {
             String dataSummary = tierManagerService.buildTextSummary(analysis);
             dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
 
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null, null);
             String aiLanguageName = languageService.getAiLanguageName("vi");
             try {
                 insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
