@@ -40,6 +40,7 @@ public class LangChain4jConfig {
     private ChatLanguageModel createChatModel(double temperature) {
         if (openaiApiKey == null || openaiApiKey.trim().isEmpty() ||
                 "your-api-key-here".equals(openaiApiKey) ||
+                openaiApiKey.contains("${") || // Check if Spring placeholder wasn't replaced
                 openaiApiKey.startsWith("invalid-")) {
             // Thay vì throw exception làm crash app, ta log warning và dùng key dummy
             // App vẫn khởi động được, nhưng chức năng AI sẽ lỗi (và rơi vào fallback)

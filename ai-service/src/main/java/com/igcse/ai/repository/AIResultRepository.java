@@ -11,13 +11,15 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Lớp AIResultRepository chịu trách nhiệm truy cập và lưu trữ dữ liệu kết quả chấm điểm
+ * Lớp AIResultRepository chịu trách nhiệm truy cập và lưu trữ dữ liệu kết quả
+ * chấm điểm
  */
 @Repository
 public interface AIResultRepository extends JpaRepository<AIResult, Long> {
 
     /**
      * Lấy kết quả theo bài làm
+     * 
      * @param attemptId - Mã bài làm
      * @return AIResult - Kết quả chấm điểm
      */
@@ -25,6 +27,7 @@ public interface AIResultRepository extends JpaRepository<AIResult, Long> {
 
     /**
      * Lấy tất cả kết quả theo studentId
+     * 
      * @param studentId - Mã học sinh
      * @return List AIResult
      */
@@ -32,46 +35,61 @@ public interface AIResultRepository extends JpaRepository<AIResult, Long> {
 
     /**
      * Lấy kết quả theo studentId và thời gian chấm sau ngày chỉ định
+     * 
      * @param studentId - Mã học sinh
-     * @param fromDate - Từ ngày
+     * @param fromDate  - Từ ngày
      * @return List AIResult
      */
     List<AIResult> findByStudentIdAndGradedAtAfter(Long studentId, Date fromDate);
 
     /**
-     * Lấy tất cả kết quả theo examId
-     * @param examId - Mã bài thi
+     * Lấy tất cả kết quả theo classId
+     * 
+     * @param classId - Mã lớp học
      * @return List AIResult
      */
-    List<AIResult> findByExamId(Long examId);
+    List<AIResult> findByClassId(Long classId);
 
     /**
-     * Lấy tất cả kết quả theo danh sách examId
-     * @param examIds - Danh sách mã bài thi
-     * @return List AIResult
+     * Đếm số học sinh unique trong một lớp
      */
-    List<AIResult> findByExamIdIn(List<Long> examIds);
+    @Query("SELECT COUNT(DISTINCT r.studentId) FROM AIResult r WHERE r.classId = :classId")
+    Long countDistinctStudentsByClassId(@Param("classId") Long classId);
 
     /**
-     * Tính điểm trung bình theo studentId
-     * @param studentId - Mã học sinh
-     * @return Điểm trung bình
+     * Tính điểm trung bình của lớp
      */
-    @Query("SELECT AVG(a.score) FROM AIResult a WHERE a.studentId = :studentId")
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.classId = :classId")
+    Double getAverageScoreByClassId(@Param("classId") Long classId);
+
+    /**
+     * Đếm số bài thi đã chấm của lớp
+     */
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.classId = :classId")
+    Long countByClassId(@Param("classId") Long classId);
+
+    /**
+     * Tính confidence trung bình của toàn hệ thống
+     */
+    @Query("SELECT AVG(r.confidence) FROM AIResult r WHERE r.confidence IS NOT NULL")
+    Double getAverageConfidence();
+
+    // --------- Aggregation cho thống kê theo student ---------
+
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.studentId = :studentId")
+    Long countByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId")
     Double getAverageScoreByStudentId(@Param("studentId") Long studentId);
 
-    /**
-     * Đếm số bài thi đã chấm theo studentId
-     * @param studentId - Mã học sinh
-     * @return Số lượng bài thi
-     */
-    long countByStudentId(Long studentId);
+    @Query("SELECT MAX(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMaxScoreByStudentId(@Param("studentId") Long studentId);
 
-    /**
-     * Đếm số bài thi đã chấm theo examId
-     * @param examId - Mã bài thi
-     * @return Số lượng bài thi
-     */
-    long countByExamId(Long examId);
+    @Query("SELECT MIN(r.score) FROM AIResult r WHERE r.studentId = :studentId")
+    Double getMinScoreByStudentId(@Param("studentId") Long studentId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.studentId = :studentId AND r.gradedAt BETWEEN :startDate AND :endDate")
+    Double getAverageScoreByStudentIdAndDateRange(@Param("studentId") Long studentId,
+            @Param("startDate") Date startDate,
+            @Param("endDate") Date endDate);
 }
-

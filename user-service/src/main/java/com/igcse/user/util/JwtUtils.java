@@ -13,6 +13,7 @@ import java.util.function.Function;
 @Component
 public class JwtUtils {
 
+    // Phải giống hệt SECRET_KEY ở auth-service
     private final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
 
     private SecretKey getSigningKey() {
@@ -25,7 +26,11 @@ public class JwtUtils {
 
     public Long extractUserId(String token) {
         final Claims claims = extractAllClaims(token);
-        return claims.get("userId", Long.class);
+        Object userId = claims.get("userId");
+        if (userId instanceof Number) {
+            return ((Number) userId).longValue();
+        }
+        return null;
     }
 
     public String extractRole(String token) {
@@ -56,8 +61,10 @@ public class JwtUtils {
 
     public Boolean validateToken(String token) {
         try {
+            Jwts.parserBuilder().setSigningKey(getSigningKey()).build().parseClaimsJws(token);
             return !isTokenExpired(token);
         } catch (Exception e) {
+            System.err.println("JWT Validation Error: " + e.getMessage());
             return false;
         }
     }

@@ -60,14 +60,21 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Secrets & Local Config
+# Secrets
 .env
-.env.*
-application-local.properties
-**/application-local.properties
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Allow example env files
+!.env.example
 
 # Docker
 .docker/
 *.db
 mysql_data/
-*.md
+ai_logs.txt
+.agent
+
+.cursor/

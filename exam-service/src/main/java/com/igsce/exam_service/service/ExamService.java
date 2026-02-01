@@ -53,6 +53,10 @@ public class ExamService {
                 .orElseThrow();
     }
 
+    public List<ExamAttempt> getAttemptsByUserId(Long userId) {
+        return attemptRepository.findByUserId(userId);
+    }
+
     @Transactional(readOnly = true)
     public ExamAttempt getExamAttempt(Long attemptId) {
         System.out.println(">>> [ExamService] API GET /attempt/" + attemptId + " called.");
@@ -75,6 +79,22 @@ public class ExamService {
             System.out.println(">>> [ExamService] Found 0 answers (null list) for attempt " + attemptId);
         }
         return attempt;
+    }
+
+    @Transactional(readOnly = true)
+    public List<ExamAttempt> getAttemptsByExamId(Long examId) {
+        // Kiểm tra xem Exam có tồn tại không (tùy chọn)
+        if (!examRepository.existsById(examId)) {
+            throw new RuntimeException("Exam not found with id: " + examId);
+        }
+        
+        // Gọi Repository lấy danh sách
+        List<ExamAttempt> attempts = attemptRepository.findByExam_ExamIdOrderBySubmittedAtDesc(examId);
+        
+        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi convert JSON
+        // Nhưng thường với danh sách bảng điểm thì không cần load sâu User Answers
+        
+        return attempts;
     }
 
     @Async("taskExecutor")
@@ -229,6 +249,19 @@ public class ExamService {
             System.out.println("Saving exam to database...");
             Exam savedExam = examRepository.save(exam);
             System.out.println("Exam saved successfully with ID: " + savedExam.getExamId());
+            try {
+                ExamCreatedEvent event = new ExamCreatedEvent(
+                    savedExam.getExamId(), 
+                    savedExam.getTitle(),
+                    savedExam.getDescription()
+                );
+                
+                // Sử dụng Exchange chuyên cho notification (khai báo bên dưới)
+                rabbitTemplate.convertAndSend("exam.notification.exchange", "exam.created", event);
+                System.out.println(">>> Đã gửi sự kiện tạo Exam sang RabbitMQ: " + savedExam.getTitle());
+            } catch (Exception ex) {
+                System.err.println("Lỗi gửi RabbitMQ (không ảnh hưởng transaction chính): " + ex.getMessage());
+            }
 
             return savedExam;
         } catch (Exception e) {

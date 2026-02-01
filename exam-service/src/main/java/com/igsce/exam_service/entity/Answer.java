@@ -3,6 +3,7 @@ package com.igsce.exam_service.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "exam_answers")
@@ -20,6 +21,7 @@ public class Answer {
 
     @ManyToOne
     @JoinColumn(name = "question_id")
+    @JsonIgnoreProperties("answers")
     private Question question;
 
     // Nếu là Trắc nghiệm -> Lưu ID của option đã chọn

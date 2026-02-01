@@ -26,7 +26,7 @@ public class ExamAttempt {
 
     @ManyToOne
     @JoinColumn(name = "exam_id")
-    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("questions")
     private Exam exam;
 
     @OneToMany(mappedBy = "attempt", cascade = CascadeType.ALL)

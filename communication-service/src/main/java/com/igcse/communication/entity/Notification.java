@@ -6,15 +6,26 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notifications")
-@Data // Lombok getter/setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Notification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long userId;
+
+    private Long userId; // Người nhận thông báo
     private String title;
     private String message;
+    @Column(name = "notification_type") 
     private String type;
-    private boolean isRead = false;
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "exam_id")
+    private Long examId;
+    // Trong file com.igcse.communication.entity.Notification.java
+    @Builder.Default
+    private boolean isRead = false; 
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now(); 
+    // Loại bỏ courseId
 }

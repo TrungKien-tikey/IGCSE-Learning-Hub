@@ -9,20 +9,25 @@ export default defineConfig({
   },
   server: {
     proxy: {
-
-      // Các request bắt đầu bằng /api/v1/auth sẽ đi tới Auth Service (port 8080)
-      '/api/v1/auth': {
-        target: 'http://localhost:8080',
+      // =================================================================
+      // CẤU HÌNH GATEWAY CHUẨN (Tất cả đi qua Kong Port 8000)
+      // =================================================================
+      // Mọi request bắt đầu bằng /api (gồm cả /auth, /users...) 
+      // sẽ được chuyển hướng sang Kong Gateway.
+      '/api': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
-      // Các request bắt đầu bằng /api/users sẽ đi tới User Service (port 8083)
-      '/api/users': {
-        target: 'http://localhost:8083',
-
-        changeOrigin: true,
-        secure: false,
-      },
+      // ===================================
+      // MONITORING PROXY (Actuator bypasses Kong for direct speed)
+      // ===================================
+      '/health/auth': { target: 'http://127.0.0.1:8080', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/auth/, '/actuator/health') },
+      '/health/user': { target: 'http://127.0.0.1:8083', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/user/, '/actuator/health') },
+      '/health/ai': { target: 'http://127.0.0.1:8082', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/ai/, '/actuator/health') },
+      '/health/course': { target: 'http://127.0.0.1:8079', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/course/, '/actuator/health') },
+      '/health/exam': { target: 'http://127.0.0.1:8085', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/exam/, '/actuator/health') },
+      '/health/communication': { target: 'http://127.0.0.1:8089', changeOrigin: true, secure: false, rewrite: (path) => path.replace(/^\/health\/communication/, '/actuator/health') },
     },
   },
 })

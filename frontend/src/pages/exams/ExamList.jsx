@@ -1,71 +1,135 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-
-const CURRENT_USER_ID = 1;
-const CURRENT_USER_ROLE = "TEACHER";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "react-toastify";
+import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
+import MainLayout from '../../layouts/MainLayout';
+import CommentRoom from '../../components/CommentRoom';
 
 export default function ExamListPage() {
-  // 1. Tách biệt danh sách gốc (allExams) và danh sách hiển thị (filteredExams)
-  const [allExams, setAllExams] = useState([]); 
-  const [filteredExams, setFilteredExams] = useState([]);
-  
-  // 2. State cho bộ lọc
-  const [filterStatus, setFilterStatus] = useState("ALL"); // 'ALL', 'OPEN', 'EXPIRED'
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const [role, setRole] = useState(CURRENT_USER_ROLE);
   const navigate = useNavigate();
-  const [now, setNow] = useState(new Date());
+  const location = useLocation();
 
-  // Effect 1: Tải dữ liệu và đồng hồ
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60000);
-    
-    fetch("/api/exams")
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (Array.isArray(data)) {
-          // Chỉ lấy các bài thi Active (không bị xóa mềm)
-          const activeExams = data.filter((exam) => exam.isActive === true);
-          setAllExams(activeExams);
-          setFilteredExams(activeExams); // Mặc định hiển thị hết
-        } else {
-          setAllExams([]);
-          setFilteredExams([]);
+  // State dữ liệu
+  const [allExams, setAllExams] = useState([]);
+  const [filteredExams, setFilteredExams] = useState([]);
+  const [userAttempts, setUserAttempts] = useState({}); // Đếm số lượt làm bài
+  const [filterStatus, setFilterStatus] = useState("ALL");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [now, setNow] = useState(new Date());
+  const [historyMap, setHistoryMap] = useState({});
+
+  // State quản lý việc mở khung comment (mới thêm)
+  const [activeSection, setActiveSection] = useState(null);
+  const currentUser = JSON.parse(localStorage.getItem('user') || "{}");
+
+  // --- 1. LẤY USERID VỚI VALIDATION (Giống StudentDashboardGeneral) ---
+  const userId = useMemo(() => {
+    let id = localStorage.getItem("userId");
+
+    // Validate userId: không được undefined/null string
+    if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
+      // Thử lấy từ JWT token nếu có
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        try {
+          const decoded = JSON.parse(atob(token.split('.')[1]));
+          id = decoded.userId || decoded.id || decoded.sub || null;
+        } catch (e) {
+          // Ignore decode error
         }
-      })
-      .catch((err) => {
-        console.error("Lỗi tải danh sách bài thi:", err);
-        setAllExams([]);
-      });
-    return () => clearInterval(timer);
+      }
+
+      // Fallback cuối cùng
+      if (!id || id === "undefined" || id === "null") {
+        id = "1";
+      }
+    }
+
+    // Final validation: phải là số hợp lệ
+    const numId = Number(id);
+    if (isNaN(numId) || numId <= 0) {
+      return "1";
+    }
+
+    return String(numId);
   }, []);
 
-  // Effect 2: Logic Lọc dữ liệu (Chạy mỗi khi search, đổi filter, hoặc thời gian trôi qua)
+  // --- 3. EFFECT TẢI DỮ LIỆU (Chỉ chạy khi đã xác định Role và KHÔNG PHẢI Teacher) ---
+
+  // Effect 1: Tải danh sách bài thi
+  useEffect(() => {
+    // userId đã được validate và luôn có giá trị hợp lệ (ít nhất là "1")
+    const timer = setInterval(() => setNow(new Date()), 60000);
+
+    // A. Tải danh sách bài thi
+    fetch("/api/exams")
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const activeExams = data.filter((exam) => exam.isActive === true);
+          setAllExams(activeExams);
+          setFilteredExams(activeExams);
+        }
+      }).catch((err) => console.error("Lỗi tải bài thi:", err));
+
+    // B. Tải lịch sử làm bài (userId đã được validate từ useMemo)
+    // Đảm bảo userId là số hợp lệ trước khi gọi API
+    const currentUserId = Number(userId);
+    if (isNaN(currentUserId) || currentUserId <= 0) {
+      console.error("Invalid userId for history API:", userId);
+      setHistoryMap({});
+      return;
+    }
+
+    fetch(`/api/exams/history?userId=${currentUserId}`)
+      .then(res => {
+        if (!res.ok) {
+          console.error("Failed to fetch exam history:", res.status);
+          return [];
+        }
+        return res.json();
+      })
+      .then(data => {
+        const map = {};
+        if (Array.isArray(data)) {
+          // Sắp xếp attempt mới nhất lên đầu
+          data.sort((a, b) => new Date(a.startedAt) - new Date(b.startedAt));
+
+          data.forEach(attempt => {
+            const eId = attempt.exam?.examId || attempt.examId;
+            if (eId) {
+              if (!map[eId]) map[eId] = [];
+              map[eId].push(attempt);
+            }
+          });
+        }
+        setHistoryMap(map);
+      })
+      .catch(err => console.error("Lỗi tải lịch sử:", err));
+
+    return () => clearInterval(timer);
+  }, [userId]); // Chạy lại khi userId thay đổi
+
+  // Effect 4: Logic Lọc dữ liệu
   useEffect(() => {
     let result = [...allExams];
 
-    // Lọc theo từ khóa tìm kiếm
     if (searchTerm) {
-      result = result.filter(exam => 
-        exam.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      result = result.filter(exam =>
+        exam.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         exam.description?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
-    // Lọc theo trạng thái (Đang mở / Hết hạn)
     if (filterStatus !== "ALL") {
       result = result.filter(exam => {
         const hasEndTime = !!exam.endTime;
         const isExpired = hasEndTime && new Date(exam.endTime) < now;
-        
-        if (filterStatus === "OPEN") return !isExpired;     // Lấy cái chưa hết hạn
-        if (filterStatus === "EXPIRED") return isExpired;   // Lấy cái đã hết hạn
+
+        if (filterStatus === "OPEN") return !isExpired;
+        if (filterStatus === "EXPIRED") return isExpired;
         return true;
       });
     }
@@ -73,22 +137,61 @@ export default function ExamListPage() {
     setFilteredExams(result);
   }, [allExams, filterStatus, searchTerm, now]);
 
+  useEffect(() => {
+    // Chỉ chạy khi danh sách đã lọc xong VÀ có yêu cầu cuộn từ trang trước
+    if (filteredExams.length > 0 && location.state?.scrollToId) {
+      const targetId = location.state.scrollToId;
+      const element = document.getElementById(`exam-card-${targetId}`);
+
+      if (element) {
+        // Cuộn xuống mượt mà
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        element.style.transition = "all 0.5s";
+        element.style.border = "2px solid #2563eb"; // Viền xanh
+        element.style.transform = "scale(1.02)";    // Phóng to nhẹ
+
+        // Tắt hiệu ứng sau 2 giây
+        setTimeout(() => {
+          element.style.border = "1px solid #e5e7eb"; // Trả về màu viền gốc
+          element.style.transform = "scale(1)";
+          // Xóa state để F5 không bị cuộn lại
+          window.history.replaceState({}, document.title);
+        }, 2000);
+      }
+    }
+  }, [filteredExams, location.state]);
+
   const startExam = async (examId) => {
+    // Validate userId trước khi gọi API
+    const currentUserId = Number(userId);
+    if (isNaN(currentUserId) || currentUserId <= 0) {
+      console.error("Invalid userId for start exam:", userId);
+      toast.error("Lỗi: Không thể xác định người dùng. Vui lòng đăng nhập lại.");
+      return;
+    }
     try {
       const res = await fetch(`/api/exams/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ examId: examId, userId: CURRENT_USER_ID }),
+        body: JSON.stringify({
+          examId: examId,
+          userId: currentUserId // Sử dụng userId đã được validate
+        }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || "Không thể bắt đầu bài thi");
-      }
+      if (!res.ok) throw new Error("Không thể bắt đầu bài thi");
       const data = await res.json();
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
     } catch (error) {
-      alert(error.message || "Lỗi khi bắt đầu bài thi. Vui lòng thử lại!");
+      toast.error(error.message || "Lỗi khi bắt đầu bài thi.");
+    }
+  };
+
+  const handleToggleSection = (type, examId) => {
+    if (activeSection?.type === type && activeSection?.examId === examId) {
+      setActiveSection(null); // Đóng nếu đang mở đúng cái đó
+    } else {
+      setActiveSection({ type, examId }); // Mở cái mới
     }
   };
 
@@ -100,113 +203,184 @@ export default function ExamListPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Danh sách bài kiểm tra</h1>
+    <MainLayout>
+      <div className="">
 
-        {role === "TEACHER" && (
-          <button
-            onClick={() => navigate("/exams/manage")}
-            className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded shadow flex items-center gap-2 transition"
-          >
-            Quản lý bài thi
-          </button>
-        )}
-      </div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Danh sách bài kiểm tra</h1>
 
-      {/* --- PHẦN BỘ LỌC VÀ TÌM KIẾM MỚI --- */}
-      <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
-        {/* Ô tìm kiếm */}
-        <div className="w-full md:w-1/2 relative">
-            <input 
-                type="text" 
-                placeholder="Tìm kiếm bài thi..." 
-                className="w-full pl-5 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+        <div className="bg-white p-4 rounded-lg shadow-sm border mb-6 flex flex-col md:flex-row gap-4 justify-between items-center">
+          <div className="w-full md:w-1/2 relative">
+            <input
+              type="text"
+              placeholder="Tìm kiếm bài thi..."
+              className="w-full pl-5 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
+          </div>
+
+          <div className="flex bg-gray-100 p-1 rounded-lg">
+            {['ALL', 'OPEN', 'EXPIRED'].map(status => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === status ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {status === 'ALL' ? 'Tất cả' : status === 'OPEN' ? 'Đang mở' : 'Đã kết thúc'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Các nút lọc trạng thái */}
-        <div className="flex bg-gray-100 p-1 rounded-lg">
-            <button 
-                onClick={() => setFilterStatus("ALL")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "ALL" ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Tất cả
-            </button>
-            <button 
-                onClick={() => setFilterStatus("OPEN")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "OPEN" ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Đang mở
-            </button>
-            <button 
-                onClick={() => setFilterStatus("EXPIRED")}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${filterStatus === "EXPIRED" ? "bg-white text-red-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-                Đã kết thúc
-            </button>
-        </div>
-      </div>
-      {/* ----------------------------------- */}
+        <div className="space-y-4">
+          {filteredExams.map((exam, index) => {
+            const hasEndTime = !!exam.endTime;
+            const isExpired = hasEndTime && new Date(exam.endTime) < now;
 
-      {filteredExams.length === 0 && (
-        <div className="text-center py-10 bg-gray-50 rounded border-2 border-dashed">
-          <p className="text-gray-500">
-             {allExams.length === 0 ? "Hiện không có bài kiểm tra nào." : "Không tìm thấy kết quả phù hợp."}
-          </p>
-        </div>
-      )}
+            const examHistory = historyMap[exam.examId] || [];
+            const attemptsMade = examHistory.length;
+            const maxAttempts = exam.maxAttempts || 1;
+            const isLimitReached = attemptsMade >= maxAttempts;
 
-      <div className="space-y-4">
-        {filteredExams.map((exam, index) => {
-          const hasEndTime = !!exam.endTime;
-          const isExpired = hasEndTime && new Date(exam.endTime) < now;
-          const isOpen = !isExpired;
+            const isOpen = !isExpired;
+            const canTakeExam = isOpen && !isLimitReached;
+            const hasTaken = attemptsMade > 0;
+            const isCommentOpen = activeSection?.type === 'COMMENT' && activeSection?.examId === exam.examId;
+            const isScoreOpen = activeSection?.type === 'SCORE' && activeSection?.examId === exam.examId;
 
-          return (
-            <div
-              key={exam.examId || index}
-              className={`border p-5 rounded-lg shadow-sm transition bg-white ${!isOpen ? 'bg-gray-50' : ''}`}
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className={`text-xl font-semibold ${isOpen ? 'text-gray-800' : 'text-gray-500'}`}>
-                    {exam.title}
-                  </h2>
-                  <p className="text-gray-600 mt-1">{exam.description || "Không có mô tả"}</p>
-                  <div className="flex flex-wrap gap-3 mt-3 text-sm">
-                    <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded border border-blue-100">
-                      {exam.duration} phút
-                    </span>
-                    <span className="text-purple-600 font-medium bg-purple-50 px-2 py-1 rounded border border-purple-100">
-                      {exam.maxAttempts || 1} lượt làm
-                    </span>
-                    {hasEndTime && (
-                      <span className={`px-2 py-1 rounded border ${isExpired ? 'bg-red-50 text-red-600 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
-                        {isExpired ? 'Hết hạn: ' : 'Hạn chót: '} {formatDate(exam.endTime)}
+            return (
+              <div
+                key={exam.examId || index}
+                id={`exam-card-${exam.examId}`}
+                className={`border p-5 rounded-lg shadow-sm transition bg-white ${!isOpen ? 'bg-gray-50' : ''}`}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1 pr-4">
+                    <h2 className={`text-xl font-semibold ${isOpen ? 'text-gray-800' : 'text-gray-500'}`}>
+                      {exam.title}
+                    </h2>
+                    <p className="text-gray-600 mt-1">{exam.description || "Không có mô tả"}</p>
+                    <div className="flex flex-wrap gap-3 mt-3 text-sm">
+                      <button
+                        onClick={() => handleToggleSection('COMMENT', exam.examId)}
+                        className={`flex items-center gap-1 transition mr-2 ${isCommentOpen ? 'text-blue-600 font-bold' : 'text-gray-600 hover:text-blue-500'}`}
+                      >
+                        <FaCommentDots size={18} />
+                        <span>Thảo luận</span>
+                      </button>
+
+                      <span className="text-blue-600 font-medium bg-blue-50 px-2 py-1 rounded border border-blue-100">
+                        {exam.duration} phút
                       </span>
+
+                      <span className={`font-medium px-2 py-1 rounded border ${isLimitReached ? 'bg-red-50 text-red-600 border-red-200' : 'text-purple-600 bg-purple-50 border-purple-100'}`}>
+                        {attemptsMade} / {maxAttempts} lượt
+                      </span>
+
+                      {hasEndTime && (
+                        <span className={`px-2 py-1 rounded border ${isExpired ? 'bg-red-50 text-red-600 border-red-200' : 'bg-yellow-50 text-yellow-700 border-yellow-200'}`}>
+                          {isExpired ? 'Hết hạn: ' : 'Hạn chót: '} {formatDate(exam.endTime)}
+                        </span>
+                      )}
+
+                      <span className={`px-2 py-1 rounded font-bold border ${isOpen ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-200 text-gray-600 border-gray-300'}`}>
+                        {isOpen ? 'Đang mở' : 'Đã kết thúc'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2 items-end">
+                    <button
+                      onClick={() => startExam(exam.examId)}
+                      disabled={!canTakeExam}
+                      className={`px-5 py-2 rounded transition font-medium min-w-[140px] shadow-sm text-center
+                        ${canTakeExam
+                          ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'
+                          : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'
+                        }
+                      `}
+                    >
+                      {isLimitReached ? 'Hết lượt' : (isOpen ? 'Làm bài' : 'Hết hạn')}
+                    </button>
+
+                    {/* [MỚI] NÚT XEM ĐIỂM */}
+                    {hasTaken && (
+                      <button
+                        onClick={() => handleToggleSection('SCORE', exam.examId)}
+                        className={`px-5 py-2 rounded transition font-medium min-w-[140px] shadow-sm text-center border flex items-center justify-center gap-2
+                            ${isScoreOpen
+                            ? 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                            : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                          }`}
+                      >
+                        Xem điểm
+                      </button>
                     )}
-                    <span className={`px-2 py-1 rounded font-bold border ${isOpen ? 'bg-green-100 text-green-700 border-green-200' : 'bg-gray-200 text-gray-600 border-gray-300'}`}>
-                      {isOpen ? 'Đang mở' : 'Đã kết thúc'}
-                    </span>
                   </div>
                 </div>
-                <button
-                  onClick={() => startExam(exam.examId || 0)}
-                  disabled={!isOpen}
-                  className={`px-5 py-2 rounded transition font-medium min-w-[120px] shadow-sm
-                        ${isOpen ? 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md' : 'bg-gray-800 text-gray-400 cursor-not-allowed opacity-80'}
-                    `}
-                >
-                  {isOpen ? 'Làm bài' : 'Hết hạn'}
-                </button>
+
+                {isCommentOpen && (
+                  <div className="mt-5 pt-5 border-t border-gray-100 animate-fade-in">
+                    <CommentRoom examId={exam.examId} currentUser={currentUser} />
+                  </div>
+                )}
+
+                {/* 2. KHUNG DANH SÁCH ĐIỂM (HIỂN THỊ DƯỚI DẠNG BẢNG) */}
+                {isScoreOpen && (
+                  <div className="mt-4 bg-gray-50 rounded-lg border border-gray-200 p-4 animate-fade-in">
+                    <h3 className="font-bold text-gray-700 mb-3 flex items-center gap-2">
+                      Lịch sử làm bài ({attemptsMade} lần)
+                    </h3>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left bg-white rounded-lg overflow-hidden shadow-sm">
+                        <thead className="text-xs text-gray-700 uppercase bg-gray-100 border-b">
+                          <tr>
+                            <th className="px-4 py-3 text-center">Lần thi</th>
+                            <th className="px-4 py-3 text-center">Thời gian nộp</th>
+                            <th className="px-4 py-3 text-center">Điểm số</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {examHistory.map((attempt, idx) => {
+                            const displayTime = attempt.endTime || attempt.submittedAt // Thử lấy cả 2 trường
+
+                            return (
+                              <tr key={attempt.attemptId} className="border-b hover:bg-gray-50 last:border-b-0">
+                                <td className="px-4 py-3 font-medium text-center">{idx + 1}</td>
+                                <td className="px-4 py-3 text-gray-600 text-center">
+                                  {displayTime ? (
+                                    formatDate(displayTime)
+                                  ) : attempt.totalScore !== null ? (
+                                    <span className="text-green-600 font-medium">Đã nộp</span>
+                                  ) : (
+                                    <span className="text-orange-500 italic">
+                                      Đang làm...
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  {attempt.totalScore !== null ? (
+                                    <span className={`font-bold ${attempt.totalScore >= 5 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {attempt.totalScore}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-400">--</span>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </MainLayout>
   );
 }
