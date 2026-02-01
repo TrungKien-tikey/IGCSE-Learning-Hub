@@ -1,6 +1,7 @@
 package com.igsce.exam_service.controller;
 
 import com.igsce.exam_service.entity.*;
+import com.igsce.exam_service.enums.GradingStatus;
 import com.igsce.exam_service.service.*;
 import com.igsce.exam_service.util.SecurityUtils;
 import com.igsce.exam_service.dto.*;
@@ -91,5 +92,35 @@ public class ExamController {
         return ResponseEntity.ok(success
                 ? GradingResultResponseDTO.success(request.getAttemptId())
                 : GradingResultResponseDTO.failure(request.getAttemptId(), "Lỗi cập nhật điểm"));
+    }
+
+    @GetMapping("/grading/pending")
+    public ResponseEntity<List<ExamAttempt>> getPendingGradingAttempts() {
+        // (Optional) Kiểm tra quyền Teacher: 
+        // if (!SecurityUtils.getCurrentUserRole().equals("TEACHER")) throw ...
+        
+        // Bạn cần implement hàm này trong Service: tìm các attempt có gradingStatus = AI_GRADED
+        return ResponseEntity.ok(examService.getAttemptsByStatus(GradingStatus.AI_GRADED));
+    }
+
+    /**
+     * 2. Giáo viên cập nhật điểm thủ công cho 1 câu hỏi
+     * URL: POST /api/exams/grading/update
+     */
+    @PostMapping("/grading/update")
+    public ResponseEntity<?> updateManualGrade(@RequestBody ManualGradingRequest request) {
+        try {
+            // (Optional) Kiểm tra quyền Teacher
+            
+            examService.updateManualGrade(
+                request.getAttemptId(), 
+                request.getAnswerId(), 
+                request.getScore(), 
+                request.getFeedback()
+            );
+            return ResponseEntity.ok(Map.of("message", "Đã cập nhật điểm thành công"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

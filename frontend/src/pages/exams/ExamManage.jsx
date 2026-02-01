@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import MainLayout from '../../layouts/MainLayout';
-// Import thêm component và icon
-import CommentRoom from "../../components/CommentRoom";
 import { MessageCircle, X, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import MainLayout from '../../layouts/MainLayout';
+import CommentRoom from "../../components/CommentRoom";
+import axiosClient from "../../api/axiosClient";
 
 export default function ManageExamsPage() {
     const [exams, setExams] = useState([]);
@@ -25,22 +25,20 @@ export default function ManageExamsPage() {
 
     const navigate = useNavigate();
 
-    const accessToken = localStorage.getItem("accessToken");
-
     useEffect(() => {
-        fetch("/api/exams", {
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${accessToken}`
+        const fetchExams = async () => {
+            try {
+                // Ghi đè baseURL để gọi đúng /api/exams
+                const res = await axiosClient.get("/api/exams", { baseURL: '' });
+                const data = res.data;
+                setExams(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Lỗi tải danh sách:", err);
             }
-        })
-            .then((res) => {
-                if (!res.ok) throw new Error("Unauthorized");
-                return res.json();
-            })
-            .then((data) => setExams(Array.isArray(data) ? data : []))
-            .catch((err) => console.error("Lỗi tải danh sách:", err));
-    }, [accessToken]);
+        };
+
+        fetchExams();
+    }, []);
 
     const formatDate = (dateString) => {
         if (!dateString) return "Không thời hạn";
@@ -53,26 +51,19 @@ export default function ManageExamsPage() {
         const confirmDelete = window.confirm("Bạn muốn ẩn bài thi này? Học sinh sẽ không nhìn thấy bài thi nữa, nhưng dữ liệu điểm số vẫn được giữ lại.");
         if (!confirmDelete) return;
         try {
-            const res = await fetch(`/api/exams/${examId}`, { 
-                method: "DELETE",
-                headers: {
-                    "Authorization": `Bearer ${accessToken}`
-                }
-            });
+            await axiosClient.delete(`/api/exams/${examId}`, { baseURL: '' });
 
-            if (res.ok) {
-                setExams((prevExams) =>
-                    prevExams.map((exam) =>
-                        exam.examId === examId ? { ...exam, isActive: false } : exam
-                    )
-                );
-                toast.success("Đã ẩn bài thi thành công!");
-            } else {
-                toast.error("Lỗi khi xử lý.");
-            }
+            // Cập nhật state UI
+            setExams((prevExams) =>
+                prevExams.map((exam) =>
+                    exam.examId === examId ? { ...exam, isActive: false } : exam
+                )
+            );
+            toast.success("Đã ẩn bài thi thành công!");
         } catch (error) {
             console.error("Lỗi:", error);
-            toast.error("Lỗi kết nối đến server.");
+            const msg = error.response?.data?.message || "Lỗi kết nối đến server.";
+            toast.error(msg);
         }
     };
 
@@ -90,35 +81,16 @@ export default function ManageExamsPage() {
         setAttempts([]);
 
         try {
-            // Bước 3.1: Lấy danh sách bài làm từ Exam Service
-            // Giả sử API là: /api/exams/attempts/{examId} (Bạn cần đảm bảo Backend có API này)
-            const res = await fetch(`/api/exams/attempts/${examId}`, {
-                headers: {
-                    "Authorization": `Bearer ${accessToken}`
-                }
-            });
+            const res = await axiosClient.get(`/api/exams/attempts/${examId}`, { baseURL: '' });
+            const attemptData = res.data;
 
-            if (!res.ok) throw new Error("Không tải được danh sách điểm");
-
-            const attemptData = await res.json(); // Mảng các attempt: { userId, totalScore, submittedAt ... }
-
-            // Bước 3.2: Lấy thông tin User (Họ tên) từ Auth Service cho từng attempt
-            // Sử dụng Promise.all để gọi song song cho nhanh
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {
                 try {
-                    // Gọi sang Auth Service lấy tên
-                    const userRes = await fetch(`/api/v1/auth/users/${attempt.userId}`, {
-                        headers: {
-                            "Authorization": `Bearer ${accessToken}`
-                        }
-                    });
-
-                    let fullName = `User #${attempt.userId}`;
-                    if (userRes.ok) {
-                        const userData = await userRes.json();
-                        fullName = userData.full_name || userData.fullName || userData.email || fullName;
-                    }
-
+                    const userRes = await axiosClient.get(`/api/v1/auth/users/${attempt.userId}`, { baseURL: '' });
+                    
+                    const userData = userRes.data;
+                    let fullName = userData.full_name || userData.fullName || userData.email || `User #${attempt.userId}`;
+                    
                     return { ...attempt, studentName: fullName };
                 } catch (err) {
                     return { ...attempt, studentName: `User #${attempt.userId}` };
@@ -132,8 +104,8 @@ export default function ManageExamsPage() {
             toast.error("Có lỗi khi tải bảng điểm.");
         } finally {
             setLoadingAttempts(false);
-            }
-        };
+        }
+    };
 
     const filteredExams = exams.filter((exam) => {
         // 1. Lọc theo tên
@@ -247,7 +219,7 @@ export default function ManageExamsPage() {
                                             onClick={() => handleViewScores(exam.examId)}
                                             className={`p-2 rounded-full transition flex items-center gap-1 border ${expandedExamId === exam.examId ? 'bg-indigo-100 text-indigo-700 border-indigo-200' : 'text-gray-500 hover:bg-gray-100'}`}
                                             title="Xem bảng điểm"
-                                        >                                   
+                                        >
                                             <span className="text-xs font-semibold hidden md:inline">Điểm</span>
                                             {expandedExamId === exam.examId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </button>
@@ -300,6 +272,7 @@ export default function ManageExamsPage() {
                                                             <th className="px-4 py-3">Học sinh</th>
                                                             <th className="px-4 py-3">Thời gian nộp</th>
                                                             <th className="px-4 py-3">Điểm số</th>
+                                                            <th className="px-4 py-3">Hành động</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody className="divide-y">
@@ -315,6 +288,17 @@ export default function ManageExamsPage() {
                                                                 </td>
                                                                 <td className="px-4 py-3 font-bold text-blue-600">
                                                                     {attempt.totalScore !== undefined ? attempt.totalScore : "--"}
+                                                                </td>
+                                                                <td className="px-4 py-3">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            navigate("/teacher/grading", { state: { targetAttemptId: attempt.attemptId } });
+                                                                        }}
+                                                                        className="flex items-center gap-1 mx-auto bg-purple-50 text-purple-600 hover:bg-purple-100 px-3 py-1 rounded text-xs font-semibold transition border border-purple-200"
+                                                                        title="Chấm điểm tự luận cho bài này"
+                                                                    >
+                                                                        <span>Chấm lại tự luận</span>
+                                                                    </button>
                                                                 </td>
                                                             </tr>
                                                         ))}

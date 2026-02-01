@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Data
 public class OptionRequest {
+    private Long optionId;
     private String content;
     @JsonProperty("isCorrect")
     private boolean isCorrect; 
