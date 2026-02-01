@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * DTO cho thống kê lớp học
@@ -18,7 +19,8 @@ public class ClassStatisticsDTO {
     private int totalStudents;
     private double classAverageScore;
     private int completedAssignments;
-    private int pendingAssignments;
-    private List<StudentStatisticsDTO> topStudents;
-    private List<String> commonWeaknesses;
+    private List<StudentPerformanceSummaryDTO> topStudents;
+    private List<StudentPerformanceSummaryDTO> atRiskStudents;
+    private Map<String, Integer> scoreDistribution; // "Excellent", "Good", "Average", "Below"
+    private Double improvementRate;
 }

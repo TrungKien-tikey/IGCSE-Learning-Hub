@@ -18,7 +18,18 @@ export default function AIResultPage() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!attemptId) return;
+        // Validate attemptId
+        if (!attemptId || attemptId === "undefined" || attemptId === "null" || String(attemptId).trim() === "") {
+            setError("Attempt ID không hợp lệ");
+            setLoading(false);
+            return;
+        }
+        
+        if (isNaN(attemptId) || Number(attemptId) <= 0) {
+            setError("Attempt ID phải là số hợp lệ");
+            setLoading(false);
+            return;
+        }
 
         const fetchData = async () => {
             try {
@@ -149,16 +160,6 @@ export default function AIResultPage() {
                     </div>
                 </div>
 
-                {/* Back Button */}
-                <div className="mt-8 text-center">
-                    <button
-                        onClick={() => navigate("/ai")}
-                        className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 mx-auto transition"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Quay lại trang AI
-                    </button>
-                </div>
             </div>
         </div>
     );

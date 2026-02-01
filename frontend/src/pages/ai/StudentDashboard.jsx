@@ -1,8 +1,10 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
     Bot, ArrowLeft, RefreshCw, AlertCircle, FileText,
-    TrendingUp, Trophy, TrendingDown, BarChart3
+    TrendingUp, Trophy, TrendingDown, BarChart3, Home,
+    BookOpen, ClipboardList, ChevronRight, Target, Brain
 } from "lucide-react";
+import MainLayout from "../../layouts/MainLayout";
 import { useStudentData } from "./hooks/useStudentData";
 import StatisticsCard from "./components/StatisticsCard";
 import PerformanceChart from "./components/PerformanceChart";
@@ -16,7 +18,7 @@ import InsightCard from "./components/InsightCard";
 export default function StudentDashboard() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const studentId = searchParams.get("studentId") || "1";
+    const studentId = searchParams.get("studentId") || localStorage.getItem("userId") || "1";
 
     const { statistics, recommendations, insights, loading, error, retry } =
         useStudentData(studentId);
@@ -24,9 +26,8 @@ export default function StudentDashboard() {
     // Loading State
     if (loading) {
         return (
-            <div className="min-h-screen bg-slate-50">
-                <DashboardHeader />
-                <div className="max-w-6xl mx-auto p-6">
+            <MainLayout>
+                <div className="space-y-6">
                     <div className="animate-pulse space-y-6">
                         <div className="h-10 bg-slate-200 rounded-lg w-1/3"></div>
                         <div className="grid md:grid-cols-4 gap-4">
@@ -42,78 +43,72 @@ export default function StudentDashboard() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </MainLayout>
         );
     }
 
     // Error State
     if (error) {
         return (
-            <div className="min-h-screen bg-slate-50">
-                <DashboardHeader />
-                <div className="max-w-6xl mx-auto p-6">
-                    <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-8 text-center">
-                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <AlertCircle className="w-8 h-8 text-amber-600" />
-                        </div>
-                        <h2 className="text-xl font-semibold text-amber-800 mb-2">
-                            Không thể tải Dashboard
-                        </h2>
-                        <p className="text-amber-700 mb-6">{error}</p>
-                        <div className="flex justify-center gap-4">
-                            <button
-                                onClick={retry}
-                                className="px-5 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-2"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                                Thử lại
-                            </button>
-                            <button
-                                onClick={() => navigate("/ai")}
-                                className="px-5 py-2.5 border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition font-medium flex items-center gap-2"
-                            >
-                                <ArrowLeft className="w-4 h-4" />
-                                Quay lại
-                            </button>
-                        </div>
+            <MainLayout>
+                <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-8 text-center">
+                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="w-8 h-8 text-amber-600" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-amber-800 mb-2">
+                        Không thể tải Dashboard
+                    </h2>
+                    <p className="text-amber-700 mb-6">{error}</p>
+                    <div className="flex justify-center gap-4">
+                        <button
+                            onClick={retry}
+                            className="px-5 py-2.5 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition font-medium flex items-center gap-2"
+                        >
+                            <RefreshCw className="w-4 h-4" />
+                            Thử lại
+                        </button>
+                        <button
+                            onClick={() => navigate("/ai")}
+                            className="px-5 py-2.5 border-2 border-amber-300 text-amber-700 rounded-lg hover:bg-amber-50 transition font-medium flex items-center gap-2"
+                        >
+                            <ArrowLeft className="w-4 h-4" />
+                            Quay lại
+                        </button>
                     </div>
                 </div>
-            </div>
+            </MainLayout>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
-            <DashboardHeader />
-
-            <div className="max-w-6xl mx-auto p-6 pb-20">
+        <MainLayout>
+            <div className="space-y-8">
                 {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                            <BarChart3 className="w-6 h-6 text-indigo-600" />
-                            Dashboard Học sinh
-                        </h1>
-                        <p className="text-slate-500 mt-1">
-                            Student ID: <span className="font-medium text-slate-700">{studentId}</span>
-                        </p>
-                    </div>
-                    <button
-                        onClick={() => navigate("/ai")}
-                        className="text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-2 transition"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Quay lại trang AI
-                    </button>
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-2">
+                        <BarChart3 className="w-6 h-6 text-indigo-600" />
+                        Dashboard Học sinh
+                    </h1>
+                    {/* <p className="text-sm text-gray-500 ml-9">
+                        Sinh viên: <span className="font-semibold text-gray-700">{statistics?.studentName || studentId}</span>
+                    </p> */}
                 </div>
 
                 {/* SECTION: Statistics Overview */}
                 {statistics && (
                     <section className="mb-10">
-                        <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <span className="w-8 h-0.5 bg-indigo-500 rounded" />
-                            Tổng quan
-                        </h2>
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-8 h-0.5 bg-slate-300 rounded" />
+                                Tổng quan
+                            </h2>
+                            <button
+                                onClick={() => navigate("/exams")}
+                                className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                                Xem tất cả bài thi →
+                            </button>
+                        </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <StatisticsCard
                                 icon={<FileText className="w-6 h-6" />}
@@ -143,30 +138,31 @@ export default function StudentDashboard() {
                     </section>
                 )}
 
-                {/* Improvement Rate */}
-                {statistics?.improvementRate != null && (
-                    <div className="mb-8">
+                {/* Improvement Rate & Persona - Chia đôi */}
+                <div className="grid md:grid-cols-2 gap-4 mb-8">
+                    {/* Tỷ lệ cải thiện */}
+                    {statistics?.improvementRate != null && (
                         <div
-                            className={`p-4 rounded-xl shadow-sm ${statistics.improvementRate >= 0
-                                ? "bg-emerald-50"
-                                : "bg-amber-50"
+                            className={`p-4 rounded-xl border ${statistics.improvementRate >= 0
+                                ? "bg-emerald-50/50 border-emerald-100"
+                                : "bg-amber-50/50 border-amber-100"
                                 }`}
                         >
                             <div className="flex items-center gap-3">
-                                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${statistics.improvementRate >= 0 ? "bg-emerald-100" : "bg-amber-100"
+                                <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${statistics.improvementRate >= 0 ? "bg-emerald-100" : "bg-amber-100"
                                     }`}>
                                     {statistics.improvementRate >= 0 ? (
-                                        <TrendingUp className="w-6 h-6 text-emerald-600" />
+                                        <TrendingUp className="w-5 h-5 text-emerald-700" />
                                     ) : (
-                                        <TrendingDown className="w-6 h-6 text-amber-600" />
+                                        <TrendingDown className="w-5 h-5 text-amber-700" />
                                     )}
                                 </div>
                                 <div>
-                                    <p className="text-sm text-slate-600">Tỷ lệ cải thiện</p>
+                                    <p className="text-xs text-slate-500 mb-1">Tỷ lệ cải thiện</p>
                                     <p
-                                        className={`text-xl font-bold ${statistics.improvementRate >= 0
-                                            ? "text-emerald-600"
-                                            : "text-amber-600"
+                                        className={`text-lg font-semibold ${statistics.improvementRate >= 0
+                                            ? "text-emerald-700"
+                                            : "text-amber-700"
                                             }`}
                                     >
                                         {statistics.improvementRate >= 0 ? "+" : ""}
@@ -175,49 +171,128 @@ export default function StudentDashboard() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                )}
+                    )}
+
+                    {/* Phong cách học tập */}
+                    {statistics?.persona && (
+                        <div className="p-4 rounded-xl border bg-violet-50/50 border-violet-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-violet-100">
+                                    <Brain className="w-5 h-5 text-violet-700" />
+                                </div>
+                                <div className="flex-1">
+                                    <p className="text-xs text-slate-500 mb-1">Phong cách học tập của bạn</p>
+                                    <p className="text-lg font-semibold text-violet-700 leading-snug">{statistics.persona}</p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
 
                 {/* SECTION: AI Insights */}
                 {insights && (
                     <section className="mb-10">
                         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
-                            <span className="w-8 h-0.5 bg-violet-500 rounded" />
+                            <span className="w-8 h-0.5 bg-slate-300 rounded" />
                             Phân tích AI
                         </h2>
                         <InsightCard insight={insights} />
                     </section>
                 )}
 
-                {/* Charts & Recommendations */}
-                <div className="grid md:grid-cols-2 gap-6">
-                    {statistics?.subjectPerformance && (
-                        <PerformanceChart data={statistics.subjectPerformance} />
-                    )}
-                    {recommendations && <RecommendationPanel data={recommendations} />}
-                </div>
-            </div>
-        </div>
-    );
-}
+                {/* SECTION: Hiệu suất học tập */}
+                <section className="mb-10">
+                    <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <span className="w-8 h-0.5 bg-slate-300 rounded" />
+                        Hiệu suất học tập
+                    </h2>
+                    <div className="grid md:grid-cols-2 gap-6">
+                        {statistics?.subjectPerformance && (
+                            <PerformanceChart
+                                data={statistics.subjectPerformance}
+                                recentExams={statistics.recentExams}
+                            />
+                        )}
+                        {recommendations && <RecommendationPanel data={recommendations} />}
+                    </div>
+                </section>
 
-/**
- * Dashboard Header Component
- */
-function DashboardHeader() {
-    return (
-        <header className="bg-white border-b shadow-sm">
-            <div className="max-w-6xl mx-auto px-6 py-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                        <Bot className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-800">AI Grading</h1>
-                        <p className="text-sm text-slate-500">Dashboard học sinh</p>
-                    </div>
-                </div>
+                {/* SECTION: Exam History Table */}
+                {statistics?.recentExams && statistics.recentExams.length > 0 && (
+                    <section className="mt-10">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-8 h-0.5 bg-slate-300 rounded" />
+                                Lịch sử bài thi chi tiết
+                            </h2>
+                            <button
+                                onClick={() => navigate("/exams")}
+                                className="text-xs text-slate-500 hover:text-slate-700 transition-colors"
+                            >
+                                Xem tất cả →
+                            </button>
+                        </div>
+                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-50 border-b border-slate-200">
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Mã bài thi</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Ngày nộp</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Trắc nghiệm</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Tự luận</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Tổng điểm</th>
+                                            <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-center">Hành động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {statistics.recentExams.map((exam) => (
+                                            <tr key={exam.attemptId} className="hover:bg-slate-50 transition-colors">
+                                                <td className="px-6 py-4 font-medium text-slate-800">
+                                                    #{exam.attemptId}
+                                                </td>
+                                                <td className="px-6 py-4 text-sm text-slate-500">
+                                                    {new Date(exam.date).toLocaleDateString("vi-VN")}
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-sm font-medium border border-blue-100">
+                                                        {exam.mcScore != null ? exam.mcScore.toFixed(1) : "-"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <span className="px-2 py-1 bg-slate-50 text-slate-700 rounded text-sm font-medium border border-slate-200">
+                                                        {exam.essayScore != null ? exam.essayScore.toFixed(1) : "-"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <span
+                                                        className={`text-base font-semibold ${exam.totalScore >= 8
+                                                            ? "text-emerald-700"
+                                                            : exam.totalScore >= 5
+                                                                ? "text-slate-700"
+                                                                : "text-orange-600"
+                                                            }`}
+                                                    >
+                                                        {exam.totalScore?.toFixed(1) || "0.0"}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-center">
+                                                    <button
+                                                        onClick={() => navigate(`/ai/results/${exam.attemptId}`)}
+                                                        className="px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg text-xs font-medium hover:bg-slate-200 transition-all border border-slate-200"
+                                                    >
+                                                        Xem chi tiết
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                )}
             </div>
-        </header>
+        </MainLayout>
     );
 }

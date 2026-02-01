@@ -1,53 +1,53 @@
 package com.igcse.communication.service;
 
-import com.google.firebase.messaging.FirebaseMessaging;
-import com.google.firebase.messaging.Message;
-import com.google.firebase.messaging.Notification;
-import com.igcse.communication.dto.ExamEvent;
+import com.igcse.communication.dto.ExamCreatedEvent;
+import com.igcse.communication.entity.Notification;
+import com.igcse.communication.repository.NotificationRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.Exchange;
 import org.springframework.amqp.rabbit.annotation.Queue;
 import org.springframework.amqp.rabbit.annotation.QueueBinding;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
 @Service
+@RequiredArgsConstructor
 public class NotificationListener {
 
-    // --- PHẦN QUAN TRỌNG ĐÃ SỬA ---
-    // Dùng @QueueBinding để tự động tạo Queue và Exchange nếu chưa có
+    private final NotificationRepository notificationRepository;
+    private final FCMService fcmService;
+
     @RabbitListener(bindings = @QueueBinding(
-        value = @Queue(value = "exam.created.queue", durable = "true"),
-        exchange = @Exchange(value = "exam.exchange", type = "topic"),
+        value = @Queue(value = "notification.exam.created.queue", durable = "true"),
+        exchange = @Exchange(value = "exam.notification.exchange", type = "topic"),
         key = "exam.created"
     ))
-    // -----------------------------
-    public void handleExamCreated(ExamEvent event) {
-        System.out.println("LOG: Đã nhận được sự kiện tạo bài thi: " + event.getExamTitle());
-        sendFCM(event);
-    }
-
-    private void sendFCM(ExamEvent event) {
-        // Topic quy ước là: course_{id}
-        // Kiểm tra null để tránh lỗi
-        if (event.getCourseId() == null) return;
-        
-        String topic = "course_" + event.getCourseId();
-
-        Notification notification = Notification.builder()
-                .setTitle("Bài tập mới!")
-                .setBody("Môn học của bạn vừa có bài thi mới: " + event.getExamTitle())
-                .build();
-
-        Message message = Message.builder()
-                .setTopic(topic)
-                .setNotification(notification)
-                .putData("examId", String.valueOf(event.getExamId()))
-                .build();
+    public void handleExamCreated(ExamCreatedEvent event) {
+        System.out.println(">>> [RabbitMQ] Nhận sự kiện tạo Exam: " + event.getExamTitle());
 
         try {
-            String response = FirebaseMessaging.getInstance().send(message);
-            System.out.println("LOG: Đã gửi FCM thành công: " + response);
+            // 1. Lưu thông báo vào DB
+ 
+            Notification notification = new Notification();
+            notification.setUserId(0L); // 0L đại diện cho 'All Students'
+            notification.setTitle("Bài thi mới: " + event.getExamTitle());
+            notification.setMessage(event.getDescription() != null ? event.getDescription() : "Hãy vào làm bài thi ngay!");
+            notification.setType("EXAM_ALERT");
+            notification.setRead(false);
+            notification.setCreatedAt(LocalDateTime.now());
+            notification.setExamId(event.getExamId());
+            
+            notificationRepository.save(notification);
+
+            // 2. Gửi Push Notification qua Firebase (FCM)
+            // Gửi tới Topic "students" - Frontend cần subscribe topic này
+            fcmService.sendToTopic("students", notification.getTitle(), notification.getMessage(), event.getExamId());
+
         } catch (Exception e) {
-            System.err.println("LOG: Gửi FCM thất bại (Có thể do chưa config đúng key): " + e.getMessage());
+            System.err.println("Lỗi xử lý notification: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
