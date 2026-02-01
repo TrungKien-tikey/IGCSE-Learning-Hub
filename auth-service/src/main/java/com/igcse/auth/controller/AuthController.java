@@ -2,8 +2,11 @@ package com.igcse.auth.controller;
 
 import com.igcse.auth.dto.AuthResponse;
 import com.igcse.auth.dto.LoginRequest;
+import com.igcse.auth.dto.RefreshTokenRequest;
 import com.igcse.auth.dto.RegisterRequest;
 import com.igcse.auth.service.AuthService;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,5 +45,16 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@RequestBody com.igcse.auth.dto.ChangePasswordRequest request) {
         return ResponseEntity.ok(authService.changePassword(request));
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
+        try {
+            AuthResponse response = authService.refreshToken(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            // Nếu lỗi (token hết hạn, user bị khóa...) trả về 403 Forbidden
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
+        }
     }
 }
