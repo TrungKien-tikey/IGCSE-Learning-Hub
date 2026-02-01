@@ -10,17 +10,7 @@ export default defineConfig({
   server: {
     proxy: {
       // =================================================================
-      // CẤU HÌNH GATEWAY CHUẨN (Tất cả đi qua Kong Port 8000)
-      // =================================================================
-      // Mọi request bắt đầu bằng /api (gồm cả /auth, /users...) 
-      // sẽ được chuyển hướng sang Kong Gateway.
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        secure: false,
-      },
-      // =================================================================
-      // PAYMENT SERVICE (Trực tiếp, tạm thời chưa qua Kong)
+      // PAYMENT SERVICE (Phải đặt TRƯỚC /api để match trước)
       // =================================================================
       '/api/payment': {
         target: 'http://127.0.0.1:8084',
@@ -29,6 +19,16 @@ export default defineConfig({
       },
       '/api/admin/statistics': {
         target: 'http://127.0.0.1:8084',
+        changeOrigin: true,
+        secure: false,
+      },
+      // =================================================================
+      // CẤU HÌNH GATEWAY CHUẨN (Tất cả đi qua Kong Port 8000)
+      // =================================================================
+      // Mọi request bắt đầu bằng /api (gồm cả /auth, /users...) 
+      // sẽ được chuyển hướng sang Kong Gateway.
+      '/api': {
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
       },
