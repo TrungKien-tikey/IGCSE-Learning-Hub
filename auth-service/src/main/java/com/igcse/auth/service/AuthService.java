@@ -50,11 +50,16 @@ public class AuthService {
         // Chỉ cho phép đăng ký là PARENT hoặc STUDENT.
         // Nếu cố tình nhập ADMIN, TEACHER... sẽ bị ép về STUDENT.
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
-
-        if ("PARENT".equals(requestedRole)) {
-            user.setRole("PARENT");
-        } else {
-            user.setRole("STUDENT"); // Mặc định tất cả trường hợp khác
+        switch (requestedRole) {
+            case "TEACHER":
+                user.setRole("TEACHER");
+                break;
+            case "PARENT":
+                user.setRole("PARENT");
+                break;
+            default:
+                user.setRole("STUDENT");
+                break;
         }
         // -------------------------------
         
