@@ -18,6 +18,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
+import TeacherVerification from './pages/admin/TeacherVerification';
+import VerifiedRoute from './components/VerifiedRoute';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -74,9 +76,30 @@ function App() {
 
         {/* --- EXAM ROUTES --- */}
         <Route path="/exams" element={<ExamListPage />} />
-        <Route path="/exams/create" element={<CreateExamPage />} />
-        <Route path="/exams/manage" element={<ManageExamsPage />} />
-        <Route path="/exams/edit/:id" element={<EditExamPage />} />
+        <Route
+          path="/exams/create"
+          element={
+            <VerifiedRoute>
+              <CreateExamPage />
+            </VerifiedRoute>
+          }
+        />
+        <Route
+          path="/exams/manage"
+          element={
+            <VerifiedRoute>
+              <ManageExamsPage />
+            </VerifiedRoute>
+          }
+        />
+        <Route
+          path="/exams/edit/:id"
+          element={
+            <VerifiedRoute>
+              <EditExamPage />
+            </VerifiedRoute>
+          }
+        />
         <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
         <Route path="/exams/result" element={<ExamResultPage />} />
 
@@ -108,9 +131,9 @@ function App() {
         <Route
           path="/ai/dashboard/teacher"
           element={
-            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+            <VerifiedRoute>
               <TeacherDashboard />
-            </RoleProtectedRoute>
+            </VerifiedRoute>
           }
         />
 
@@ -119,6 +142,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['ADMIN']}>
               <AdminDashboardAI />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/verify"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <TeacherVerification />
             </RoleProtectedRoute>
           }
         />
