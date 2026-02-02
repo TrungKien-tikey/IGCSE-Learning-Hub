@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // 1. [SỬA LẠI] Dùng đường dẫn tương đối để đi qua Proxy/Gateway
 const axiosClient = axios.create({
-  baseURL: '/api/v1', 
+  baseURL: import.meta.env.VITE_API_URL + '/api/v1',
   headers: {
     'Content-Type': 'application/json',
     "ngrok-skip-browser-warning": "69420",
