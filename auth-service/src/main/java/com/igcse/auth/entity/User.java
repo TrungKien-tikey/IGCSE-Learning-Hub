@@ -39,11 +39,24 @@ public class User implements UserDetails { // ✅ Implement UserDetails của Sp
     @Column(name = "token_expiration_time")
     private LocalDateTime tokenExpirationTime;
 
+    // Field synced from User Service (Teacher Profile)
+    @Column(name = "verification_status")
+    private String verificationStatus;
+
     // ===== Constructor =====
-    public User() {}
+    public User() {
+    }
+
+    public String getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(String verificationStatus) {
+        this.verificationStatus = verificationStatus;
+    }
 
     // ===== 2. GETTER & SETTER CHO CÁC TRƯỜNG MỚI =====
-    
+
     public String getResetPasswordToken() {
         return resetPasswordToken;
     }
@@ -84,31 +97,31 @@ public class User implements UserDetails { // ✅ Implement UserDetails của Sp
     public String getEmail() {
         return email;
     }
-    
+
     public void setEmail(String email) {
         this.email = email;
     }
-    
+
     public String getPasswordHash() {
         return passwordHash;
     }
-    
+
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
     }
-    
+
     public String getRole() {
         return role;
     }
-    
+
     public void setRole(String role) {
         this.role = role;
     }
-    
+
     public boolean isActive() {
         return isActive;
     }
-    
+
     public void setActive(boolean active) {
         isActive = active;
     }

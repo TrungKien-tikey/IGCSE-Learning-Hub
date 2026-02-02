@@ -19,4 +19,17 @@ public class UpdateProfileRequest {
     private String bio;
 
     private String avatar;
+
+    // Teacher fields
+    private String qualifications;
+    private String subjects;
+    private String verificationDocument;
+
+    public void setVerificationDocument(String verificationDocument) {
+        this.verificationDocument = verificationDocument;
+    }
+
+    public String getVerificationDocument() {
+        return verificationDocument;
+    }
 }

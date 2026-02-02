@@ -1,12 +1,10 @@
-import { useNavigate } from "react-router-dom";
-import { BarChart3, Star, TrendingUp, AlertCircle, Eye } from "lucide-react";
+import { BarChart3, Star, TrendingUp, AlertCircle } from "lucide-react";
 
 /**
  * PerformanceChart - Hiệu suất theo môn học
  * Thiết kế thân thiện với học sinh, có feedback động viên
  */
 export default function PerformanceChart({ data, recentExams = [] }) {
-    const navigate = useNavigate();
     // data là object { "Môn A": 8.5, "Môn B": 7.2, ... }
     // Sắp xếp bài mới nhất (Z-A) để bài có ID cao hơn/tên sau hiển thị ở đầu
     const subjects = Object.entries(data || {}).sort((a, b) => b[0].localeCompare(a[0]));
@@ -71,20 +69,6 @@ export default function PerformanceChart({ data, recentExams = [] }) {
         };
     };
 
-    // Hàm lấy attemptId mới nhất cho môn học (Giả sử exam data chứa subject name)
-    const getLatestAttemptId = (subjectName) => {
-        // 1. Thử trích xuất số từ tên (ví dụ: "Exam 2" -> 2)
-        const match = subjectName.match(/Exam\s+(\d+)/i);
-        if (match && match[1]) return match[1];
-
-        // 2. Thử tìm trong recentExams
-        if (!recentExams || recentExams.length === 0) return null;
-        const found = recentExams.find(e => e.subjectName === subjectName);
-        if (found) return found.attemptId;
-
-        // 3. Fallback: lấy bài mới nhất (nếu là biểu đồ chung)
-        return recentExams[0]?.attemptId;
-    };
 
     // Tính trung bình
     const avgScore = subjects.reduce((sum, [_, score]) => sum + score, 0) / subjects.length;
@@ -112,13 +96,11 @@ export default function PerformanceChart({ data, recentExams = [] }) {
                         const percentage = (scoreNum / maxScore) * 100;
                         const info = getScoreInfo(scoreNum);
                         const Icon = info.icon;
-                        const latestAttemptId = getLatestAttemptId(subject);
 
                         return (
                             <div
                                 key={subject}
-                                onClick={() => latestAttemptId && navigate(`/ai/results/${latestAttemptId}`)}
-                                className={`p-4 rounded-2xl ${info.lightBg} transition-all hover:scale-[1.01] hover:shadow-md border border-transparent hover:border-white/50 relative group cursor-pointer`}
+                                className={`p-4 rounded-2xl ${info.lightBg} transition-all hover:shadow-sm border border-transparent hover:border-slate-200 relative group`}
                             >
                                 <div className="flex justify-between items-center mb-3">
                                     <div className="flex items-center gap-2">
@@ -143,13 +125,6 @@ export default function PerformanceChart({ data, recentExams = [] }) {
                                     />
                                 </div>
 
-                                {/* Link indicator */}
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                    {/* <div className="bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm border border-slate-200 flex items-center gap-1.5 transform translate-y-2 group-hover:translate-y-0 transition-transform">
-                                        <Eye className="w-3.5 h-3.5 text-teal-600" />
-                                        <span className="text-[11px] font-bold text-teal-600 uppercase tracking-wider">Xem chi tiết bài thi</span>
-                                    </div> */}
-                                </div>
                             </div>
                         );
                     })}

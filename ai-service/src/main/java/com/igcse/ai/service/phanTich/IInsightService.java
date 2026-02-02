@@ -17,4 +17,11 @@ public interface IInsightService {
      * Lấy insight cho một lần làm bài cụ thể.
      */
     AIInsightDTO getInsightByAttempt(Long attemptId);
+
+    /**
+     * Kích hoạt phân tích sâu chủ động (chạy nền) để dữ liệu sẵn sàng ngay sau khi
+     * chấm điểm.
+     */
+    @org.springframework.scheduling.annotation.Async
+    void triggerProactiveAnalysis(Long studentId, Long attemptId);
 }

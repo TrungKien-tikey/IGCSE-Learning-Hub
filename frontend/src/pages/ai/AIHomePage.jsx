@@ -17,8 +17,16 @@ export default function AIHomePage() {
 
     const handleViewResult = async (e) => {
         e.preventDefault();
-        if (!attemptId.trim()) {
+        
+        // Validate attemptId: không được null, undefined, hoặc string "undefined"
+        if (!attemptId || attemptId === "undefined" || attemptId === "null" || String(attemptId).trim() === "") {
             setError("Vui lòng nhập Attempt ID");
+            return;
+        }
+        
+        // Validate attemptId phải là số hợp lệ
+        if (isNaN(attemptId) || Number(attemptId) <= 0) {
+            setError("Attempt ID phải là số hợp lệ");
             return;
         }
 

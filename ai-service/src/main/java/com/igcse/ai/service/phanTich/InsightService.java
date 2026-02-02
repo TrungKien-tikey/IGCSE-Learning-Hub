@@ -44,7 +44,7 @@ public class InsightService implements IInsightService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public AIInsightDTO getInsight(Long studentId) {
 
         logger.info("Getting insights for studentId: {}", studentId);
@@ -118,7 +118,8 @@ public class InsightService implements IInsightService {
         }
 
         try {
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData,
+                    null);
 
             // Lấy các bản phân tích cũ làm ngữ cảnh so sánh
             List<AIInsight> recentLogics = aiInsightRepository
@@ -127,6 +128,7 @@ public class InsightService implements IInsightService {
             String logContext = recentLogics.stream()
                     .limit(3)
                     .map(AIInsight::getOverallSummary)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.joining("\n---\n"));
 
             // Lấy bản AI chuyên sâu gần nhất làm bối cảnh so sánh (Context)
@@ -141,8 +143,13 @@ public class InsightService implements IInsightService {
                     "\n\nHãy so sánh sự tiến bộ dựa trên bối cảnh cũ và các mẩu phân tích mới để đưa ra đánh giá đúc kết sâu sắc.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            AIInsightDTO synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    metadata.personaInfo(), aiLanguageName);
+            AIInsightDTO synthesisResult = null;
+            try {
+                synthesisResult = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                        metadata.personaInfo(), aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for insight synthesis: {}", e.getMessage());
+            }
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -237,10 +244,15 @@ public class InsightService implements IInsightService {
             String dataSummary = tierManagerService.buildTextSummary(analysis);
             dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
 
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null, null);
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
-                    metadata.personaInfo(), aiLanguageName);
+            try {
+                insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
+                        metadata.personaInfo(), aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for attempt insight synthesis (AttemptId: {}): {}", attemptId,
+                        e.getMessage());
+            }
 
             if (insight != null) {
                 insight.setStudentId(studentId);
@@ -270,6 +282,10 @@ public class InsightService implements IInsightService {
         dto.setStudentId(entity.getStudentId());
         dto.setOverallSummary(entity.getOverallSummary());
         dto.setActionPlan(entity.getActionPlan());
+
+        // Đảm bảo các List không bao giờ null
+        dto.setKeyStrengths(new ArrayList<>());
+        dto.setAreasForImprovement(new ArrayList<>());
 
         // Parse JSON arrays
         try {
@@ -308,5 +324,31 @@ public class InsightService implements IInsightService {
         insight.setAreasForImprovement(new ArrayList<>());
         insight.setActionPlan("Vui lòng hoàn thành bài thi để nhận được insights.");
         return insight;
+    }
+
+    /**
+     * Châm ngòi phân tích chủ động ngay sau khi chấm điểm xong.
+     */
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    public void triggerProactiveAnalysis(Long studentId, Long attemptId) {
+        logger.info(">>> [Proactive] Triggering deep analysis for student {} and attempt {}", studentId, attemptId);
+
+        // 1. Phân tích cho riêng bài thi này (Kết quả hiển thị trong AIResultPage)
+        try {
+            getInsightByAttempt(attemptId);
+        } catch (Exception e) {
+            logger.error(">>> [Proactive] Failed to generate attempt insight", e);
+        }
+
+        // 2. Cập nhật phân tích tổng thể toàn Dashboard (Kết quả hiển thị trong
+        // StudentDashboard)
+        try {
+            refreshInsight(studentId, null);
+        } catch (Exception e) {
+            logger.error(">>> [Proactive] Failed to refresh global student insight", e);
+        }
+
+        logger.info(">>> [Proactive] Deep analysis completed for student {}", studentId);
     }
 }

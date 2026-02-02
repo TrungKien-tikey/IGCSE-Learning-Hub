@@ -28,14 +28,20 @@ public class CourseController {
     private EnrollmentRepository enrollmentRepositor;
 
     // --- Helper method để lấy ID từ Header ---
+    // Sửa hàm này trong CourseController.java để tìm lỗi
     private Long getUserIdFromHeader(String tokenHeader) {
+        System.out.println(">>> Header nhận được: " + tokenHeader); // Thêm dòng này
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
-            String token = tokenHeader.substring(7); // Cắt bỏ chữ "Bearer "
+            String token = tokenHeader.substring(7);
             if (jwtUtils.validateToken(token)) {
-                return jwtUtils.extractUserId(token); // Giải mã lấy ID
+                Long id = jwtUtils.extractUserId(token);
+                System.out.println(">>> UserId trích xuất được: " + id); // Thêm dòng này
+                return id;
+            } else {
+                System.out.println(">>> Token không hợp lệ (Sai key hoặc hết hạn)");
             }
         }
-        return null; // Token lỗi hoặc không có
+        return null;
     }
 
     // --- COURSE APIs (Task 1 - CRUD Cơ bản) ---
@@ -123,6 +129,23 @@ public class CourseController {
             if (userId == null) {
                 return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
             }
+
+            // Check Token Logic
+            String token = tokenHeader.substring(7);
+            String role = jwtUtils.extractRole(token);
+            String verificationStatus = jwtUtils.extractVerificationStatus(token);
+
+            // 1. Phải là Teacher
+            if (!"TEACHER".equals(role)) {
+                return ResponseEntity.status(403).body("Chỉ giáo viên mới được tạo khóa học!");
+            }
+
+            // 2. Phải là APPROVED
+            if (!"APPROVED".equals(verificationStatus)) {
+                return ResponseEntity.status(403)
+                        .body("Tài khoản giáo viên chưa được duyệt (Status: " + verificationStatus + ")");
+            }
+
             return ResponseEntity.ok(courseService.createCourse(course, userId));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -130,34 +153,89 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Course> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails) {
-        // Gọi thẳng service và trả về luôn
+    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails,
+            @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: vui lòng đăng nhập.");
+        }
+        Course existing = courseRepository.findById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.status(404).body("Không tìm thấy khóa học");
+        }
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+        if (!userId.equals(existing.getTeacherId())
+                && !(role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER")))) {
+            return ResponseEntity.status(403).body("Không có quyền sửa khóa học này");
+        }
         return ResponseEntity.ok(courseService.updateCourse(id, courseDetails));
     }
 
     @DeleteMapping("/{id}/deactivate")
-    public ResponseEntity<?> deactivateCourse(@PathVariable Long id) {
+    public ResponseEntity<?> deactivateCourse(@PathVariable Long id,
+            @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        Course existing = courseRepository.findById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.status(404).body("Không tìm thấy khóa học");
+        }
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+        if (!userId.equals(existing.getTeacherId())
+                && !(role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER")))) {
+            return ResponseEntity.status(403).body("Không có quyền ẩn khóa học này");
+        }
         return courseService.deactivateCourse(id) ? ResponseEntity.ok("Đã ẩn khóa học")
                 : ResponseEntity.status(404).body("Lỗi");
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
-        // GỌI SERVICE ĐỂ XÓA
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        Course existing = courseRepository.findById(id).orElse(null);
+        if (existing == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+        if (!userId.equals(existing.getTeacherId())
+                && !(role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER")))) {
+            return ResponseEntity.status(403).body("Không có quyền xóa khóa học này");
+        }
         boolean deleted = courseService.deleteCourse(id);
 
         if (deleted) {
-            return ResponseEntity.noContent().build(); // 204 No Content (Xóa thành công)
+            return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.notFound().build(); // 404 Not Found (Không tìm thấy ID)
+            return ResponseEntity.status(500).body("Lỗi khi xóa");
         }
     }
 
-    // API để Hiện khóa học lại
+    // API để Hiện khóa học lại (Chỉ MANAGER hoặc ADMIN được phép)
     @PutMapping("/{id}/activate")
-    public ResponseEntity<?> activateCourse(@PathVariable Long id) {
-        return courseService.activateCourse(id) ? ResponseEntity.ok("Đã hiện khóa học")
-                : ResponseEntity.status(404).body("Lỗi");
+    public ResponseEntity<?> activateCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized: vui lòng đăng nhập.");
+        }
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+        if (role == null || !(role.equalsIgnoreCase("MANAGER") || role.equalsIgnoreCase("ADMIN"))) {
+            return ResponseEntity.status(403).body("Không có quyền duyệt khóa học");
+        }
+        boolean activated = courseService.activateCourse(id);
+        if (activated) {
+            return ResponseEntity.ok("Đã hiện khóa học");
+        } else {
+            return ResponseEntity.status(404).body("Lỗi");
+        }
     }
 
     // --- LESSON APIs (Task 2 - Chờ làm) ---
@@ -282,4 +360,110 @@ public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @Request
 
         return ResponseEntity.ok(participantIds);
     }
+
+    // --- INTERNAL APIs (For Microservices) ---
+    @PostMapping("/internal/{courseId}/enroll")
+    public ResponseEntity<?> internalEnroll(
+            @PathVariable Long courseId,
+            @RequestParam Long userId) {
+        try {
+            System.out.println("Processing internal enrollment: Course " + courseId + ", User " + userId);
+            boolean success = courseService.enrollCourse(courseId, userId);
+            if (success) {
+                return ResponseEntity.ok("Internal enrollment successful");
+            } else {
+                return ResponseEntity.badRequest().body("Already enrolled or failed");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
+    // API Bước 4: Duyệt khóa học (Chỉ dành cho MANAGER/ADMIN)
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<?> approveCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+        String role = jwtUtils.extractRole(tokenHeader.substring(7));
+        if (!"MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
+            return ResponseEntity.status(403).body("Bạn không có quyền thực hiện hành động này");
+        }
+
+        boolean success = courseService.approveCourse(id);
+        return success ? ResponseEntity.ok("Duyệt thành công!") : ResponseEntity.notFound().build();
+    }
+
+    // API lấy danh sách cho trang chủ (Ai cũng xem được -> Chỉ hiện khóa đã duyệt)
+    @GetMapping("/published")
+    public ResponseEntity<List<Course>> getPublishedCourses() {
+        return ResponseEntity.ok(courseService.getPublishedCourses());
+    }
+
+    // API lấy danh sách quản lý (Chỉ Admin/Manager xem được -> Hiện tất cả)
+    @GetMapping("/admin/all")
+    public ResponseEntity<?> getAllCoursesForAdmin(
+            @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
+        // 1. Kiểm tra nếu không có Token
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Thiếu Token xác thực");
+        }
+
+        try {
+            String token = tokenHeader.substring(7);
+            String role = jwtUtils.extractRole(token);
+
+            // 2. Kiểm tra quyền
+            if (!"MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Bạn không có quyền MANAGER/ADMIN");
+            }
+
+            return ResponseEntity.ok(courseService.getAllCoursesForAdmin());
+        } catch (Exception e) {
+            return ResponseEntity.status(401).body("Token không hợp lệ hoặc đã hết hạn");
+        }
+    }
+
+    // Học sinh đánh dấu hoàn thành bài học
+    @PostMapping("/{courseId}/lessons/{lessonId}/complete")
+    public ResponseEntity<?> markLessonAsComplete(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestHeader("Authorization") String token) {
+
+        Long userId = getUserIdFromHeader(token);
+        courseService.markLessonAsComplete(userId, courseId, lessonId); // Hàm service phải tồn tại
+        return ResponseEntity.ok("Đã đánh dấu hoàn thành bài học");
+    }
+
+    // Lấy tiến độ của bản thân (Học sinh)
+    @GetMapping("/{courseId}/progress")
+    public ResponseEntity<?> getMyProgress(@PathVariable Long courseId, @RequestHeader("Authorization") String token) {
+        Long userId = getUserIdFromHeader(token);
+        return ResponseEntity.ok(courseService.getCourseProgress(userId, courseId));
+    }
+
+    @GetMapping("/{courseId}/progress/{studentId}")
+    public ResponseEntity<?> getStudentProgress(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId,
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        // Bước này chỉ để kiểm tra xem bạn có đăng nhập hay chưa
+        Long requesterId = getUserIdFromHeader(tokenHeader);
+        if (requesterId == null)
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        double progress = courseService.getCourseProgress(studentId, courseId);
+
+        return ResponseEntity.ok(progress);
+    }
+
+    @GetMapping("/{courseId}/lessons/completed-ids")
+    public ResponseEntity<List<Long>> getCompletedLessonIds(
+            @PathVariable Long courseId,
+            @RequestHeader("Authorization") String token) {
+        Long userId = getUserIdFromHeader(token); // Lấy ID từ Token
+        List<Long> completedIds = courseService.getCompletedLessonIds(userId, courseId);
+        return ResponseEntity.ok(completedIds);
+    }
+
 }

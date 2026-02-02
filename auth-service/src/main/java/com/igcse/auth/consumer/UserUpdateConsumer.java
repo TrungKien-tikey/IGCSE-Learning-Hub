@@ -37,8 +37,14 @@ public class UserUpdateConsumer {
     private void handleUpdate(UserEventDTO event) {
         userRepository.findById(event.getUserId()).ifPresentOrElse(
                 user -> {
-                    if (event.getFullName() != null) user.setFullName(event.getFullName());
-                    if (event.getRole() != null) user.setRole(event.getRole());
+                    if (event.getFullName() != null)
+                        user.setFullName(event.getFullName());
+                    if (event.getRole() != null)
+                        user.setRole(event.getRole());
+                    // Sync status
+                    if (event.getVerificationStatus() != null) {
+                        user.setVerificationStatus(event.getVerificationStatus());
+                    }
                     userRepository.save(user);
                     System.out.println(">>> [Auth-Service] Da cap nhat user: " + event.getUserId());
                 },

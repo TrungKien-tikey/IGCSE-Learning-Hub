@@ -6,6 +6,7 @@ import lombok.*;
 import java.util.*;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.igsce.exam_service.enums.GradingStatus;
 
 import java.time.LocalDateTime;
 
@@ -24,6 +25,12 @@ public class ExamAttempt {
     private LocalDateTime submittedAt; // Thời điểm nộp bài
     private double totalScore;
 
+    @Enumerated(EnumType.STRING)
+    private GradingStatus gradingStatus = GradingStatus.PENDING;
+
+    @Column(columnDefinition = "TEXT")
+    private String teacherGeneralFeedback;
+
     @ManyToOne
     @JoinColumn(name = "exam_id")
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties("questions")
@@ -34,12 +41,26 @@ public class ExamAttempt {
     private List<Answer> answers;
 
     public void submit() {
-        this.endTime = LocalDateTime.now();
+        this.submittedAt = LocalDateTime.now();
+        // Mặc định nếu chưa chấm xong thì để PENDING
+        if (this.gradingStatus == null) {
+            this.gradingStatus = GradingStatus.PENDING;
+        }
     }
 
     public double calculateScore() {
         return answers.stream()
                 .mapToDouble(Answer::getScore)
+                .sum();
+    }
+
+    public void recalculateTotalScore() {
+        if (this.answers == null) {
+            this.totalScore = 0;
+            return;
+        }
+        this.totalScore = this.answers.stream()
+                .mapToDouble(Answer::getScore) // Lấy điểm chốt (final score)
                 .sum();
     }
 }

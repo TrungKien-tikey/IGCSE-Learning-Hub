@@ -18,6 +18,11 @@ import AdminDashboard from './pages/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import RoleProtectedRoute from './components/RoleProtectedRoute';
 import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
+import TeacherVerification from './pages/admin/TeacherVerification';
+import VerifiedRoute from './components/VerifiedRoute';
+import AdminSlotPackagesPage from './pages/AdminSlotPackagesPage';
+
+import TeacherSlotPurchasePage from './pages/TeacherSlotPurchasePage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -26,6 +31,8 @@ import EditExamPage from "./pages/exams/ExamEdit";
 import ExamAttemptPage from "./pages/exams/ExamAttempt";
 import ExamResultPage from "./pages/exams/ExamResult";
 import CreateExamPage from './pages/exams/ExamCreate';
+import TeacherGradingPage from "./pages/exams/TeacherGradingPage";
+import ExamReviewPage from "./pages/exams/ExamReviewPage";
 
 // AI Pages
 import AIHomePage from './pages/ai/AIHomePage';
@@ -33,6 +40,7 @@ import AIResultPage from './pages/ai/AIResultPage';
 import StudentDashboard from './pages/ai/StudentDashboard';
 import TeacherDashboard from './pages/ai/TeacherDashboard';
 import AdminDashboardAI from './pages/ai/AdminDashboard';
+import ParentDashboard from './pages/ai/ParentDashboard';
 
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
@@ -45,6 +53,9 @@ import StudentLearningPage from './pages/course/StudentLearningPage';
 //Comunication page
 import NotificationsPage from './pages/communication/NotificationsPage';
 import ChatPage from "./pages/communication/ChatPage";
+
+// Payment Pages
+import VNPayReturnPage from './pages/VNPayReturnPage';
 
 function App() {
   return (
@@ -74,11 +85,34 @@ function App() {
 
         {/* --- EXAM ROUTES --- */}
         <Route path="/exams" element={<ExamListPage />} />
-        <Route path="/exams/create" element={<CreateExamPage />} />
-        <Route path="/exams/manage" element={<ManageExamsPage />} />
-        <Route path="/exams/edit/:id" element={<EditExamPage />} />
+        <Route
+          path="/exams/create"
+          element={
+            <VerifiedRoute>
+              <CreateExamPage />
+            </VerifiedRoute>
+          }
+        />
+        <Route
+          path="/exams/manage"
+          element={
+            <VerifiedRoute>
+              <ManageExamsPage />
+            </VerifiedRoute>
+          }
+        />
+        <Route
+          path="/exams/edit/:id"
+          element={
+            <VerifiedRoute>
+              <EditExamPage />
+            </VerifiedRoute>
+          }
+        />
         <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
         <Route path="/exams/result" element={<ExamResultPage />} />
+        <Route path="/teacher/grading" element={<TeacherGradingPage />} />
+        <Route path="/exams/review/:attemptId" element={<ExamReviewPage />} />
 
         {/* --- COURSE ROUTES --- */}
         <Route path="course/courses" element={<CoursePage />} />
@@ -96,6 +130,9 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/chat" element={<ChatPage />} />
 
+        {/* --- PAYMENT ROUTES --- */}
+        <Route path="/payment/vnpay-return" element={<VNPayReturnPage />} />
+
         <Route
           path="/ai/dashboard/student"
           element={
@@ -108,8 +145,17 @@ function App() {
         <Route
           path="/ai/dashboard/teacher"
           element={
-            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+            <VerifiedRoute>
               <TeacherDashboard />
+            </VerifiedRoute>
+          }
+        />
+
+        <Route
+          path="/teacher/buy-slots"
+          element={
+            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherSlotPurchasePage />
             </RoleProtectedRoute>
           }
         />
@@ -124,10 +170,40 @@ function App() {
         />
 
         <Route
+          path="/admin/verify"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <TeacherVerification />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/ai/dashboard/parent/:studentId"
+          element={
+            <RoleProtectedRoute allowedRoles={['PARENT', 'ADMIN']}>
+              <ParentDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route path="/progress" element={<Navigate to="/ai/dashboard/student" replace />} />
+        <Route path="/reports" element={<Navigate to="/ai/dashboard/student" replace />} />
+
+        <Route
           path="/course-approval"
           element={
             <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
               <AdminCourseApprovalPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/slot-packages"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminSlotPackagesPage />
             </RoleProtectedRoute>
           }
         />

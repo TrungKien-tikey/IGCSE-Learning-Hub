@@ -14,12 +14,15 @@ public class User {
     private String email;
 
     private String fullName;
-
     private String phoneNumber;
     private String address;
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @com.fasterxml.jackson.annotation.JsonManagedReference
+    private Teacher teacherProfile;
 
     @Lob
     @Column(columnDefinition = "LONGTEXT")
@@ -106,6 +109,14 @@ public class User {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public Teacher getTeacherProfile() {
+        return teacherProfile;
+    }
+
+    public void setTeacherProfile(Teacher teacherProfile) {
+        this.teacherProfile = teacherProfile;
     }
 
     public Date getCreatedAt() {

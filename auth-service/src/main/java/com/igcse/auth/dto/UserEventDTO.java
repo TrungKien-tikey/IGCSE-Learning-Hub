@@ -6,16 +6,27 @@ public class UserEventDTO {
     private String fullName;
     private String role;
     private Boolean isActive;
+    private String verificationStatus;
 
     public UserEventDTO() {
     }
 
-    public UserEventDTO(String action, Long userId, String fullName, String role, Boolean isActive) {
+    public UserEventDTO(String action, Long userId, String fullName, String role, Boolean isActive,
+            String verificationStatus) {
         this.action = action;
         this.userId = userId;
         this.fullName = fullName;
         this.role = role;
         this.isActive = isActive;
+        this.verificationStatus = verificationStatus;
+    }
+
+    public String getVerificationStatus() {
+        return verificationStatus;
+    }
+
+    public void setVerificationStatus(String verificationStatus) {
+        this.verificationStatus = verificationStatus;
     }
 
     public String getAction() {

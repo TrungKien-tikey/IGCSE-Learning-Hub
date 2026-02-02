@@ -166,3 +166,140 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Database cho Course Service
 -- ============================================================================
 CREATE DATABASE IF NOT EXISTS course_db;
+
+-- ============================================================================
+-- Database cho Payment Service (Thống kê tiền - Yêu cầu 6, 7, 8)
+-- ============================================================================
+CREATE DATABASE IF NOT EXISTS payment_db;
+USE payment_db;
+
+-- ----------------------------------------------------------------------------
+-- Bảng 1: Gói suất học (Admin bán cho Giáo viên)
+-- Giáo viên cần mua suất học để có thể tạo khóa học
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS course_slot_packages (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL COMMENT 'Tên gói (VD: Gói 5 khóa học)',
+    description TEXT COMMENT 'Mô tả chi tiết gói',
+    slot_count INT NOT NULL COMMENT 'Số suất học trong gói',
+    price DECIMAL(15,2) NOT NULL COMMENT 'Giá bán (VNĐ)',
+    duration_days INT DEFAULT 365 COMMENT 'Thời hạn sử dụng (ngày)',
+    is_active BOOLEAN DEFAULT TRUE COMMENT 'Còn bán không',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_is_active (is_active),
+    INDEX idx_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Bảng 2: Giao dịch mua suất học (Giáo viên mua từ Admin)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS slot_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id BIGINT NOT NULL COMMENT 'ID giáo viên mua',
+    teacher_name VARCHAR(255) COMMENT 'Tên giáo viên (denormalized)',
+    package_id BIGINT NOT NULL COMMENT 'ID gói suất học',
+    package_name VARCHAR(255) COMMENT 'Tên gói (denormalized)',
+    slots_purchased INT NOT NULL COMMENT 'Số suất đã mua',
+    amount DECIMAL(15,2) NOT NULL COMMENT 'Số tiền thanh toán',
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER' COMMENT 'BANK_TRANSFER, MOMO, VNPAY, CASH',
+    payment_status VARCHAR(50) DEFAULT 'PENDING' COMMENT 'PENDING, COMPLETED, FAILED, REFUNDED',
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL COMMENT 'Thời gian hoàn thành thanh toán',
+    notes TEXT COMMENT 'Ghi chú giao dịch',
+    
+    INDEX idx_teacher_id (teacher_id),
+    INDEX idx_package_id (package_id),
+    INDEX idx_payment_status (payment_status),
+    INDEX idx_transaction_date (transaction_date),
+    FOREIGN KEY (package_id) REFERENCES course_slot_packages(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Bảng 3: Quản lý suất học của Giáo viên
+-- Mỗi giáo viên có một record duy nhất
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS teacher_slots (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    teacher_id BIGINT NOT NULL UNIQUE COMMENT 'ID giáo viên',
+    teacher_name VARCHAR(255) COMMENT 'Tên giáo viên (denormalized)',
+    total_slots INT DEFAULT 0 COMMENT 'Tổng suất đã mua',
+    used_slots INT DEFAULT 0 COMMENT 'Số suất đã dùng (tạo khóa học)',
+    available_slots INT DEFAULT 0 COMMENT 'Số suất còn lại',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    INDEX idx_teacher_id (teacher_id),
+    INDEX idx_available_slots (available_slots)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Bảng 4: Giao dịch mua khóa học (Học sinh mua từ Giáo viên)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS course_transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    student_id BIGINT NOT NULL COMMENT 'ID học sinh mua',
+    student_name VARCHAR(255) COMMENT 'Tên học sinh (denormalized)',
+    course_id BIGINT NOT NULL COMMENT 'ID khóa học',
+    course_title VARCHAR(255) COMMENT 'Tên khóa học (denormalized)',
+    teacher_id BIGINT NOT NULL COMMENT 'ID giáo viên bán',
+    teacher_name VARCHAR(255) COMMENT 'Tên giáo viên (denormalized)',
+    original_price DECIMAL(15,2) NOT NULL COMMENT 'Giá gốc khóa học',
+    discount_amount DECIMAL(15,2) DEFAULT 0 COMMENT 'Số tiền giảm giá',
+    amount DECIMAL(15,2) NOT NULL COMMENT 'Số tiền thực thanh toán',
+    platform_fee_percent DECIMAL(5,2) DEFAULT 10.00 COMMENT 'Phần trăm phí nền tảng',
+    platform_fee DECIMAL(15,2) DEFAULT 0 COMMENT 'Phí nền tảng (Admin thu)',
+    teacher_revenue DECIMAL(15,2) DEFAULT 0 COMMENT 'Doanh thu giáo viên nhận',
+    payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER' COMMENT 'BANK_TRANSFER, MOMO, VNPAY, CASH',
+    payment_status VARCHAR(50) DEFAULT 'PENDING' COMMENT 'PENDING, COMPLETED, FAILED, REFUNDED',
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL COMMENT 'Thời gian hoàn thành thanh toán',
+    notes TEXT COMMENT 'Ghi chú giao dịch',
+    
+    INDEX idx_student_id (student_id),
+    INDEX idx_course_id (course_id),
+    INDEX idx_teacher_id (teacher_id),
+    INDEX idx_payment_status (payment_status),
+    INDEX idx_transaction_date (transaction_date),
+    INDEX idx_date_status (transaction_date, payment_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Bảng 5: Bảng tổng hợp giao dịch (Cho Admin thống kê)
+-- Gom tất cả giao dịch từ slot_transactions và course_transactions
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS transactions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    transaction_type VARCHAR(50) NOT NULL COMMENT 'SLOT_PURCHASE, COURSE_ENROLLMENT',
+    reference_id BIGINT NOT NULL COMMENT 'ID tham chiếu (slot_transaction_id hoặc course_transaction_id)',
+    buyer_id BIGINT NOT NULL COMMENT 'ID người mua',
+    buyer_name VARCHAR(255) COMMENT 'Tên người mua',
+    buyer_role VARCHAR(50) COMMENT 'TEACHER hoặc STUDENT',
+    seller_id BIGINT COMMENT 'ID người bán (NULL = Admin)',
+    seller_name VARCHAR(255) COMMENT 'Tên người bán',
+    amount DECIMAL(15,2) NOT NULL COMMENT 'Tổng số tiền giao dịch',
+    platform_revenue DECIMAL(15,2) DEFAULT 0 COMMENT 'Doanh thu Admin',
+    payment_method VARCHAR(50) COMMENT 'Phương thức thanh toán',
+    payment_status VARCHAR(50) DEFAULT 'PENDING' COMMENT 'Trạng thái',
+    transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP NULL COMMENT 'Thời gian hoàn thành',
+    description TEXT COMMENT 'Mô tả giao dịch',
+    
+    INDEX idx_transaction_type (transaction_type),
+    INDEX idx_buyer_id (buyer_id),
+    INDEX idx_seller_id (seller_id),
+    INDEX idx_payment_status (payment_status),
+    INDEX idx_transaction_date (transaction_date),
+    INDEX idx_type_date (transaction_type, transaction_date),
+    INDEX idx_date_status (transaction_date, payment_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ----------------------------------------------------------------------------
+-- Dữ liệu mẫu: Các gói suất học mặc định
+-- ----------------------------------------------------------------------------
+INSERT INTO course_slot_packages (name, description, slot_count, price, duration_days, is_active) VALUES
+('Gói Khởi Đầu', 'Gói dành cho giáo viên mới, bao gồm 3 suất tạo khóa học', 3, 500000.00, 365, TRUE),
+('Gói Tiêu Chuẩn', 'Gói phổ biến nhất, bao gồm 10 suất tạo khóa học', 10, 1500000.00, 365, TRUE),
+('Gói Chuyên Nghiệp', 'Gói dành cho giáo viên chuyên nghiệp, bao gồm 25 suất tạo khóa học', 25, 3000000.00, 365, TRUE),
+('Gói Không Giới Hạn', 'Gói không giới hạn số lượng khóa học trong 1 năm', 999, 10000000.00, 365, TRUE);

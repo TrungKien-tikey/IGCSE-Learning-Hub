@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import com.igsce.exam_service.repository.*;
 import com.igsce.exam_service.entity.*;
+import com.igsce.exam_service.enums.GradingStatus;
 import com.igsce.exam_service.enums.QuestionType;
 import com.igsce.exam_service.dto.*;
 
@@ -18,15 +19,18 @@ public class ExamService {
     private final ExamRepository examRepository;
     private final ExamAttemptRepository attemptRepository;
     private final QuestionRepository questionRepository;
+    private final AnswerRepository answerRepository;
     private final RabbitTemplate rabbitTemplate;
 
     public ExamService(ExamRepository examRepository,
             ExamAttemptRepository attemptRepository,
             QuestionRepository questionRepository,
+            AnswerRepository answerRepository,
             RabbitTemplate rabbitTemplate) {
         this.examRepository = examRepository;
         this.attemptRepository = attemptRepository;
         this.questionRepository = questionRepository;
+        this.answerRepository = answerRepository;
         this.rabbitTemplate = rabbitTemplate;
     }
 
@@ -55,6 +59,32 @@ public class ExamService {
 
     public List<ExamAttempt> getAttemptsByUserId(Long userId) {
         return attemptRepository.findByUserId(userId);
+    }
+
+    public List<ExamAttempt> getAttemptsByStatus(GradingStatus status) {
+        return attemptRepository.findByGradingStatus(status);
+    }
+
+    public void updateManualGrade(Long attemptId, Long answerId, Double newScore, String feedback) {
+        // Tìm câu trả lời
+        Answer answer = answerRepository.findById(answerId)
+                .orElseThrow(() -> new RuntimeException("Answer not found"));
+
+        // Lưu điểm giáo viên chấm (Override)
+        answer.applyTeacherGrading(newScore, feedback);
+        answerRepository.save(answer);
+
+        // Tính lại tổng điểm toàn bài
+        ExamAttempt attempt = attemptRepository.findById(attemptId)
+                .orElseThrow(() -> new RuntimeException("Attempt not found"));
+
+        attempt.recalculateTotalScore();
+
+        // Nếu muốn, có thể đổi trạng thái bài thi thành COMPLETED luôn tại đây
+        // hoặc chờ giáo viên nhấn nút "Hoàn tất" riêng.
+        attempt.setGradingStatus(GradingStatus.COMPLETED);
+
+        attemptRepository.save(attempt);
     }
 
     @Transactional(readOnly = true)
@@ -87,13 +117,14 @@ public class ExamService {
         if (!examRepository.existsById(examId)) {
             throw new RuntimeException("Exam not found with id: " + examId);
         }
-        
+
         // Gọi Repository lấy danh sách
         List<ExamAttempt> attempts = attemptRepository.findByExam_ExamIdOrderBySubmittedAtDesc(examId);
-        
-        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi convert JSON
+
+        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi
+        // convert JSON
         // Nhưng thường với danh sách bảng điểm thì không cần load sâu User Answers
-        
+
         return attempts;
     }
 
@@ -176,6 +207,7 @@ public class ExamService {
             exam.setActive(request.isActive());
             exam.setEndTime(request.getEndTime());
             exam.setMaxAttempts(request.getMaxAttempts() < 1 ? 1 : request.getMaxAttempts());
+            exam.setIsStrict(request.getIsStrict() != null ? request.getIsStrict() : false);
 
             List<Question> questions = new ArrayList<>();
 
@@ -251,11 +283,10 @@ public class ExamService {
             System.out.println("Exam saved successfully with ID: " + savedExam.getExamId());
             try {
                 ExamCreatedEvent event = new ExamCreatedEvent(
-                    savedExam.getExamId(), 
-                    savedExam.getTitle(),
-                    savedExam.getDescription()
-                );
-                
+                        savedExam.getExamId(),
+                        savedExam.getTitle(),
+                        savedExam.getDescription());
+
                 // Sử dụng Exchange chuyên cho notification (khai báo bên dưới)
                 rabbitTemplate.convertAndSend("exam.notification.exchange", "exam.created", event);
                 System.out.println(">>> Đã gửi sự kiện tạo Exam sang RabbitMQ: " + savedExam.getTitle());
@@ -430,6 +461,7 @@ public class ExamService {
 
         double additionalScore = 0;
         int updatedCount = 0;
+        boolean hasAiGraded = false;
 
         // Duyệt qua kết quả AI trả về
         if (callback.getAnswerScores() != null) {
@@ -443,18 +475,20 @@ public class ExamService {
                 for (Answer ans : attempt.getAnswers()) {
                     // Kiểm tra null safety cho question
                     if (ans.getQuestion() != null && ans.getQuestion().getQuestionId().equals(questionId)) {
-                        System.out
-                                .println(">>> [ExamService] Updating score for question " + questionId + ": " + score);
-                        ans.setScore(score);
-                        ans.setFeedback(feedback != null ? feedback : "Đã chấm");
+                        ans.applyAiGrading(score, feedback != null ? feedback : "AI đã chấm");
+
+                        // Lưu lại answer
+                        answerRepository.save(ans);
+
+                        System.out.println(">>> [ExamService] AI graded question " + questionId + ": " + score);
+
                         additionalScore += score;
                         updatedCount++;
+                        hasAiGraded = true;
                         break;
                     }
                 }
             }
-        } else {
-            System.out.println(">>> [ExamService] Warning: AnswerScores list is null");
         }
 
         System.out.println(
@@ -462,6 +496,13 @@ public class ExamService {
 
         // Cộng thêm điểm tự luận vào tổng điểm
         attempt.setTotalScore(attempt.getTotalScore() + additionalScore);
+
+        if (hasAiGraded) {
+            attempt.setGradingStatus(GradingStatus.AI_GRADED);
+        } else {
+            // Nếu không có câu tự luận nào (hoặc lỗi), có thể coi là hoàn thành
+            attempt.setGradingStatus(GradingStatus.COMPLETED);
+        }
 
         attemptRepository.save(attempt);
         return true;
@@ -479,47 +520,112 @@ public class ExamService {
         exam.setActive(request.isActive());
         exam.setEndTime(request.getEndTime());
         exam.setMaxAttempts(request.getMaxAttempts() < 1 ? 1 : request.getMaxAttempts());
+        exam.setIsStrict(request.getIsStrict() != null ? request.getIsStrict() : false);
 
-        // 2. Xử lý câu hỏi:
-        // Cách đơn giản nhất: Xóa danh sách cũ, thay bằng danh sách mới
-        // Lưu ý: Hibernate sẽ tự động xóa orphan (câu hỏi cũ) nếu config Cascade đúng
-        exam.getQuestions().clear();
+        // 2. XỬ LÝ CẬP NHẬT CÂU HỎI (QUAN TRỌNG: KHÔNG DÙNG CLEAR())
 
-        if (request.getQuestions() != null) {
+        List<Question> currentQuestions = exam.getQuestions();
+        List<QuestionRequest> newQuestionsData = request.getQuestions();
+
+        if (newQuestionsData != null) {
+            // A. Tạo map để tra cứu câu hỏi cũ cho nhanh
+            Map<Long, Question> currentQuestionMap = new HashMap<>();
+            for (Question q : currentQuestions) {
+                currentQuestionMap.put(q.getQuestionId(), q);
+            }
+
+            // Danh sách các câu hỏi sẽ được giữ lại/thêm mới
+            List<Question> updatedQuestions = new ArrayList<>();
             int currentIndex = 0;
-            for (QuestionRequest qRequest : request.getQuestions()) {
-                Question question = new Question();
+
+            for (QuestionRequest qRequest : newQuestionsData) {
+                Question question;
+
+                // Kiểm tra xem câu hỏi này đã có trong DB chưa (dựa vào ID gửi lên)
+                if (qRequest.getQuestionId() != null && currentQuestionMap.containsKey(qRequest.getQuestionId())) {
+                    // --- CASE 1: CẬP NHẬT CÂU HỎI CŨ ---
+                    question = currentQuestionMap.get(qRequest.getQuestionId());
+
+                    // Xóa khỏi map để lát nữa biết câu nào không còn trong danh sách mới thì xóa đi
+                    currentQuestionMap.remove(qRequest.getQuestionId());
+                } else {
+                    // --- CASE 2: TẠO CÂU HỎI MỚI ---
+                    question = new Question();
+                    question.setExam(exam); // Quan trọng
+                }
+
+                // Cập nhật thông tin fields
                 question.setContent(qRequest.getContent());
                 question.setScore(qRequest.getScore());
                 question.setQuestionType(qRequest.getQuestionType());
                 question.setOrderIndex(qRequest.getOrderIndex() != null ? qRequest.getOrderIndex() : currentIndex++);
                 question.setImage(qRequest.getImage());
 
-                // Lưu đáp án tham khảo cho câu ESSAY
                 if (qRequest.getQuestionType() == QuestionType.ESSAY) {
                     question.setEssayCorrectAnswer(qRequest.getEssayCorrectAnswer());
                 }
 
-                // Quan trọng: Gán lại Exam cha
-                question.setExam(exam);
+                // --- XỬ LÝ OPTIONS (Tương tự logic Question để giữ lại Option ID cho Answers)
+                // ---
+                updateOptionsForQuestion(question, qRequest.getOptions());
 
-                // Xử lý Options
-                if (qRequest.getOptions() != null) {
-                    List<QuestionOption> options = new ArrayList<>();
-                    for (OptionRequest oRequest : qRequest.getOptions()) {
-                        QuestionOption option = new QuestionOption();
-                        option.setContent(oRequest.getContent());
-                        option.setCorrect(oRequest.isCorrect());
-                        option.setQuestion(question);
-                        options.add(option);
-                    }
-                    question.setOptions(options);
-                }
-                exam.getQuestions().add(question);
+                updatedQuestions.add(question);
             }
+
+            // B. Xóa các câu hỏi cũ không còn nằm trong danh sách mới (Orphan Removal)
+            // Những câu còn lại trong map là những câu đã bị user xóa trên giao diện
+            currentQuestions.clear();
+            currentQuestions.addAll(updatedQuestions);
+
+            // Lưu ý: Hibernate sẽ tự động xóa các Question bị loại bỏ khỏi list nếu Entity
+            // Exam có cài đặt orphanRemoval = true
         }
 
         return examRepository.save(exam);
+    }
+
+    // Helper method để cập nhật Options mà không làm mất ID
+    private void updateOptionsForQuestion(Question question, List<OptionRequest> optionRequests) {
+        if (optionRequests == null) {
+            question.getOptions().clear();
+            return;
+        }
+
+        List<QuestionOption> currentOptions = question.getOptions();
+        if (currentOptions == null) {
+            currentOptions = new ArrayList<>();
+            question.setOptions(currentOptions);
+        }
+
+        // Map ID cũ
+        Map<Long, QuestionOption> currentOptionMap = new HashMap<>();
+        for (QuestionOption opt : currentOptions) {
+            currentOptionMap.put(opt.getOptionId(), opt);
+        }
+
+        List<QuestionOption> updatedOptions = new ArrayList<>();
+
+        for (OptionRequest optReq : optionRequests) {
+            QuestionOption option;
+
+            // Nếu Option có ID và tồn tại -> Update
+            if (optReq.getOptionId() != null && currentOptionMap.containsKey(optReq.getOptionId())) {
+                option = currentOptionMap.get(optReq.getOptionId());
+            } else {
+                // Nếu không -> Tạo mới
+                option = new QuestionOption();
+                option.setQuestion(question);
+            }
+
+            option.setContent(optReq.getContent());
+            option.setCorrect(optReq.isCorrect());
+
+            updatedOptions.add(option);
+        }
+
+        // Thay thế list cũ bằng list mới (Hibernate sẽ xử lý xóa các option thừa)
+        currentOptions.clear();
+        currentOptions.addAll(updatedOptions);
     }
 
 }

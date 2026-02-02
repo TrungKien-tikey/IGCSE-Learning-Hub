@@ -16,6 +16,7 @@ import com.igcse.ai.service.aiChamDiem.IGradingService;
 import com.igcse.ai.service.common.ILanguageService;
 import com.igcse.ai.service.common.LanguageService;
 import com.igcse.ai.service.common.TierManagerService;
+import com.igcse.ai.service.phanTich.IInsightService;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -32,18 +33,21 @@ public class AIService {
     private final IGradingService gradingService;
     private final ILanguageService languageService;
     private final TierManagerService tierManagerService;
+    private final IInsightService insightService;
 
     public AIService(
             JsonService jsonService,
             AIResultRepository aiResultRepository,
             IGradingService gradingService,
             ILanguageService languageService,
-            TierManagerService tierManagerService) {
+            TierManagerService tierManagerService,
+            IInsightService insightService) {
         this.jsonService = jsonService;
         this.aiResultRepository = aiResultRepository;
         this.gradingService = gradingService;
         this.languageService = languageService;
         this.tierManagerService = tierManagerService;
+        this.insightService = insightService;
     }
 
     /**
@@ -129,7 +133,9 @@ public class AIService {
             }
         }
 
-        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
+        // 3. Phân tích Metadata
+        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null,
+                null);
 
         // Tính toán điểm chi tiết theo phần
         double mcScore = 0.0;
@@ -169,6 +175,14 @@ public class AIService {
 
         aiResultRepository.save(result);
         logger.info("Exam evaluation completed for attemptId: {}, score: {}", attemptId, score);
+
+        // KÍCH HOẠT PHÂN TÍCH SÂU CHỦ ĐỘNG (BACKGROUND)
+        try {
+            insightService.triggerProactiveAnalysis(attempt.getStudentId(), attemptId);
+        } catch (Exception e) {
+            logger.warn("Failed to trigger proactive analysis for student {}: {}", attempt.getStudentId(),
+                    e.getMessage());
+        }
 
         return new DetailedGradingResultDTO(
                 attemptId, attempt.getStudentId(), score, maxScore, feedback, confidence, lang, gradingResults);

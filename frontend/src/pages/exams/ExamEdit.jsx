@@ -2,12 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
+import axiosClient from "../../api/axiosClient";
 
 export default function EditExamPage() {
   const navigate = useNavigate();
   const params = useParams();
   const examId = params.id;
+
+  const accessToken = localStorage.getItem("accessToken");
 
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
@@ -19,6 +23,7 @@ export default function EditExamPage() {
     duration: 60,
     maxAttempts: 1,
     isActive: true,
+    isStrict: false,
     endTime: "",
   });
 
@@ -35,35 +40,41 @@ export default function EditExamPage() {
     image: null,
     score: 10,
     questionType: "MCQ",
+    essayCorrectAnswer: "",
     options: [],
   });
 
   // --- 1. LOAD DỮ LIỆU CŨ TỪ SERVER ---
   useEffect(() => {
     if (!examId) return;
+    if (!accessToken) {
+      navigate("/login");
+      return;
+    }
 
-    fetch(`/api/exams/${examId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Không tìm thấy bài thi");
-        return res.json();
-      })
-      .then((data) => {
+    const fetchExamData = async () => {
+      try {
+        // [2] Thay fetch bằng axiosClient.get, ghi đè baseURL
+        const res = await axiosClient.get(`/api/exams/${examId}`, { baseURL: '' });
+        const data = res.data;
+
         setExamInfo({
           title: data.title,
           description: data.description || "",
           duration: data.duration,
           maxAttempts: data.maxAttempts || 1,
           isActive: data.isActive,
+          isStrict: data.isStrict || false,
           endTime: data.endTime || "",
         });
 
-        // Xóa : any
         const mappedQuestions = data.questions.map((q) => ({
           id: q.questionId,
           content: q.content,
           image: q.image,
           score: q.score,
           questionType: q.questionType,
+          essayCorrectAnswer: q.essayCorrectAnswer || "",
           options: q.options.map((opt) => ({
             id: opt.optionId,
             content: opt.content,
@@ -73,13 +84,21 @@ export default function EditExamPage() {
 
         setQuestionsList(mappedQuestions);
         setDataLoading(false);
-      })
-      .catch((err) => {
+
+      } catch (err) {
         console.error(err);
-        alert("Lỗi tải bài thi!");
-        navigate("/exams/manage");
-      });
-  }, [examId]);
+        if (err.response && err.response.status === 401) {
+          alert("Phiên đăng nhập hết hạn.");
+          navigate("/login");
+        } else {
+          toast.error("Lỗi tải bài thi hoặc không tìm thấy!");
+          navigate("/exams/manage");
+        }
+      }
+    };
+
+    fetchExamData();
+  }, [examId, accessToken, navigate]);
 
   // --- LOGIC FORM ---
   // Xóa : React.ChangeEvent...
@@ -164,11 +183,16 @@ export default function EditExamPage() {
 
   // Logic lưu câu hỏi (Thêm mới hoặc Cập nhật)
   const saveQuestionToList = () => {
-    if (!draftQ.content.trim()) return alert("Nhập nội dung câu hỏi");
+    if (!draftQ.content.trim()) return toast.warning("Nhập nội dung câu hỏi");
     if (draftQ.questionType === "MCQ" && draftQ.options.length < 2)
-      return alert("Cần ít nhất 2 đáp án");
+      return toast.warning("Cần ít nhất 2 đáp án");
     if (draftQ.questionType === "MCQ" && !draftQ.options.some((o) => o.isCorrect))
-      return alert("Chọn ít nhất 1 đáp án đúng");
+      return toast.warning("Chọn ít nhất 1 đáp án đúng");
+    if (draftQ.questionType === "ESSAY") {
+      if (!draftQ.essayCorrectAnswer || !draftQ.essayCorrectAnswer.trim()) {
+        return toast.warning("Vui lòng nhập đáp án tham khảo cho câu tự luận");
+      }
+    }
 
     // Nếu id=0 -> Là tạo mới (dùng Date.now). Nếu id khác 0 -> Là sửa (giữ nguyên ID thật)
     const questionId = draftQ.id === 0 ? Date.now() : draftQ.id;
@@ -197,8 +221,8 @@ export default function EditExamPage() {
   };
 
   const handleUpdateExam = async () => {
-    if (!examInfo.title.trim()) return alert("Vui lòng nhập tên bài thi");
-    if (questionsList.length === 0) return alert("Cần ít nhất 1 câu hỏi");
+    if (!examInfo.title.trim()) return toast.warning("Vui lòng nhập tên bài thi");
+    if (questionsList.length === 0) return toast.warning("Cần ít nhất 1 câu hỏi");
 
     setLoading(true);
 
@@ -206,14 +230,22 @@ export default function EditExamPage() {
       ...examInfo,
       endTime: examInfo.endTime ? examInfo.endTime : null,
       questions: questionsList.map((q, index) => {
-        const { id, ...rest } = q;
+
         const formattedOptions =
           q.questionType === "MCQ"
-            ? q.options.map(({ id, ...optRest }) => optRest)
+            ? q.options.map((opt) => ({
+              optionId: opt.id, // [FIX]: Gửi optionId lên
+              content: opt.content,
+              isCorrect: opt.isCorrect
+            }))
             : [];
 
         return {
-          ...rest,
+          questionId: q.id, // [FIX]: Gửi questionId lên. Nếu là Date.now(), BE sẽ coi là mới (hoặc lỗi tùy BE). Tốt nhất BE nên handle nếu ID không tìm thấy -> tạo mới.
+          content: q.content,
+          score: q.score,
+          questionType: q.questionType,
+          essayCorrectAnswer: q.essayCorrectAnswer,
           image: q.image || "",
           orderIndex: index,
           options: formattedOptions,
@@ -222,17 +254,19 @@ export default function EditExamPage() {
     };
 
     try {
-      const res = await fetch(`/api/exams/${examId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      await axiosClient.put(`/api/exams/${examId}`, payload, { baseURL: '' });
 
-      if (!res.ok) throw new Error("Lỗi khi cập nhật");
-      alert("Cập nhật bài thi thành công!");
+      toast.success("Cập nhật bài thi thành công!");
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra.");
+      const msg = error.response?.data?.message || "Có lỗi xảy ra khi cập nhật.";
+
+      if (error.response && error.response.status === 401) {
+        alert("Phiên đăng nhập hết hạn.");
+        navigate("/login");
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -321,19 +355,38 @@ export default function EditExamPage() {
                 />
               </div>
 
-              <div className="flex items-center pt-2">
-                <input
-                  type="checkbox"
-                  checked={examInfo.isActive}
-                  onChange={(e) =>
-                    setExamInfo((prev) => ({
-                      ...prev,
-                      isActive: e.target.checked,
-                    }))
-                  }
-                  className="w-4 h-4"
-                />
-                <label className="ml-2">Kích hoạt bài thi</label>
+              <hr className="my-4 border-gray-200" />
+
+              {/* [MỚI] CHECKBOX CHẾ ĐỘ NGHIÊM NGẶT */}
+              <div className="space-y-2">
+                <div className="flex items-start pt-2">
+                  <input
+                    id="isStrict"
+                    type="checkbox"
+                    checked={examInfo.isStrict}
+                    onChange={(e) => setExamInfo((prev) => ({ ...prev, isStrict: e.target.checked }))}
+                    className="h-4 w-4 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <label htmlFor="isStrict" className="ml-2 block text-sm text-gray-900">
+                    <span className="font-bold text-red-700">Chế độ nghiêm ngặt</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Khi bật: Cấm chuyển tab, cấm chuột phải, cấm copy/paste. Tự động nộp bài nếu vi phạm nhiều lần.
+                    </p>
+                  </label>
+                </div>
+
+                <div className="flex items-center pt-2">
+                  <input
+                    id="isActive"
+                    type="checkbox"
+                    checked={examInfo.isActive}
+                    onChange={(e) => setExamInfo((prev) => ({ ...prev, isActive: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                    Kích hoạt bài thi ngay
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -482,6 +535,24 @@ export default function EditExamPage() {
                     </select>
                   </div>
                 </div>
+
+                {draftQ.questionType === "ESSAY" && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Đáp án tham khảo (Reference Answer) *
+                    </label>
+                    <textarea
+                      value={draftQ.essayCorrectAnswer || ''}
+                      onChange={(e) => setDraftQ({ ...draftQ, essayCorrectAnswer: e.target.value })}
+                      rows={4}
+                      className="w-full border p-2 rounded focus:ring-2 focus:ring-blue-400 outline-none"
+                      placeholder="Nhập đáp án mẫu để AI tham khảo khi chấm điểm..."
+                    />
+                    <small className="text-gray-500 text-xs mt-1 block">
+                      Đáp án này sẽ được AI sử dụng làm tiêu chí chấm điểm. Hãy nhập đáp án chi tiết và chính xác.
+                    </small>
+                  </div>
+                )}
 
                 {/* PHẦN OPTIONS */}
                 {draftQ.questionType === "MCQ" && (

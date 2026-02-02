@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
     User, Mail, Phone, MapPin, Camera,
     Edit3, BookOpen,
@@ -7,21 +8,38 @@ import {
     LayoutDashboard, Lock
 } from 'lucide-react';
 import authService from '../services/authService';
-import axiosClient from '../api/axiosClient';
+import userClient from '../api/userClient';
 import MainLayout from '../layouts/MainLayout';
+
+
 
 export default function ProfilePage() {
     // --- STATE QUẢN LÝ DỮ LIỆU ---
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
+    const location = useLocation(); // Hook lấy state từ router
+    const navigate = useNavigate();
 
-    // State form chỉnh sửa
+    // Check và hiện thông báo nếu được chuyển hướng từ VerifiedRoute
+    useEffect(() => {
+        if (location.state?.verificationError) {
+            toast.warning(location.state.verificationError, { toastId: 'verify-redirect' });
+            // Xóa state để không hiện lại khi reload (Optional)
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
+
+
     const [formData, setFormData] = useState({
         fullName: '',
         phone: '',
         address: '',
-        bio: ''
+        bio: '',
+        qualifications: '',
+        subjects: '',
+        verificationDocument: '',
+        verificationStatus: ''
     });
 
     const [previewImage, setPreviewImage] = useState(null);
@@ -38,10 +56,8 @@ export default function ProfilePage() {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                // Sử dụng axiosClient đi qua Proxy (/api/users/me)
-                const res = await axiosClient.get('/users/me', {
-                    baseURL: '/api'
-                });
+                // Sử dụng userClient cho user-service API
+                const res = await userClient.get('/me');
 
                 const data = res.data;
                 setUser(data);
@@ -53,7 +69,11 @@ export default function ProfilePage() {
                     fullName: data.fullName || '',
                     phone: data.phone || '', // Sử dụng data thật từ DB
                     address: data.address || '',
-                    bio: data.bio || ''
+                    bio: data.bio || '',
+                    qualifications: data.teacherProfile?.qualifications || '',
+                    subjects: data.teacherProfile?.subjects || '',
+                    verificationDocument: data.teacherProfile?.verificationDocument || '',
+                    verificationStatus: data.teacherProfile?.verificationStatus || 'NONE'
                 });
             } catch (error) {
                 console.error("Lỗi fetch profile:", error);
@@ -78,11 +98,9 @@ export default function ProfilePage() {
             const base64String = reader.result;
 
             try {
-                const res = await axiosClient.put('/users/me', {
+                const res = await userClient.put('/me', {
                     fullName: user?.fullName,
                     avatar: base64String
-                }, {
-                    baseURL: '/api'
                 });
 
                 const updatedUser = res.data;
@@ -97,16 +115,36 @@ export default function ProfilePage() {
         };
     };
 
+    // Xử lý upload tài liệu minh chứng (Base64)
+    const handleDocumentUpload = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error("File quá lớn! Vui lòng chọn file dưới 5MB.");
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const base64String = reader.result;
+            setFormData(prev => ({ ...prev, verificationDocument: base64String }));
+            toast.info("Đã chọn file minh chứng. Hãy bấm Lưu để cập nhật.");
+        };
+    };
+
     const handleSave = async () => {
         try {
-            const res = await axiosClient.put('/users/me', {
+            const res = await userClient.put('/me', {
                 fullName: formData.fullName,
                 phone: formData.phone,
                 address: formData.address,
                 bio: formData.bio,
-                avatar: user?.avatar
-            }, {
-                baseURL: '/api'
+                avatar: user?.avatar,
+                qualifications: formData.qualifications,
+                subjects: formData.subjects,
+                verificationDocument: formData.verificationDocument
             });
 
             const updatedUser = res.data;
@@ -226,7 +264,7 @@ export default function ProfilePage() {
         </MainLayout>
     );
 
-    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (User Service - Port 8083).</div>;
+    if (!user) return <div className="flex h-screen items-center justify-center text-red-500">Không tìm thấy thông tin User. Hãy kiểm tra Backend (User Service - Port 8081).</div>;
 
     return (
         <MainLayout>
@@ -297,6 +335,32 @@ export default function ProfilePage() {
                                     <h3 className="text-xl font-bold text-gray-800 mt-3">{user.fullName}</h3>
                                     <p className="text-sm text-gray-500 font-medium">{user.role}</p>
 
+                                    {/* Verification Status Badge */}
+                                    {user.role === 'TEACHER' && (
+                                        <div className="mt-2 flex justify-center">
+                                            {formData.verificationStatus === 'APPROVED' && (
+                                                <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
+                                                    ✅ Đã xác thực
+                                                </span>
+                                            )}
+                                            {formData.verificationStatus === 'PENDING' && (
+                                                <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full border border-yellow-200 flex items-center gap-1">
+                                                    ⏳ Đang chờ duyệt
+                                                </span>
+                                            )}
+                                            {formData.verificationStatus === 'REJECTED' && (
+                                                <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200 flex items-center gap-1">
+                                                    ❌ Bị từ chối
+                                                </span>
+                                            )}
+                                            {(formData.verificationStatus === 'NONE' || !formData.verificationStatus) && (
+                                                <span className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-full border border-gray-200 flex items-center gap-1">
+                                                    ⚪ Chưa xác thực
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
                                     <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
                                         <div>
                                             <span className="block text-2xl font-bold text-blue-600">12</span>
@@ -356,6 +420,78 @@ export default function ProfilePage() {
                                             disabled={!isEditing}
                                             fullWidth
                                         />
+
+                                        {/* --- TEACHER ONLY FIELDS --- */}
+                                        {user.role === 'TEACHER' && (
+                                            <>
+                                                <div className="md:col-span-2">
+                                                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg flex items-start gap-3 mb-4">
+                                                        <div className="text-yellow-600 mt-0.5">⚠️</div>
+                                                        <div className="text-sm text-yellow-800">
+                                                            <span className="font-bold">Lưu ý:</span>
+                                                            <br />
+                                                            Thay đổi Bằng cấp/Môn dạy sẽ cần duyệt lại. Hồ sơ có thể bị tạm khóa.
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <FormInput
+                                                    label="Bằng cấp / Chứng chỉ"
+                                                    name="qualifications"
+                                                    value={formData.qualifications}
+                                                    onChange={handleChange}
+                                                    disabled={!isEditing}
+                                                    fullWidth
+                                                    placeholder="Ví dụ: PhD Mathematics, B.Ed..."
+                                                />
+                                                <FormInput
+                                                    label="Môn giảng dạy"
+                                                    name="subjects"
+                                                    value={formData.subjects}
+                                                    onChange={handleChange}
+                                                    disabled={!isEditing}
+                                                    fullWidth
+                                                    placeholder="Ví dụ: Math Core, Math Extended..."
+                                                />
+
+                                                <div className="md:col-span-2">
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Minh chứng năng lực (Ảnh/PDF)</label>
+                                                    <div className="flex items-center gap-4">
+                                                        {isEditing && (
+                                                            <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+                                                                <Camera size={16} />
+                                                                Chọn File
+                                                                <input
+                                                                    type="file"
+                                                                    accept="image/*,application/pdf"
+                                                                    className="hidden"
+                                                                    onChange={handleDocumentUpload}
+                                                                />
+                                                            </label>
+                                                        )}
+
+                                                        {formData.verificationDocument ? (
+                                                            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
+                                                                <span>Đã có minh chứng</span>
+                                                                <a
+                                                                    href={formData.verificationDocument}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="underline font-bold hover:text-green-800"
+                                                                >
+                                                                    Xem
+                                                                </a>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-sm text-gray-400 italic">Chưa có tài liệu minh chứng</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+
+                                            </>
+                                        )}
+
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-medium text-gray-700 mb-2">Giới thiệu bản thân</label>
                                             <textarea
@@ -381,7 +517,10 @@ export default function ProfilePage() {
                                                         fullName: user.fullName || '',
                                                         phone: user.phone || '',
                                                         address: user.address || '',
-                                                        bio: user.bio || ''
+                                                        bio: user.bio || '',
+                                                        qualifications: user.qualifications || '',
+                                                        subjects: user.subjects || '',
+                                                        verificationDocument: user.verificationDocument || ''
                                                     });
                                                     setIsEditing(false);
                                                 }}
@@ -523,7 +662,7 @@ function ContactItem({ icon, label, value, color }) {
     );
 }
 
-function FormInput({ label, name, value, onChange, disabled, fullWidth = false }) {
+function FormInput({ label, name, value, onChange, disabled, fullWidth = false, placeholder = "" }) {
     return (
         <div className={fullWidth ? "md:col-span-2" : ""}>
             <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -533,6 +672,7 @@ function FormInput({ label, name, value, onChange, disabled, fullWidth = false }
                 value={value}
                 onChange={onChange}
                 disabled={disabled}
+                placeholder={placeholder}
                 className={`w-full px-4 py-2 rounded-lg border outline-none transition-all ${disabled
                     ? 'border-transparent bg-gray-50 text-gray-600'
                     : 'border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white'

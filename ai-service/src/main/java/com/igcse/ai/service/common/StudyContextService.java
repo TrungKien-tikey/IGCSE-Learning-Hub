@@ -47,10 +47,14 @@ public class StudyContextService {
                     Long studentId = Long.valueOf(sid.toString());
 
                     // Trích xuất các thông tin Metadata khác (dùng full_name và course_id)
-                    String studentName = extractString(record, "full_name", "student_name", "name");
-                    Long courseId = extractLong(record, "course_id", "class_id");
-                    String courseTitle = extractString(record, "title", "course_title", "courseName");
-                    String persona = extractString(record, "persona", "habits", "behavior");
+                    // Trích xuất các thông tin Metadata khác (dùng full_name và course_id)
+                    // Hỗ trợ cả cấu trúc phẳng (flat) và lồng nhau (nested student.full_name)
+                    String studentName = extractStringDeep(record, "full_name", "student_name", "name",
+                            "student.full_name", "student.name");
+                    Long courseId = extractLongDeep(record, "course_id", "class_id", "class.course_id");
+                    String courseTitle = extractStringDeep(record, "title", "course_title", "class_info.title",
+                            "class.title");
+                    String persona = extractStringDeep(record, "persona", "habits", "behavior");
 
                     // Nếu chưa có persona, tự động tính từ duration và score
                     if (persona == null || persona.isEmpty()) {
@@ -100,26 +104,46 @@ public class StudyContextService {
 
     // --- Helper Methods ---
 
-    private String extractString(Map<String, Object> record, String... keys) {
+    private String extractStringDeep(Map<String, Object> record, String... keys) {
         for (String key : keys) {
-            if (record.containsKey(key) && record.get(key) != null) {
-                return record.get(key).toString();
+            Object value = getDeepValue(record, key);
+            if (value != null) {
+                return value.toString();
             }
         }
         return null;
     }
 
-    private Long extractLong(Map<String, Object> record, String... keys) {
+    private Long extractLongDeep(Map<String, Object> record, String... keys) {
         for (String key : keys) {
-            if (record.containsKey(key) && record.get(key) != null) {
+            Object value = getDeepValue(record, key);
+            if (value != null) {
                 try {
-                    return Long.valueOf(record.get(key).toString());
+                    return Long.valueOf(value.toString());
                 } catch (NumberFormatException e) {
-                    // Continue to next key
+                    // Continue
                 }
             }
         }
         return null;
+    }
+
+    // Hỗ trợ lấy value từ nested map (VD: "student.full_name")
+    private Object getDeepValue(Map<String, Object> map, String keyPath) {
+        if (!keyPath.contains(".")) {
+            return map.get(keyPath);
+        }
+        String[] parts = keyPath.split("\\.");
+        Map<String, Object> current = map;
+        for (int i = 0; i < parts.length - 1; i++) {
+            Object obj = current.get(parts[i]);
+            if (obj instanceof Map) {
+                current = (Map<String, Object>) obj;
+            } else {
+                return null;
+            }
+        }
+        return current.get(parts[parts.length - 1]);
     }
 
     /**

@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
+import axiosClient from "../../api/axiosClient";
 
 export default function CreateExamPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
+  const accessToken = localStorage.getItem("accessToken");
+
+  useEffect(() => {
+    if (!accessToken) {
+      toast.warning("Vui lòng đăng nhập để tạo bài thi!");
+      navigate("/login");
+    }
+  }, [accessToken, navigate]);
+
   const getDefaultEndTime = () => {
     const date = new Date();
     date.setDate(date.getDate() + 1); // Cộng thêm 1 ngày
     // Chỉnh lại múi giờ địa phương để hiển thị đúng trên input
-    date.setMinutes(date.getMinutes() - date.getTimezoneOffset()); 
+    date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
     // Cắt chuỗi để lấy định dạng: "YYYY-MM-DDTHH:mm"
     return date.toISOString().slice(0, 16);
   };
@@ -24,13 +35,12 @@ export default function CreateExamPage() {
     duration: 60,
     maxAttempts: 1,
     isActive: true,
+    isStrict: false,
     endTime: getDefaultEndTime(),
   });
 
   // Xóa <DraftQuestion[]>
   const [questionsList, setQuestionsList] = useState([]);
-
-  // State form soạn thảo
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
 
   // State câu hỏi nháp (Xóa <DraftQuestion>)
@@ -49,7 +59,7 @@ export default function CreateExamPage() {
     const file = e.target.files?.[0];
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
-        alert("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+        toast.warning("Ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
         return;
       }
       const reader = new FileReader();
@@ -138,20 +148,20 @@ export default function CreateExamPage() {
 
   // --- LOGIC LƯU CÂU HỎI VÀO DANH SÁCH ---
   const saveQuestionToList = () => {
-    if (!draftQ.content.trim()) return alert("Nội dung câu hỏi không được để trống");
-    if (draftQ.score <= 0) return alert("Điểm phải lớn hơn 0");
+    if (!draftQ.content.trim()) return toast.warning("Nội dung câu hỏi không được để trống");
+    if (draftQ.score <= 0) return toast.warning("Điểm phải lớn hơn 0");
 
     if (draftQ.questionType === "MCQ") {
-      if (draftQ.options.length < 2) return alert("Câu trắc nghiệm cần ít nhất 2 lựa chọn");
+      if (draftQ.options.length < 2) return toast.warning("Câu trắc nghiệm cần ít nhất 2 lựa chọn");
       const hasCorrect = draftQ.options.some((opt) => opt.isCorrect);
-      if (!hasCorrect) return alert("Phải chọn ít nhất 1 đáp án đúng");
+      if (!hasCorrect) return toast.warning("Phải chọn ít nhất 1 đáp án đúng");
       const hasEmptyOption = draftQ.options.some((opt) => !opt.content.trim());
-      if (hasEmptyOption) return alert("Nội dung đáp án không được để trống");
+      if (hasEmptyOption) return toast.warning("Nội dung đáp án không được để trống");
     }
 
     if (draftQ.questionType === "ESSAY") {
       if (!draftQ.essayCorrectAnswer || !draftQ.essayCorrectAnswer.trim()) {
-        return alert("Vui lòng nhập đáp án tham khảo cho câu tự luận");
+        return toast.warning("Vui lòng nhập đáp án tham khảo cho câu tự luận");
       }
     }
 
@@ -183,8 +193,8 @@ export default function CreateExamPage() {
 
   // --- LOGIC SUBMIT LÊN SERVER ---
   const handleSubmitExam = async () => {
-    if (!examInfo.title.trim()) return alert("Vui lòng nhập tên bài thi");
-    if (questionsList.length === 0) return alert("Bài thi cần ít nhất 1 câu hỏi");
+    if (!examInfo.title.trim()) return toast.warning("Vui lòng nhập tên bài thi");
+    if (questionsList.length === 0) return toast.warning("Bài thi cần ít nhất 1 câu hỏi");
 
     setLoading(true);
 
@@ -208,19 +218,21 @@ export default function CreateExamPage() {
     };
 
     try {
-      const res = await fetch("/api/exams", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      await axiosClient.post("/api/exams", payload, { baseURL: '' });
 
-      if (!res.ok) throw new Error("Lỗi khi lưu bài thi");
-
-      alert("Tạo bài thi thành công!");
+      toast.success("Tạo bài thi thành công!");
       navigate("/exams/manage");
+
     } catch (error) {
       console.error(error);
-      alert("Có lỗi xảy ra. Vui lòng thử lại.");
+
+      if (error.response && error.response.status === 401) {
+        toast.warning("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+        navigate("/login");
+      } else {
+        const msg = error.response?.data?.message || "Có lỗi xảy ra. Vui lòng thử lại.";
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -294,17 +306,38 @@ export default function CreateExamPage() {
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2"
                 />
               </div>
-              <div className="flex items-center pt-2">
-                <input
-                  id="isActive"
-                  type="checkbox"
-                  checked={examInfo.isActive}
-                  onChange={(e) => setExamInfo((prev) => ({ ...prev, isActive: e.target.checked }))}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-                />
-                <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
-                  Kích hoạt bài thi ngay
-                </label>
+
+              <hr className="my-4 border-gray-200" />
+
+              <div className="space-y-2">
+                <div className="flex items-start pt-2">
+                  <input
+                    id="isStrict"
+                    type="checkbox"
+                    checked={examInfo.isStrict}
+                    onChange={(e) => setExamInfo((prev) => ({ ...prev, isStrict: e.target.checked }))}
+                    className="h-4 w-4 mt-1 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                  />
+                  <label htmlFor="isStrict" className="ml-2 block text-sm text-gray-900">
+                    <span className="font-bold text-red-700">Chế độ nghiêm ngặt</span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Khi bật: Cấm chuyển tab, cấm chuột phải, cấm copy/paste. Tự động nộp bài nếu vi phạm nhiều lần.
+                    </p>
+                  </label>
+                </div>
+
+                <div className="flex items-center pt-2">
+                  <input
+                    id="isActive"
+                    type="checkbox"
+                    checked={examInfo.isActive}
+                    onChange={(e) => setExamInfo((prev) => ({ ...prev, isActive: e.target.checked }))}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                  />
+                  <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                    Kích hoạt bài thi ngay
+                  </label>
+                </div>
               </div>
             </div>
           </div>
@@ -442,7 +475,7 @@ export default function CreateExamPage() {
                       placeholder="Nhập đáp án mẫu để AI tham khảo khi chấm điểm..."
                     />
                     <small className="text-gray-500 text-xs mt-1 block">
-                      💡 Đáp án này sẽ được AI sử dụng làm tiêu chí chấm điểm. Hãy nhập đáp án chi tiết và chính xác.
+                      Đáp án này sẽ được AI sử dụng làm tiêu chí chấm điểm. Hãy nhập đáp án chi tiết và chính xác.
                     </small>
                   </div>
                 )}

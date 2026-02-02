@@ -45,9 +45,8 @@ public class SecurityUtils {
     /**
      * Lấy studentId hợp lệ để truy vấn dữ liệu
      * - STUDENT: tự động dùng userId từ token (bỏ qua studentId trong URL)
-     * - TEACHER/ADMIN: dùng studentId từ URL (có thể xem dữ liệu của học sinh khác)
-     * - PARENT: tạm thời dùng studentId từ URL (cần implement relationship check
-     * sau)
+     * - TEACHER/ADMIN/PARENT: dùng studentId từ URL (có thể xem dữ liệu của học
+     * sinh khác)
      */
     public static Long getValidStudentId(Long requestedStudentId) {
         Long currentUserId = getCurrentUserId();
@@ -57,14 +56,13 @@ public class SecurityUtils {
             return null; // Không có authentication
         }
 
-        // ADMIN và TEACHER: Có thể xem dữ liệu của mình hoặc của học sinh khác
-        if ("ADMIN".equalsIgnoreCase(currentRole) || "TEACHER".equalsIgnoreCase(currentRole)) {
+        // ADMIN, TEACHER, PARENT: Có thể xem dữ liệu của mình hoặc của học sinh khác
+        if ("ADMIN".equalsIgnoreCase(currentRole) || "TEACHER".equalsIgnoreCase(currentRole)
+                || "PARENT".equalsIgnoreCase(currentRole)) {
             return requestedStudentId != null ? requestedStudentId : currentUserId;
         }
 
         // STUDENT: Chỉ được phép xem dữ liệu của chính mình
-        // PARENT: Tạm thời chỉ được phép xem dữ liệu của chính mình (Cần relationship
-        // check để xem con)
         return currentUserId;
     }
 
@@ -89,14 +87,11 @@ public class SecurityUtils {
             return true;
         }
 
-        // ADMIN và TEACHER được xem tất cả
-        if ("ADMIN".equalsIgnoreCase(currentRole) || "TEACHER".equalsIgnoreCase(currentRole)) {
+        // ADMIN, TEACHER, PARENT được xem tất cả
+        if ("ADMIN".equalsIgnoreCase(currentRole) || "TEACHER".equalsIgnoreCase(currentRole)
+                || "PARENT".equalsIgnoreCase(currentRole)) {
             return true;
         }
-
-        // PARENT: TODO: Implement parent-child relationship check
-        // Hiện tại chỉ cho phép xem chính mình (coi như studentId == currentUserId đã
-        // check trên)
 
         return false;
     }

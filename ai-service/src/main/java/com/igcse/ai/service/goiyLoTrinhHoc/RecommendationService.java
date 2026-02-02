@@ -9,6 +9,8 @@ import com.igcse.ai.repository.AIResultRepository;
 import com.igcse.ai.repository.AIRecommendationRepository;
 import com.igcse.ai.service.common.TierManagerService;
 import com.igcse.ai.service.llm.RecommendationAiService;
+import com.igcse.ai.client.CourseClient;
+import com.igcse.ai.dto.external.CourseDTO;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,18 +31,21 @@ public class RecommendationService implements IRecommendationService {
     private final ILanguageService languageService;
     private final TierManagerService tierManagerService;
     private final RecommendationAiService recommendationAiService;
+    private final CourseClient courseClient;
 
     public RecommendationService(AIResultRepository aiResultRepository,
             RecommendationAiService recommendationAiService, JsonService jsonService,
             ILanguageService languageService,
             AIRecommendationRepository aiRecommendationRepository,
-            TierManagerService tierManagerService) {
+            TierManagerService tierManagerService,
+            CourseClient courseClient) {
         this.aiResultRepository = aiResultRepository;
         this.recommendationAiService = recommendationAiService;
         this.jsonService = jsonService;
         this.languageService = languageService;
         this.aiRecommendationRepository = aiRecommendationRepository;
         this.tierManagerService = tierManagerService;
+        this.courseClient = courseClient;
     }
 
     /**
@@ -121,7 +126,11 @@ public class RecommendationService implements IRecommendationService {
         }
 
         try {
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+            AIResult latestResult = results.stream()
+                    .max(Comparator.comparing(AIResult::getGradedAt))
+                    .orElse(null);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData,
+                    latestResult);
 
             // Lấy các bản gợi ý cũ làm ngữ cảnh
             List<AIRecommendation> recentLogics = aiRecommendationRepository
@@ -130,6 +139,7 @@ public class RecommendationService implements IRecommendationService {
             String logContext = recentLogics.stream()
                     .limit(3)
                     .map(AIRecommendation::getLearningPathSuggestion)
+                    .filter(Objects::nonNull)
                     .collect(Collectors.joining("\n---\n"));
 
             // Lấy bản AI chuyên sâu gần nhất làm bối cảnh (Context)
@@ -145,8 +155,21 @@ public class RecommendationService implements IRecommendationService {
                     "\n\nHãy phân tích sự thay đổi và cập nhật lộ trình học tập mới nhất.";
 
             String aiLanguageName = languageService.getAiLanguageName("vi");
-            LearningRecommendationDTO synthesisResult = recommendationAiService.generateRecommendation(
-                    combinedSummary, metadata.studentName(), metadata.personaInfo(), aiLanguageName);
+
+            // Fetch available courses for context
+            List<CourseDTO> courses = courseClient.getAllCourses();
+            String coursesText = courses.stream()
+                    .map(c -> String.format("- id: %d, title: %s, description: %s",
+                            c.getCourseId(), c.getTitle(), c.getDescription()))
+                    .collect(Collectors.joining("\n"));
+
+            LearningRecommendationDTO synthesisResult = null;
+            try {
+                synthesisResult = recommendationAiService.generateRecommendation(
+                        combinedSummary, metadata.studentName(), metadata.personaInfo(), coursesText, aiLanguageName);
+            } catch (Exception e) {
+                logger.error("LLM Call failed for recommendation synthesis: {}", e.getMessage());
+            }
 
             if (synthesisResult != null) {
                 synthesisResult.setStudentId(studentId);
@@ -222,6 +245,12 @@ public class RecommendationService implements IRecommendationService {
         LearningRecommendationDTO dto = new LearningRecommendationDTO();
         dto.setStudentId(entity.getStudentId());
         dto.setLearningPathSuggestion(entity.getLearningPathSuggestion());
+
+        // Đảm bảo các List không bao giờ null
+        dto.setWeakTopics(new ArrayList<>());
+        dto.setStrongTopics(new ArrayList<>());
+        dto.setRecommendedResources(new ArrayList<>());
+        dto.setRoadmapSteps(new ArrayList<>());
 
         try {
             if (entity.getWeakTopics() != null && !entity.getWeakTopics().isEmpty()) {
