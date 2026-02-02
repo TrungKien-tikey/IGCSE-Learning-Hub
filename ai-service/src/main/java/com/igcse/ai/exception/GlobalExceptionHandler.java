@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -80,6 +81,46 @@ public class GlobalExceptionHandler {
                 ex.getDetails(),
                 LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(NumberFormatException.class)
+    public ResponseEntity<ErrorResponse> handleNumberFormatException(
+            NumberFormatException ex, WebRequest request) {
+        logger.warn("Invalid number format in request: {}", ex.getMessage());
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "INVALID_NUMBER_FORMAT",
+                "Giá trị ID không hợp lệ. Vui lòng kiểm tra lại tham số trong URL.",
+                ex.getMessage(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(
+            MethodArgumentTypeMismatchException ex, WebRequest request) {
+        String paramName = ex.getName();
+        Object value = ex.getValue();
+        String requiredType = "unknown";
+        Class<?> requiredTypeClass = ex.getRequiredType();
+        if (requiredTypeClass != null) {
+            requiredType = requiredTypeClass.getSimpleName();
+        }
+        
+        String message = String.format("Tham số '%s' có giá trị '%s' không hợp lệ. Vui lòng kiểm tra lại.", 
+                paramName, value != null ? value : "null");
+
+        logger.warn("Type mismatch for parameter {}: {}", paramName, value);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "INVALID_PARAMETER_TYPE",
+                message,
+                String.format("Parameter: %s, Value: %s, Required Type: %s", 
+                        paramName, value, requiredType),
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)

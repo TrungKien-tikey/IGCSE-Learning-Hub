@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
+import userClient from '../../api/userClient';
+import { purchaseCourse, createVNPayPayment } from '../../api/paymentService'; // Import payment API
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
 export default function CourseDetailPage() {
@@ -11,6 +14,7 @@ export default function CourseDetailPage() {
     const [lessons, setLessons] = useState([]);
     const [isEnrolled, setIsEnrolled] = useState(false); // Trạng thái: Đã mua hay chưa?
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null); // User info
 
     // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
     const API_URL = '/courses';
@@ -43,38 +47,99 @@ export default function CourseDetailPage() {
             }
         };
         fetchData();
+
+        // Fetch User Info for Payment
+        const fetchUser = async () => {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                try {
+                    const res = await userClient.get('/me');
+                    setCurrentUser(res.data);
+                } catch (e) {
+                    console.error("Error fetching user", e);
+                }
+            }
+        };
+        fetchUser();
     }, [courseId]);
+
+    // Xử lý thanh toán VNPay
+    const handleVNPayPayment = async (transactionId, amount, courseTitle) => {
+        try {
+            const vnpayResponse = await createVNPayPayment({
+                transactionId: transactionId,
+                transactionType: "COURSE",
+                amount: amount,
+                orderInfo: `Thanh toan khoa hoc: ${courseTitle}`,
+                language: "vn"
+            });
+
+            if (vnpayResponse.code === "00" && vnpayResponse.paymentUrl) {
+                window.location.href = vnpayResponse.paymentUrl;
+            } else {
+                toast.error("Không thể tạo liên kết VNPay. Vui lòng thử lại sau.");
+            }
+        } catch (error) {
+            console.error('VNPay error:', error);
+            toast.error("Lỗi khi kết nối với cổng thanh toán VNPay.");
+        }
+    };
 
     // Xử lý khi bấm nút Đăng Ký
     const handleEnroll = async () => {
-        // 1. Lấy Token
         const token = localStorage.getItem('accessToken');
 
         if (!token) {
-            alert("Vui lòng đăng nhập để mua khóa học!");
+            toast.warning("Vui lòng đăng nhập để mua khóa học!");
             navigate('/login');
             return;
         }
 
         try {
-            if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá $${course.price}?`)) {
+            if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá ${course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'miễn phí'}?`)) {
 
-                // 2. Gọi API enroll kiểu mới:
-                await axiosClient.post(
-                    `${API_URL}/${courseId}/enroll`,
-                    {}
-                );
+                const paymentData = {
+                    studentId: currentUser?.userId || currentUser?.id,
+                    studentName: currentUser?.fullName || "Student",
+                    courseId: course.id || course.courseId,
+                    courseTitle: course.title,
+                    teacherId: course.teacherId || 1,
+                    teacherName: course.teacherName || "Giáo viên",
+                    originalPrice: course.price,
+                    discountAmount: 0,
+                    paymentMethod: "BANK_TRANSFER"
+                };
 
-                alert("🎉 Đăng ký thành công! Chào mừng bạn vào học.");
-                setIsEnrolled(true);
+                const result = await purchaseCourse(paymentData);
+
+                if (result.success) {
+                    toast.success("Đã tạo yêu cầu đăng ký!");
+
+                    if (course.price > 0) {
+                        const paymentChoice = window.confirm(
+                            `Bạn muốn thanh toán qua VNPay để kích hoạt tự động?\n\n` +
+                            `- Nhấn OK để thanh toán VNPay\n` +
+                            `- Nhấn Cancel để chuyển khoản ngân hàng thủ công`
+                        );
+
+                        if (paymentChoice) {
+                            handleVNPayPayment(result.transactionId, result.amount, course.title);
+                        } else {
+                            alert(`Vui lòng chuyển khoản ${Number(course.price).toLocaleString('vi-VN')} ₫ đến STK: 123456789 (Vietcombank)\nNội dung: "KHOA HOC ${result.transactionId}"\n\nAdmin sẽ kích hoạt khóa học sau khi nhận được thanh toán.`);
+                        }
+                    } else {
+                        setIsEnrolled(true);
+                        toast.success("Đăng ký khóa học miễn phí thành công!");
+                    }
+                }
             }
         } catch (err) {
             console.error(err);
             if (err.response?.status === 401) {
-                alert("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
+                toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 navigate('/login');
             } else {
-                alert("Lỗi đăng ký: " + (err.response?.data || "Có lỗi xảy ra"));
+                toast.error("Lỗi đăng ký: " + (err.response?.data?.message || err.response?.data || "Có lỗi xảy ra"));
             }
         }
     };
@@ -152,8 +217,8 @@ export default function CourseDetailPage() {
                         </div>
                         <div className="card-content">
                             <div className="price-row">
-                                <span className="price-current">{course.price > 0 ? `$${course.price}` : 'Miễn phí'}</span>
-                                {course.price > 0 && <span className="price-original">${course.price * 1.5}</span>}
+                                <span className="price-current">{course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
+                                {course.price > 0 && <span className="price-original">{Number(course.price * 1.5).toLocaleString('vi-VN')} ₫</span>}
                             </div>
 
                             {/* LOGIC NÚT BẤM QUAN TRỌNG */}

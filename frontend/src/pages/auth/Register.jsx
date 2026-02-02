@@ -192,6 +192,7 @@ function Register() {
             >
               <option value="STUDENT">Học sinh (Student)</option>
               <option value="PARENT">Phụ huynh (Parent)</option>
+              <option value="TEACHER">Giáo viên (Teacher)</option>
             </select>
           </div>
 

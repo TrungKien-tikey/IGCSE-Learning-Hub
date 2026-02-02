@@ -2,25 +2,38 @@ import axiosClient from '../api/axiosClient';
 
 const authService = {
   register: (data) => {
-    // Gọi API đăng ký: POST /auth/register
+    // URL thực tế: /api/v1/auth/register (Qua Gateway)
     return axiosClient.post('/auth/register', data);
   },
 
-  login: (data) => {
-    // Gọi API đăng nhập: POST /auth/login
-    return axiosClient.post('/auth/login', data);
+  login: async (data) => {
+    // URL thực tế: /api/v1/auth/login
+    const response = await axiosClient.post('/auth/login', data);
+    
+    // ✅ Lưu Token vào LocalStorage ngay khi Login thành công
+    if (response.data.token) {
+        localStorage.setItem('accessToken', response.data.token);
+        
+        // Nếu Backend trả về refreshToken thì lưu luôn
+        if (response.data.refreshToken) {
+            localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+        
+        if (response.data.role) {
+            localStorage.setItem('role', response.data.role);
+        }
+    }
+    
+    return response;
   },
 
-  changePassword: (data) => {
-    // Gọi API đổi mật khẩu: POST /auth/change-password
-    return axiosClient.post('/auth/change-password', data);
-  },
-  
-  // Gọi API: GET /auth/check-email?email=...
-  checkEmail: (email) => {
-    return axiosClient.get('/auth/check-email', {
-      params: { email: email }
-    });
+  logout: () => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+        // URL thực tế: /api/v1/auth/logout
+        axiosClient.post('/auth/logout', { token }).catch(() => {});
+    }
+    localStorage.clear(); // Xóa sạch LocalStorage
   }
 };
 

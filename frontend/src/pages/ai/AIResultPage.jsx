@@ -18,7 +18,18 @@ export default function AIResultPage() {
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (!attemptId) return;
+        // Validate attemptId
+        if (!attemptId || attemptId === "undefined" || attemptId === "null" || String(attemptId).trim() === "") {
+            setError("Attempt ID không hợp lệ");
+            setLoading(false);
+            return;
+        }
+        
+        if (isNaN(attemptId) || Number(attemptId) <= 0) {
+            setError("Attempt ID phải là số hợp lệ");
+            setLoading(false);
+            return;
+        }
 
         const fetchData = async () => {
             try {

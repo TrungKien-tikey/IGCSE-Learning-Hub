@@ -12,29 +12,29 @@ export default function RecommendationPanel({ data }) {
     const hasData = weakTopics?.length || strongTopics?.length || learningPathSuggestion || recommendedResources?.length;
 
     return (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-full flex flex-col">
             {/* Header */}
-            <div className="bg-blue-500 px-6 py-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Lightbulb className="w-5 h-5" />
+            <div className="bg-blue-500 px-4 sm:px-6 py-3 sm:py-4">
+                <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                    <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5" />
                     Gợi ý học tập
                 </h3>
-                <p className="text-blue-100 text-sm mt-1">Dựa trên kết quả bài thi của bạn</p>
+                <p className="text-blue-100 text-xs sm:text-sm mt-1">Dựa trên kết quả bài thi của bạn</p>
             </div>
 
-            <div className="p-6 space-y-5">
+            <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
                 {/* Strong Topics */}
                 {strongTopics?.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <CheckCircle className="w-4 h-4 text-emerald-500" />
+                        <h4 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
                             Điểm mạnh
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {strongTopics.map((topic, index) => (
                                 <span
                                     key={index}
-                                    className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-sm font-medium"
+                                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs sm:text-sm font-medium"
                                 >
                                     {topic}
                                 </span>
@@ -46,15 +46,15 @@ export default function RecommendationPanel({ data }) {
                 {/* Weak Topics */}
                 {weakTopics?.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                        <h4 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center gap-2">
+                            <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-500" />
                             Cần ôn tập thêm
                         </h4>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5 sm:gap-2">
                             {weakTopics.map((topic, index) => (
                                 <span
                                     key={index}
-                                    className="px-3 py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-sm font-medium"
+                                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs sm:text-sm font-medium"
                                 >
                                     {topic}
                                 </span>
@@ -65,12 +65,12 @@ export default function RecommendationPanel({ data }) {
 
                 {/* Learning Path Suggestion */}
                 {learningPathSuggestion && (
-                    <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl">
-                        <h4 className="text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
-                            <Map className="w-4 h-4" />
+                    <div className="p-3 sm:p-4 bg-blue-50 border border-blue-100 rounded-lg sm:rounded-xl">
+                        <h4 className="text-xs sm:text-sm font-semibold text-blue-700 mb-2 flex items-center gap-2">
+                            <Map className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                             Lộ trình đề xuất
                         </h4>
-                        <p className="text-sm text-slate-700 leading-relaxed">
+                        <p className="text-xs sm:text-sm text-slate-700 leading-relaxed">
                             {learningPathSuggestion}
                         </p>
                     </div>
@@ -119,18 +119,18 @@ export default function RecommendationPanel({ data }) {
                 {/* Recommended Resources */}
                 {recommendedResources?.length > 0 && (
                     <div>
-                        <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                            <BookMarked className="w-4 h-4 text-violet-500" />
+                        <h4 className="text-xs sm:text-sm font-semibold text-slate-700 mb-2 sm:mb-3 flex items-center gap-2">
+                            <BookMarked className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-500" />
                             Tài liệu gợi ý
                         </h4>
                         <ul className="space-y-2">
                             {recommendedResources.map((resource, index) => (
                                 <li
                                     key={index}
-                                    className="flex items-start gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100"
+                                    className="flex items-start gap-2 sm:gap-3 p-2 sm:p-3 bg-slate-50 rounded-lg border border-slate-100"
                                 >
-                                    <BookOpen className="w-4 h-4 text-violet-500 mt-0.5 flex-shrink-0" />
-                                    <span className="text-sm text-slate-700">{resource}</span>
+                                    <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-violet-500 mt-0.5 flex-shrink-0" />
+                                    <span className="text-xs sm:text-sm text-slate-700 leading-relaxed">{resource}</span>
                                 </li>
                             ))}
                         </ul>

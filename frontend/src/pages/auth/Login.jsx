@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import authService from '../../services/authService';
 import './Login.css';
 import { requestForToken } from "../../firebase";
@@ -62,6 +63,10 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Xóa dữ liệu cũ để tránh conflict role
+    // Xóa toàn bộ dữ liệu cũ để tránh conflict role
+    localStorage.clear();
+
     // 👇 4. Chặn submit nếu dữ liệu chưa nhập đủ
     if (!validateForm()) {
       return;
@@ -77,7 +82,7 @@ function Login() {
       }
 
       localStorage.setItem('accessToken', token);
-    
+
       if (serverData.role) {
         localStorage.setItem('userRole', serverData.role);
       }
@@ -91,10 +96,10 @@ function Login() {
         try {
           console.log("--> Bắt đầu lấy FCM Token...");
           const fcmToken = await requestForToken();
-          
+
           if (fcmToken) {
-            await axiosClient.post('/notifications/subscribe', { 
-              token: fcmToken 
+            await axiosClient.post('/notifications/subscribe', {
+              token: fcmToken
             });
             console.log("--> Đã gửi Token về server thành công!");
           }
@@ -103,13 +108,13 @@ function Login() {
         }
       }
 
-      alert("Đăng nhập thành công!");
+      toast.success("Đăng nhập thành công!");
       window.location.href = '/';
 
     } catch (error) {
       console.error("Lỗi đăng nhập:", error);
       const errorMsg = error.response?.data?.message || "Đăng nhập thất bại! Kiểm tra lại thông tin.";
-      alert(errorMsg);
+      toast.error(errorMsg);
     }
   };
 
@@ -117,10 +122,10 @@ function Login() {
     <div className="login-container">
       <div className="login-box">
         <h2>Đăng Nhập</h2>
-        
+
         {/* 👇 noValidate: Tắt popup mặc định */}
         <form onSubmit={handleSubmit} noValidate>
-          
+
           {/* --- Email --- */}
           <div className="input-group">
             <label>Email</label>
@@ -149,8 +154,8 @@ function Login() {
                 onChange={handleChange}
                 className={errors.password ? "input-error" : ""}
               />
-              <span 
-                className="password-toggle-icon" 
+              <span
+                className="password-toggle-icon"
                 onClick={togglePasswordVisibility}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -160,8 +165,8 @@ function Login() {
           </div>
 
           <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-10px' }}>
-            <Link 
-              to="/forgot-password" 
+            <Link
+              to="/forgot-password"
               style={{ fontSize: '14px', color: '#007bff', textDecoration: 'none', fontWeight: '500' }}
             >
               Quên mật khẩu?
