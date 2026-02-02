@@ -8,6 +8,8 @@ import com.igcse.auth.dto.RefreshTokenRequest;
 import com.igcse.auth.dto.RegisterRequest;
 import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.entity.User;
+import com.igcse.auth.entity.BlacklistedToken;
+import com.igcse.auth.repository.BlacklistedTokenRepository;
 import com.igcse.auth.repository.UserRepository;
 import com.igcse.auth.util.JwtUtils;
 
@@ -17,6 +19,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Service
 public class AuthService {
 
@@ -25,17 +30,25 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
+    private final EmailService emailService;
+
+    // 1. [FIX] ĐÃ KHAI BÁO THÊM BIẾN NÀY ĐỂ HẾT LỖI
+    private final BlacklistedTokenRepository blacklistedTokenRepository;
 
     public AuthService(UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtUtils jwtUtils,
             AuthenticationManager authenticationManager,
-            RabbitTemplate rabbitTemplate) {
+            RabbitTemplate rabbitTemplate,
+            EmailService emailService,
+            BlacklistedTokenRepository blacklistedTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
         this.authenticationManager = authenticationManager;
         this.rabbitTemplate = rabbitTemplate;
+        this.emailService = emailService;
+        this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
     // 1. Đăng ký
@@ -68,8 +81,15 @@ public class AuthService {
         // RabbitMQ
         try {
             UserSyncDTO syncData = new UserSyncDTO(
-                    savedUser.getId(), savedUser.getEmail(), savedUser.getFullName(), savedUser.getRole());
-            rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_SYNC_ROUTING_KEY, syncData);
+                    savedUser.getId(),
+                    savedUser.getEmail(),
+                    savedUser.getFullName(),
+                    savedUser.getRole());
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.USER_EXCHANGE,
+                    RabbitMQConfig.USER_SYNC_ROUTING_KEY,
+                    syncData);
+            System.out.println(">>> [RabbitMQ] Da gui event user moi: " + savedUser.getEmail());
         } catch (Exception e) {
             System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
         }
@@ -86,6 +106,7 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
         // Sinh Access Token (1 ngày)
+
         String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
                 user.getVerificationStatus());
 
@@ -139,7 +160,74 @@ public class AuthService {
 
         // 5. Trả về:
         // - Access Token: MỚI TINH
-        // - Refresh Token: GIỮ NGUYÊN CÁI CŨ (để dùng tiếp cho đến khi hết 7 ngày)
+        // - Refresh Token: GIỮ NGUYÊN CÁI CŨ
         return new AuthResponse(newAccessToken, requestRefreshToken, user.getEmail(), user.getRole());
+    }
+
+    // 6. Quên mật khẩu
+    public void forgotPassword(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email khong ton tai trong he thong!"));
+
+        String token = UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setTokenExpirationTime(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        String resetLink = "http://localhost:5173/reset-password?token=" + token;
+
+        String emailBody = "Xin chao " + user.getFullName() + ",\n\n"
+                + "Ban da yeu cau dat lai mat khau.\n"
+                + "Day la ma Token cua ban: " + token + "\n\n"
+                + "Hoac bam vao link sau de dat lai mat khau ngay:\n" + resetLink + "\n\n"
+                + "Link nay se het han sau 15 phut.";
+
+        emailService.sendEmail(user.getEmail(), "Yeu cau dat lai mat khau - IGCSE Hub", emailBody);
+    }
+
+    // 7. Đặt lại mật khẩu
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByResetPasswordToken(token)
+                .orElseThrow(() -> new RuntimeException("Ma Token khong hop le hoac khong ton tai"));
+
+        if (user.getTokenExpirationTime().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("Ma Token da het han! Vui long yeu cau lai.");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setResetPasswordToken(null);
+        user.setTokenExpirationTime(null);
+
+        userRepository.save(user);
+    }
+
+    // 8. Kiểm tra email tồn tại
+    public boolean checkEmailExists(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    public com.igcse.auth.dto.UserSyncDTO getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Khong tim thay User ID: " + id));
+
+        return new com.igcse.auth.dto.UserSyncDTO(
+                user.getId(),
+                user.getEmail(),
+                user.getFullName(),
+                user.getRole());
+    }
+
+    // 9. Đăng xuất
+    public void logout(String token) {
+        if (jwtUtils.isTokenExpired(token)) {
+            return;
+        }
+
+        BlacklistedToken blacklistedToken = BlacklistedToken.builder()
+                .token(token)
+                .expirationTime(jwtUtils.extractExpiration(token))
+                .build();
+
+        blacklistedTokenRepository.save(blacklistedToken);
     }
 }

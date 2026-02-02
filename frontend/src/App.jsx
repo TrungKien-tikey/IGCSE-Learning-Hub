@@ -20,6 +20,9 @@ import RoleProtectedRoute from './components/RoleProtectedRoute';
 import AdminCourseApprovalPage from './pages/AdminCourseApprovalPage';
 import TeacherVerification from './pages/admin/TeacherVerification';
 import VerifiedRoute from './components/VerifiedRoute';
+import AdminSlotPackagesPage from './pages/AdminSlotPackagesPage';
+
+import TeacherSlotPurchasePage from './pages/TeacherSlotPurchasePage';
 
 // Exam Pages
 import ExamListPage from "./pages/exams/ExamList";
@@ -37,6 +40,7 @@ import AIResultPage from './pages/ai/AIResultPage';
 import StudentDashboard from './pages/ai/StudentDashboard';
 import TeacherDashboard from './pages/ai/TeacherDashboard';
 import AdminDashboardAI from './pages/ai/AdminDashboard';
+import ParentDashboard from './pages/ai/ParentDashboard';
 
 // Course Pages
 import CoursePage from './pages/course/CoursePage';
@@ -49,6 +53,9 @@ import StudentLearningPage from './pages/course/StudentLearningPage';
 //Comunication page
 import NotificationsPage from './pages/communication/NotificationsPage';
 import ChatPage from "./pages/communication/ChatPage";
+
+// Payment Pages
+import VNPayReturnPage from './pages/VNPayReturnPage';
 
 function App() {
   return (
@@ -123,6 +130,9 @@ function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/chat" element={<ChatPage />} />
 
+        {/* --- PAYMENT ROUTES --- */}
+        <Route path="/payment/vnpay-return" element={<VNPayReturnPage />} />
+
         <Route
           path="/ai/dashboard/student"
           element={
@@ -138,6 +148,15 @@ function App() {
             <VerifiedRoute>
               <TeacherDashboard />
             </VerifiedRoute>
+          }
+        />
+
+        <Route
+          path="/teacher/buy-slots"
+          element={
+            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+              <TeacherSlotPurchasePage />
+            </RoleProtectedRoute>
           }
         />
 
@@ -164,6 +183,15 @@ function App() {
           element={
             <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>
               <AdminCourseApprovalPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/slot-packages"
+          element={
+            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminSlotPackagesPage />
             </RoleProtectedRoute>
           }
         />
