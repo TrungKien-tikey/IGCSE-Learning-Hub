@@ -129,6 +129,23 @@ public class CourseController {
             if (userId == null) {
                 return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
             }
+
+            // Check Token Logic
+            String token = tokenHeader.substring(7);
+            String role = jwtUtils.extractRole(token);
+            String verificationStatus = jwtUtils.extractVerificationStatus(token);
+
+            // 1. Phải là Teacher
+            if (!"TEACHER".equals(role)) {
+                return ResponseEntity.status(403).body("Chỉ giáo viên mới được tạo khóa học!");
+            }
+
+            // 2. Phải là APPROVED
+            if (!"APPROVED".equals(verificationStatus)) {
+                return ResponseEntity.status(403)
+                        .body("Tài khoản giáo viên chưa được duyệt (Status: " + verificationStatus + ")");
+            }
+
             return ResponseEntity.ok(courseService.createCourse(course, userId));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -387,4 +404,49 @@ public class CourseController {
             return ResponseEntity.status(401).body("Token không hợp lệ hoặc đã hết hạn");
         }
     }
+
+    // Học sinh đánh dấu hoàn thành bài học
+    @PostMapping("/{courseId}/lessons/{lessonId}/complete")
+    public ResponseEntity<?> markLessonAsComplete(
+            @PathVariable Long courseId,
+            @PathVariable Long lessonId,
+            @RequestHeader("Authorization") String token) {
+
+        Long userId = getUserIdFromHeader(token);
+        courseService.markLessonAsComplete(userId, courseId, lessonId); // Hàm service phải tồn tại
+        return ResponseEntity.ok("Đã đánh dấu hoàn thành bài học");
+    }
+
+    // Lấy tiến độ của bản thân (Học sinh)
+    @GetMapping("/{courseId}/progress")
+    public ResponseEntity<?> getMyProgress(@PathVariable Long courseId, @RequestHeader("Authorization") String token) {
+        Long userId = getUserIdFromHeader(token);
+        return ResponseEntity.ok(courseService.getCourseProgress(userId, courseId));
+    }
+
+    @GetMapping("/{courseId}/progress/{studentId}")
+    public ResponseEntity<?> getStudentProgress(
+            @PathVariable Long courseId,
+            @PathVariable Long studentId,
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        // Bước này chỉ để kiểm tra xem bạn có đăng nhập hay chưa
+        Long requesterId = getUserIdFromHeader(tokenHeader);
+        if (requesterId == null)
+            return ResponseEntity.status(401).body("Unauthorized");
+
+        double progress = courseService.getCourseProgress(studentId, courseId);
+
+        return ResponseEntity.ok(progress);
+    }
+
+    @GetMapping("/{courseId}/lessons/completed-ids")
+    public ResponseEntity<List<Long>> getCompletedLessonIds(
+            @PathVariable Long courseId,
+            @RequestHeader("Authorization") String token) {
+        Long userId = getUserIdFromHeader(token); // Lấy ID từ Token
+        List<Long> completedIds = courseService.getCompletedLessonIds(userId, courseId);
+        return ResponseEntity.ok(completedIds);
+    }
+
 }

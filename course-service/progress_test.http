@@ -1,0 +1,69 @@
+# ==========================================
+# CẤU HÌNH CHUNG
+# ==========================================
+@authUrl = http://localhost:8080/api/v1/auth
+@courseUrl = http://localhost:8079/api/v1/courses
+@contentType = application/json
+
+# ID giả lập để test (Thay đổi theo dữ liệu thực tế trong DB của bạn)
+@courseId = 18
+@lessonId = 10
+@studentId = 17
+
+# ==========================================
+# 1. ĐĂNG NHẬP (Tài khoản Học sinh)
+# ==========================================
+# @name studentLogin
+POST {{authUrl}}/login
+Content-Type: {{contentType}}
+
+{
+    "email": "hongtrungkien.gr2022@gmail.com", 
+    "password": "Kienz*123"
+}
+
+###
+# Tự động trích xuất token của học sinh
+@studentToken = {{studentLogin.response.body.token}}
+
+# ==========================================
+# 2. HỌC SINH ĐÁNH DẤU HOÀN THÀNH BÀI HỌC
+# ==========================================
+POST {{courseUrl}}/lessons/{{lessonId}}/complete
+Authorization: Bearer {{studentToken}}
+Content-Type: {{contentType}}
+
+###
+
+# ==========================================
+# 3. HỌC SINH TỰ KIỂM TRA TIẾN ĐỘ CỦA MÌNH
+# ==========================================
+GET {{courseUrl}}/{{courseId}}/progress/{{studentId}}
+Authorization: Bearer {{studentToken}}
+Content-Type: {{contentType}}
+
+###
+
+# ==========================================
+# 4. ĐĂNG NHẬP (Tài khoản Phụ huynh)
+# ==========================================
+# @name parentLogin
+POST {{authUrl}}/login
+Content-Type: {{contentType}}
+
+{
+    "email": "K@gmail.com", 
+    "password": "Kienz*123"
+}
+
+###
+# Tự động trích xuất token của phụ huynh
+@parentToken = {{parentLogin.response.body.token}}
+
+# ==========================================
+# 5. PHỤ HUYNH KIỂM TRA TIẾN ĐỘ CỦA CON
+# (Sử dụng cùng API nhưng với Token của Phụ huynh)
+# ==========================================
+GET {{courseUrl}}/{{courseId}}/progress/{{studentId}}
+Authorization: Bearer {{parentToken}}
+Content-Type: {{contentType}}
