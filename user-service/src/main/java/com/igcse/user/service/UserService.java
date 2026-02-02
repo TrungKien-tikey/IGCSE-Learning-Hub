@@ -21,6 +21,9 @@ public class UserService {
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    @Autowired
+    private com.igcse.user.repository.TeacherRepository teacherRepository;
+
     public User getUserById(Long id) {
         return userRepository.findById(id).orElse(null);
     }
@@ -29,7 +32,9 @@ public class UserService {
         return userRepository.findByEmail(email).orElse(null);
     }
 
-    public User updateUser(Long id, String fullName, String phone, String address, String bio, String avatar) {
+    @org.springframework.transaction.annotation.Transactional
+    public User updateUser(Long id, String fullName, String phone, String address, String bio, String avatar,
+            String qualifications, String subjects, String verificationDocument) {
         User user = getUserById(id);
         if (user != null) {
             user.setFullName(fullName);
@@ -39,6 +44,36 @@ public class UserService {
             if (avatar != null) {
                 user.setAvatar(avatar);
             }
+
+            // Teacher fields update
+            if ("TEACHER".equals(user.getRole())) {
+                com.igcse.user.entity.Teacher teacher = user.getTeacherProfile();
+                if (teacher == null) {
+                    teacher = new com.igcse.user.entity.Teacher();
+                    teacher.setUser(user);
+                    // teacher.setUserId(user.getUserId()); // MapsId handles this
+                    user.setTeacherProfile(teacher);
+                }
+
+                if (qualifications != null)
+                    teacher.setQualifications(qualifications);
+                if (subjects != null)
+                    teacher.setSubjects(subjects);
+
+                if (verificationDocument != null && !verificationDocument.isEmpty()) {
+                    teacher.setVerificationDocument(verificationDocument);
+                    // Always reset status to PENDING on document update to force re-verification
+                    teacher.setVerificationStatus(com.igcse.user.enums.VerificationStatus.PENDING);
+                }
+
+                teacherRepository.save(teacher);
+
+                // Trigger sync nếu có update document (đã reset về PENDING)
+                if (verificationDocument != null && !verificationDocument.isEmpty()) {
+                    sendUserEvent("UPDATE", user);
+                }
+            }
+
             User savedUser = userRepository.save(user);
 
             // Gửi event đồng bộ sang Auth Service
@@ -100,15 +135,37 @@ public class UserService {
         }
     }
 
+    public User verifyTeacher(Long userId, com.igcse.user.enums.VerificationStatus status) {
+        User user = getUserById(userId);
+        if (user != null && user.getTeacherProfile() != null) {
+            user.getTeacherProfile().setVerificationStatus(status);
+            User savedUser = userRepository.save(user); // Lưu xong thì gửi event
+
+            // Trigger sync
+            sendUserEvent("UPDATE", savedUser);
+            return savedUser;
+        }
+        return null;
+    }
+
     // ========== HELPER METHOD ==========
     private void sendUserEvent(String action, User user) {
         try {
+            // Lấy status nếu là teacher
+            String vStatus = null;
+            if (user.getTeacherProfile() != null) {
+                vStatus = user.getTeacherProfile().getVerificationStatus() != null
+                        ? user.getTeacherProfile().getVerificationStatus().name()
+                        : "NONE";
+            }
+
             UserEventDTO event = new UserEventDTO(
                     action,
                     user.getUserId(),
                     user.getFullName(),
                     user.getRole(),
-                    user.isActive());
+                    user.isActive(),
+                    vStatus); // Thêm status vào event
 
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.USER_UPDATE_EXCHANGE,
