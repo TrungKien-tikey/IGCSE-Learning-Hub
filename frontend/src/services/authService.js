@@ -2,12 +2,12 @@ import axiosClient from '../api/axiosClient';
 
 const authService = {
   register: (data) => {
-    // Gọi: http://localhost:8080/api/v1/auth/register
+    // URL thực tế: /api/v1/auth/register (Qua Gateway)
     return axiosClient.post('/auth/register', data);
   },
 
   login: async (data) => {
-    // Gọi: http://localhost:8080/api/v1/auth/login
+    // URL thực tế: /api/v1/auth/login
     const response = await axiosClient.post('/auth/login', data);
     
     // ✅ Lưu Token vào LocalStorage ngay khi Login thành công
@@ -30,7 +30,7 @@ const authService = {
   logout: () => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-        // Gọi API logout để blacklist token
+        // URL thực tế: /api/v1/auth/logout
         axiosClient.post('/auth/logout', { token }).catch(() => {});
     }
     localStorage.clear(); // Xóa sạch LocalStorage

@@ -1,14 +1,14 @@
 import axios from 'axios';
 
-// 1. Tạo instance với Port 8080
+// 1. [SỬA LẠI] Dùng đường dẫn tương đối để đi qua Proxy/Gateway
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:8080/api/v1', // ✅ Đã sửa thành port 8080
+  baseURL: '/api/v1', 
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// 2. REQUEST INTERCEPTOR (Gửi đi)
+// 2. REQUEST INTERCEPTOR (Giữ nguyên)
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
@@ -22,7 +22,7 @@ axiosClient.interceptors.request.use(
   }
 );
 
-// 3. RESPONSE INTERCEPTOR (Nhận về)
+// 3. RESPONSE INTERCEPTOR (Cần sửa đường dẫn gọi API Refresh)
 axiosClient.interceptors.response.use(
   (response) => {
     return response;
@@ -30,7 +30,6 @@ axiosClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Nếu lỗi 401 (Unauthorized) VÀ chưa từng thử lại request này
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
@@ -41,26 +40,25 @@ axiosClient.interceptors.response.use(
             throw new Error("No refresh token available");
         }
 
-        // Gọi API Refresh Token ở Port 8080
-        // ⚠️ Lưu ý: Dùng 'axios' gốc để gọi tránh lặp vô tận
-        const result = await axios.post('http://localhost:8080/api/v1/auth/refresh-token', { // ✅ Đã sửa port 8080
+        // [QUAN TRỌNG] Sửa lại đường dẫn gọi API Refresh Token
+        // Bỏ 'http://localhost:8080' đi, dùng đường dẫn tương đối giống baseURL
+        // Vì baseURL là '/api/v1' -> API login là '/auth/login'
+        // Nên API refresh sẽ là '/api/v1/auth/refresh-token'
+        const result = await axios.post('/api/v1/auth/refresh-token', { 
           refreshToken: refreshToken
         });
 
         const { token } = result.data; 
 
-        // Lưu Token mới
         localStorage.setItem('accessToken', token);
 
-        // Gắn Token mới vào Header request cũ
         axiosClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         originalRequest.headers['Authorization'] = `Bearer ${token}`;
 
-        // Gọi lại request ban đầu
         return axiosClient(originalRequest);
 
       } catch (refreshError) {
-        console.error("Phiên đăng nhập hết hạn:", refreshError);
+        console.error("Lỗi refresh token:", refreshError);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('role');
