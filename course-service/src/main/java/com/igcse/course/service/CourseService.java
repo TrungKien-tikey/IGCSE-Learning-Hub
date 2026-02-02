@@ -20,6 +20,8 @@ public class CourseService {
     private LessonRepository lessonRepository;
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+    @Autowired
+    private com.igcse.course.client.PaymentClient paymentClient;
 
     // ==========================================
     // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
@@ -50,7 +52,16 @@ public class CourseService {
 
         course.setTeacherId(teacherId);
         course.setCreatedBy(teacherId);
-        course.setActive(true);
+        // Default to hidden until manager approves
+        course.setActive(false);
+        course.setStatus("PENDING");
+
+        // Trừ 1 suất học của giáo viên
+        boolean slotDeducted = paymentClient.useSlot(teacherId);
+        if (!slotDeducted) {
+            throw new RuntimeException("Bạn không còn suất học để tạo khóa học mới. Vui lòng mua thêm!");
+        }
+
         return courseRepository.save(course);
     }
 
@@ -81,8 +92,14 @@ public class CourseService {
     }
 
     public boolean deleteCourse(Long id) {
-        if (courseRepository.existsById(id)) {
+        Course course = courseRepository.findById(id).orElse(null);
+        if (course != null) {
+            Long teacherId = course.getTeacherId();
             courseRepository.deleteById(id);
+            // Hoàn trả 1 suất học cho giáo viên
+            if (teacherId != null) {
+                paymentClient.returnSlot(teacherId);
+            }
             return true;
         }
         return false;
@@ -185,5 +202,26 @@ public class CourseService {
             return true;
         }
         return false;
+    }
+
+    public boolean approveCourse(Long courseId) {
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course != null) {
+            course.setActive(true); // Kích hoạt khóa học
+            courseRepository.save(course); // Lưu xuống DB
+            return true;
+        }
+        return false;
+    }
+
+    // 1. Hàm cho Admin/Manager (Lấy tất cả để xét duyệt)
+    public List<Course> getAllCoursesForAdmin() {
+        return courseRepository.findAll();
+    }
+
+    // 2. Hàm cho Học sinh/Giáo viên (Chỉ hiển thị khóa đã được duyệt)
+    public List<Course> getPublishedCourses() {
+        // Gọi findByIsActive thay vì findByActive
+        return courseRepository.findByIsActive(true);
     }
 }
