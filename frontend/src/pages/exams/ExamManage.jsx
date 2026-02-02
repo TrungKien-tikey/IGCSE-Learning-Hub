@@ -6,7 +6,9 @@ import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
 // Import thêm component và icon
 import CommentRoom from "../../components/CommentRoom";
-import { MessageCircle, X, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCircle, X, Eye, ChevronUp, ChevronDown, BrainCircuit } from "lucide-react";
+
+
 
 export default function ManageExamsPage() {
     const [exams, setExams] = useState([]);
@@ -227,6 +229,16 @@ export default function ManageExamsPage() {
                                         >
                                             <span className="text-xs font-semibold hidden md:inline">Điểm</span>
                                             {expandedExamId === exam.examId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                        </button>
+
+                                        {/* NÚT THỐNG KÊ AI */}
+                                        <button
+                                            onClick={() => navigate(`/ai/dashboard/teacher?examId=${exam.examId}`)}
+                                            className="p-2 text-violet-600 hover:bg-violet-50 rounded-full transition flex items-center gap-1 border border-violet-100"
+                                            title="Thống kê AI"
+                                        >
+                                            <BrainCircuit size={20} />
+                                            <span className="text-xs font-semibold hidden md:inline">AI</span>
                                         </button>
 
                                         {/* NÚT CHAT */}

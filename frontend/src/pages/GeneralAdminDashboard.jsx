@@ -193,9 +193,9 @@ export default function GeneralAdminDashboard() {
         try {
             let result;
             if (transaction.transactionType === 'SLOT_PURCHASE') {
-                result = await confirmSlotPayment(transaction.id);
+                result = await confirmSlotPayment(transaction.referenceId);
             } else if (transaction.transactionType === 'COURSE_ENROLLMENT') {
-                result = await confirmCoursePayment(transaction.id);
+                result = await confirmCoursePayment(transaction.referenceId);
             }
 
             if (result && result.success) {

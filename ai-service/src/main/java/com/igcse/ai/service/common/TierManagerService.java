@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.igcse.ai.client.CourseClient;
+import com.igcse.ai.dto.external.CourseDTO;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -25,6 +27,7 @@ public class TierManagerService {
     private final AIInsightRepository aiInsightRepository;
     private final StudyContextRepository studyContextRepository;
     private final JsonService jsonService;
+    private final CourseClient courseClient;
 
     // Bộ nhớ tạm để tránh phân tích song song cho cùng một học sinh
     private final Set<Long> processingStudents = Collections.synchronizedSet(new HashSet<>());
@@ -35,11 +38,13 @@ public class TierManagerService {
     public TierManagerService(AIRecommendationRepository aiRecommendationRepository,
             AIInsightRepository aiInsightRepository,
             StudyContextRepository studyContextRepository,
-            JsonService jsonService) {
+            JsonService jsonService,
+            CourseClient courseClient) {
         this.aiRecommendationRepository = aiRecommendationRepository;
         this.aiInsightRepository = aiInsightRepository;
         this.studyContextRepository = studyContextRepository;
         this.jsonService = jsonService;
+        this.courseClient = courseClient;
     }
 
     /**
@@ -244,12 +249,31 @@ public class TierManagerService {
     /**
      * Trích xuất metadata (Tên, Persona) từ chuỗi JSON NiFi gửi sang.
      * LUỒNG ƯU TIÊN:
+     * 0. (Hybrid) Nếu có latestResult (Bài thi vừa làm xong), ưu tiên lấy tên khóa
+     * học từ API (Do NiFi có thể chưa kịp lưu).
      * 1. Kiểm tra bảng `study_contexts` (Dữ liệu đã được lưu bền vững).
      * 2. Nếu không có, thử parse trực tiếp từ `nifiData` truyền vào (Dữ liệu tạm
      * thời).
      * 3. Nếu vẫn không có, lấy từ bản ghi AIRecommendation gần nhất.
      */
-    public AnalysisMetadata extractMetadata(Long studentId, String nifiData) {
+    public AnalysisMetadata extractMetadata(Long studentId, String nifiData, AIResult latestResult) {
+        String courseTitle = "Khóa học IGCSE";
+        Long courseId = null;
+
+        // --- BƯỚC 0: Ưu tiên lấy Course ID từ bài thi mới nhất (Real-time) ---
+        if (latestResult != null && latestResult.getClassId() != null) {
+            courseId = latestResult.getClassId();
+            // Gọi API ngay lập tức để lấy tên khóa học mới nhất
+            try {
+                var courseDTO = courseClient.getCourseById(courseId);
+                if (courseDTO != null) {
+                    courseTitle = courseDTO.getTitle();
+                    logger.debug("Fetched real-time course title from API: {}", courseTitle);
+                }
+            } catch (Exception e) {
+                logger.warn("Failed to fetch course from API, falling back to cached context.");
+            }
+        }
         // Ưu tiên 1: Lấy từ bảng study_contexts
         Optional<StudyContext> storedContext = studyContextRepository.findByStudentId(studentId);
         if (storedContext.isPresent()) {
@@ -272,13 +296,22 @@ public class TierManagerService {
                             lastCourse = data.get("title").toString();
                         else if (data.containsKey("course_name"))
                             lastCourse = data.get("course_name").toString();
+                        else if (data.containsKey("course_title"))
+                            lastCourse = data.get("course_title").toString();
                     }
                 } catch (Exception e) {
                 }
             }
 
             if (lastCourse == null || lastCourse.isEmpty()) {
-                lastCourse = "Khóa học IGCSE";
+                // Nếu API (Bước 0) đã lấy được thì dùng luôn, không cần mặc định
+                lastCourse = courseTitle.equals("Khóa học IGCSE") ? "Khóa học IGCSE" : courseTitle;
+            } else {
+                // Nếu DB có dữ liệu, kiểm tra xem có cần ưu tiên API không?
+                // Nếu "Khóa học IGCSE" là giá trị mặc định thì ghi đè bằng API title
+                if (lastCourse.equals("Khóa học IGCSE") && !courseTitle.equals("Khóa học IGCSE")) {
+                    lastCourse = courseTitle;
+                }
             }
 
             return new AnalysisMetadata(
@@ -302,11 +335,11 @@ public class TierManagerService {
                     if (sid != null && studentId.toString().equals(sid.toString())) {
                         String studentName = extractString(record, "full_name", "student_name", "name", "studentName",
                                 "fullName");
-                        String courseName = extractString(record, "course_name", "title");
+                        String courseName = extractString(record, "course_name", "course_title", "title");
                         return new AnalysisMetadata(
                                 studentName != null ? studentName : "Học sinh",
                                 "Thông tin bối cảnh tạm thời từ NiFi.",
-                                courseName != null ? courseName : "Khóa học IGCSE",
+                                courseName != null ? courseName : courseTitle, // Fallback to API title if NiFi missing
                                 extractLong(record, "course_id"));
                     }
                 }
@@ -314,16 +347,16 @@ public class TierManagerService {
             }
         }
 
-        return findLatestMetadata(studentId);
+        return findLatestMetadata(studentId, courseTitle, courseId);
     }
 
-    private AnalysisMetadata findLatestMetadata(Long studentId) {
+    private AnalysisMetadata findLatestMetadata(Long studentId, String fallbackTitle, Long fallbackClassId) {
         return aiRecommendationRepository.findTopByStudentIdOrderByGeneratedAtDesc(studentId)
                 .map(r -> new AnalysisMetadata(
                         r.getStudentName() != null ? r.getStudentName() : "Học sinh",
                         "Thông tin bối cảnh từ bản phân tích cũ.",
-                        "Khóa học IGCSE",
-                        null)) // AIRecommendation does not have classId
+                        fallbackTitle, // Use whatever we found so far (API title or default)
+                        fallbackClassId)) // Use the real-time ID
                 .orElse(AnalysisMetadata.defaultMetadata());
     }
 

@@ -129,7 +129,9 @@ public class AIService {
             }
         }
 
-        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null);
+        // 3. Phân tích Metadata
+        TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(attempt.getStudentId(), null,
+                null);
 
         // Tính toán điểm chi tiết theo phần
         double mcScore = 0.0;
