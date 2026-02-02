@@ -107,6 +107,20 @@ export const confirmSlotPayment = async (transactionId) => {
 };
 
 /**
+ * Lấy thông tin số suất học của giáo viên
+ */
+export const getTeacherSlots = async (teacherId) => {
+    try {
+        const response = await paymentClient.get(`/teacher/${teacherId}/slots`);
+        return response.data;
+    } catch (error) {
+        console.error('Error fetching teacher slots:', error);
+        // Return default values if error
+        return { totalSlots: 0, usedSlots: 0, availableSlots: 0 };
+    }
+};
+
+/**
  * Mua khóa học
  */
 export const purchaseCourse = async (data) => {
@@ -119,14 +133,6 @@ export const purchaseCourse = async (data) => {
  */
 export const confirmCoursePayment = async (transactionId) => {
     const response = await paymentClient.post(`/course/confirm/${transactionId}`);
-    return response.data;
-};
-
-/**
- * Lấy thông tin suất học của giáo viên
- */
-export const getTeacherSlots = async (teacherId) => {
-    const response = await paymentClient.get(`/teacher/${teacherId}/slots`);
     return response.data;
 };
 
@@ -196,6 +202,64 @@ export const getTopTeachers = async (limit = 10) => {
 export const getSlotStatistics = async () => {
     const response = await statisticsClient.get('/slots');
     return response.data;
+};
+
+// ==================== VNPAY API ====================
+
+/**
+ * Tạo URL thanh toán VNPay
+ * @param {Object} data - { transactionId, transactionType, amount, orderInfo, bankCode, language }
+ */
+export const createVNPayPayment = async (data) => {
+    const response = await paymentClient.post('/vnpay/create', data);
+    return response.data;
+};
+
+/**
+ * Xác nhận kết quả thanh toán VNPay
+ * @param {Object} params - Các tham số từ VNPay callback URL
+ */
+export const verifyVNPayReturn = async (params) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await paymentClient.get(`/vnpay/return?${queryString}`);
+    return response.data;
+};
+
+// Export payment service object for convenient import
+export const paymentService = {
+    // Packages
+    getActivePackages,
+    getPackageById,
+    getAllPackages,
+    createPackage,
+    updatePackage,
+    deletePackage,
+    togglePackageStatus,
+    
+    // Slot Purchase
+    purchaseSlotPackage,
+    confirmSlotPayment,
+    
+    // Course Purchase
+    purchaseCourse,
+    confirmCoursePayment,
+    
+    // Teacher Slots
+    getTeacherSlots,
+    checkTeacherSlots,
+    
+    // Statistics
+    getRevenueOverview,
+    getMonthlyRevenue,
+    getDailyRevenue,
+    getRevenueByDateRange,
+    getTransactionHistory,
+    getTopTeachers,
+    getSlotStatistics,
+    
+    // VNPay
+    createVNPayPayment,
+    verifyVNPayReturn,
 };
 
 export { paymentClient, statisticsClient };
