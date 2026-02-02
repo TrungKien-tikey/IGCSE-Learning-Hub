@@ -56,6 +56,9 @@ public class JwtUtils {
                 .parseClaimsJws(token)
                 .getBody();
     }
+    public String extractVerificationStatus(String token) {
+        return extractClaim(token, claims -> claims.get("verificationStatus", String.class));
+    }
 
     private boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());

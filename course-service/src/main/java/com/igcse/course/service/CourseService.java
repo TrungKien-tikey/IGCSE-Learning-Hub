@@ -3,13 +3,17 @@ package com.igcse.course.service;
 import com.igcse.course.entity.Course;
 import com.igcse.course.entity.Enrollment;
 import com.igcse.course.entity.Lesson;
+import com.igcse.course.entity.LessonProgress;
 import com.igcse.course.repository.CourseRepository;
 import com.igcse.course.repository.EnrollmentRepository;
+import com.igcse.course.repository.LessonProgressRepository;
 import com.igcse.course.repository.LessonRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CourseService {
@@ -20,6 +24,8 @@ public class CourseService {
     private LessonRepository lessonRepository;
     @Autowired
     private EnrollmentRepository enrollmentRepository;
+    @Autowired
+    private LessonProgressRepository lessonProgressRepository;
 
     // ==========================================
     // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
@@ -208,5 +214,64 @@ public class CourseService {
     public List<Course> getPublishedCourses() {
         // Gọi findByIsActive thay vì findByActive
         return courseRepository.findByIsActive(true);
+    }
+
+    // 1. Đánh dấu hoàn thành bài học
+    public void markLessonAsComplete(Long userId, Long courseId, Long lessonId) {
+
+        // 1. Kiểm tra bài học có tồn tại không
+        Lesson lesson = lessonRepository.findById(lessonId)
+                .orElseThrow(() -> new RuntimeException("Bài học không tồn tại"));
+
+        // 2. Kiểm tra bài học có thuộc khóa học đang gửi lên không (Bảo mật)
+        if (!lesson.getCourse().getCourseId().equals(courseId)) {
+            throw new RuntimeException("Bài học không thuộc khóa học này");
+        }
+
+        // 3. QUAN TRỌNG: Kiểm tra xem user đã mua khóa học chưa
+        // Đổi tên hàm và đảo vị trí tham số cho khớp với Repository hiện tại
+        boolean isEnrolled = enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId);
+        if (!isEnrolled) {
+            throw new RuntimeException("Bạn chưa đăng ký khóa học này!");
+        }
+
+        // 4. Lưu tiến độ
+        LessonProgress progress = lessonProgressRepository.findByUserIdAndLessonId(userId, lessonId)
+                .orElse(new LessonProgress());
+
+        // Nếu là record mới thì set thông tin
+        if (progress.getId() == null) {
+            progress.setUserId(userId);
+            progress.setLessonId(lessonId);
+            progress.setCourseId(courseId);
+        }
+
+        progress.setCompleted(true);
+        progress.setCompletedAt(LocalDateTime.now());
+
+        lessonProgressRepository.save(progress);
+    }
+
+    // 2. Tính % tiến độ khóa học
+    public double getCourseProgress(Long userId, Long courseId) {
+        // totalLessons: Đếm tổng bài của khóa 18
+        long totalLessons = lessonRepository.countByCourseCourseId(courseId);
+        if (totalLessons == 0)
+            return 0.0;
+
+        long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndIsCompleted(userId, courseId, true);
+
+        return (double) completedLessons / totalLessons * 100;
+    }
+
+    public List<Long> getCompletedLessonIds(Long userId, Long courseId) {
+        // Gọi xuống Repository để lấy danh sách LessonProgress đã hoàn thành
+        List<LessonProgress> progressList = lessonProgressRepository
+                .findByUserIdAndCourseIdAndIsCompleted(userId, courseId, true);
+
+        // Chuyển đổi từ danh sách Object sang danh sách ID (Long)
+        return progressList.stream()
+                .map(LessonProgress::getLessonId)
+                .collect(Collectors.toList());
     }
 }
