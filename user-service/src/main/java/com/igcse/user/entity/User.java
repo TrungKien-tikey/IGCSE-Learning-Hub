@@ -29,6 +29,10 @@ public class User {
     private String avatar;
 
     private String role;
+
+    @Column(unique = true)
+    private String linkCode;
+
     private boolean isActive = true;
 
     @Temporal(TemporalType.TIMESTAMP)
@@ -100,6 +104,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getLinkCode() {
+        return linkCode;
+    }
+
+    public void setLinkCode(String linkCode) {
+        this.linkCode = linkCode;
     }
 
     @JsonProperty("isActive")
