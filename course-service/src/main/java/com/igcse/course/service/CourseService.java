@@ -161,15 +161,15 @@ public class CourseService {
     }
 
     public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl,
-            String resourceUrl) {
-        Lesson lesson = getLessonById(lessonId);
-        if (lesson != null) {
-            // Gọi hàm update mới bên Entity
-            lesson.updateLesson(title, content, order, videoUrl, resourceUrl);
-            return lessonRepository.save(lesson);
-        }
-        return null;
+                           String resourceUrl, String resourceName) { // Thêm tham số resourceName ở đây
+    Lesson lesson = getLessonById(lessonId);
+    if (lesson != null) {
+        // Cập nhật đầy đủ các tham số theo cấu hình mới của Entity Lesson
+        lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName);
+        return lessonRepository.save(lesson);
     }
+    return null;
+}
 
     public boolean removeLesson(Long lessonId) {
         if (lessonRepository.existsById(lessonId)) {
