@@ -10,8 +10,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.web.client.RestTemplate; // Can remove if not used elsewhere, but maybe kept for other logic
 
 /**
  * Service xử lý giao dịch thanh toán
@@ -26,6 +28,7 @@ public class PaymentService {
     private final CourseTransactionRepository courseTransactionRepository;
     private final TeacherSlotRepository teacherSlotRepository;
     private final TransactionRepository transactionRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     // ==================== SLOT PACKAGES ====================
 
@@ -191,11 +194,27 @@ public class PaymentService {
      * Xác nhận thanh toán suất học hoàn thành
      */
     @Transactional
-    public SlotTransaction confirmSlotPayment(Long transactionId) {
-        log.info("Confirming slot payment for transaction ID: {}", transactionId);
+    public SlotTransaction confirmSlotPayment(Long id) {
+        log.info("Confirming slot payment for ID (could be ref or summary): {}", id);
 
-        SlotTransaction slotTransaction = slotTransactionRepository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + transactionId));
+        // 1. Tìm SlotTransaction trực tiếp (theo Reference ID)
+        Optional<SlotTransaction> slotTransactionOpt = slotTransactionRepository.findById(id);
+
+        SlotTransaction slotTransaction;
+        if (slotTransactionOpt.isPresent()) {
+            slotTransaction = slotTransactionOpt.get();
+        } else {
+            // 2. Fallback: Kiểm tra nếu 'id' là ID của bảng Transaction tổng hợp
+            Optional<Transaction> summaryOpt = transactionRepository.findById(id);
+            if (summaryOpt.isPresent() && "SLOT_PURCHASE".equals(summaryOpt.get().getTransactionType())) {
+                Long refId = summaryOpt.get().getReferenceId();
+                slotTransaction = slotTransactionRepository.findById(refId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch suất học gốc ID: " + refId));
+                log.info("Found SlotTransaction {} via summary ID {}", refId, id);
+            } else {
+                throw new RuntimeException("Không tìm thấy giao dịch ID: " + id);
+            }
+        }
 
         if ("COMPLETED".equals(slotTransaction.getPaymentStatus())) {
             throw new RuntimeException("Giao dịch này đã được xác nhận trước đó!");
@@ -218,11 +237,18 @@ public class PaymentService {
         teacherSlot.addSlots(slotTransaction.getSlotsPurchased());
         teacherSlotRepository.save(teacherSlot);
 
-        // 3. Cập nhật Transaction tổng hợp
-        // (Tìm transaction theo reference_id và type)
-        // Đơn giản hóa: tạo mới với trạng thái COMPLETED
-        Transaction transaction = Transaction.fromSlotTransaction(slotTransaction);
-        transaction.markAsCompleted();
+        // 3. Cập nhật Transaction tổng hợp (tìm transaction hiện có và update)
+        Transaction transaction = transactionRepository
+                .findByReferenceIdAndTransactionType(slotTransaction.getId(), "SLOT_PURCHASE")
+                .orElseGet(() -> {
+                    // Fallback: nếu không tìm thấy, tạo mới (trường hợp data cũ)
+                    log.warn("Transaction not found for SlotTransaction ID: {}, creating new one",
+                            slotTransaction.getId());
+                    return Transaction.fromSlotTransaction(slotTransaction);
+                });
+
+        transaction.setPaymentStatus("COMPLETED");
+        transaction.setCompletedAt(java.time.LocalDateTime.now());
         transactionRepository.save(transaction);
 
         log.info("Confirmed slot payment - Teacher {} now has {} available slots",
@@ -278,11 +304,27 @@ public class PaymentService {
      * Xác nhận thanh toán khóa học hoàn thành
      */
     @Transactional
-    public CourseTransaction confirmCoursePayment(Long transactionId) {
-        log.info("Confirming course payment for transaction ID: {}", transactionId);
+    public CourseTransaction confirmCoursePayment(Long id) {
+        log.info("Confirming course payment for ID (could be ref or summary): {}", id);
 
-        CourseTransaction courseTransaction = courseTransactionRepository.findById(transactionId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch ID: " + transactionId));
+        // 1. Tìm CourseTransaction trực tiếp (theo Reference ID)
+        Optional<CourseTransaction> courseTransactionOpt = courseTransactionRepository.findById(id);
+
+        CourseTransaction courseTransaction;
+        if (courseTransactionOpt.isPresent()) {
+            courseTransaction = courseTransactionOpt.get();
+        } else {
+            // 2. Fallback: Kiểm tra nếu 'id' là ID của bảng Transaction tổng hợp
+            Optional<Transaction> summaryOpt = transactionRepository.findById(id);
+            if (summaryOpt.isPresent() && "COURSE_ENROLLMENT".equals(summaryOpt.get().getTransactionType())) {
+                Long refId = summaryOpt.get().getReferenceId();
+                courseTransaction = courseTransactionRepository.findById(refId)
+                        .orElseThrow(() -> new RuntimeException("Không tìm thấy giao dịch khóa học gốc ID: " + refId));
+                log.info("Found CourseTransaction {} via summary ID {}", refId, id);
+            } else {
+                throw new RuntimeException("Không tìm thấy giao dịch ID: " + id);
+            }
+        }
 
         if ("COMPLETED".equals(courseTransaction.getPaymentStatus())) {
             throw new RuntimeException("Giao dịch này đã được xác nhận trước đó!");
@@ -292,28 +334,46 @@ public class PaymentService {
         courseTransaction.markAsCompleted();
         courseTransactionRepository.save(courseTransaction);
 
-        // Cập nhật Transaction tổng hợp
-        Transaction transaction = Transaction.fromCourseTransaction(courseTransaction);
-        transaction.markAsCompleted();
+        // Cập nhật Transaction tổng hợp (tìm transaction hiện có và update)
+        Transaction transaction = transactionRepository
+                .findByReferenceIdAndTransactionType(courseTransaction.getId(), "COURSE_ENROLLMENT")
+                .orElseGet(() -> {
+                    // Fallback: nếu không tìm thấy, tạo mới (trường hợp data cũ)
+                    log.warn("Transaction not found for CourseTransaction ID: {}, creating new one",
+                            courseTransaction.getId());
+                    return Transaction.fromCourseTransaction(courseTransaction);
+                });
+
+        transaction.setPaymentStatus("COMPLETED");
+        transaction.setCompletedAt(java.time.LocalDateTime.now());
         transactionRepository.save(transaction);
 
         log.info("Confirmed course payment - Student {} enrolled in course {}",
                 courseTransaction.getStudentId(), courseTransaction.getCourseId());
 
-        // Call Course Service to enroll student
-        // Assuming course-service is reachable at http://course-service:8080
+        // Publish Event to RabbitMQ (Async)
         try {
-            RestTemplate restTemplate = new RestTemplate();
-            String courseServiceUrl = "http://course-service:8080/api/v1/courses/internal/"
-                    + courseTransaction.getCourseId() + "/enroll?userId=" + courseTransaction.getStudentId();
+            com.igcse.payment.event.CourseEnrollmentEvent event = com.igcse.payment.event.CourseEnrollmentEvent
+                    .builder()
+                    .studentId(courseTransaction.getStudentId())
+                    .courseId(courseTransaction.getCourseId())
+                    .transactionId(courseTransaction.getId())
+                    .timestamp(java.time.LocalDateTime.now())
+                    .build();
 
-            restTemplate.postForEntity(courseServiceUrl, null, String.class);
-            log.info("Successfully triggered enrollment in Course Service");
+            rabbitTemplate.convertAndSend(
+                    com.igcse.payment.config.RabbitMQConfig.EXCHANGE,
+                    com.igcse.payment.config.RabbitMQConfig.ENROLLMENT_ROUTING_KEY,
+                    event);
+
+            log.info("Published course enrollment event for student {} in course {}",
+                    courseTransaction.getStudentId(), courseTransaction.getCourseId());
+
         } catch (Exception e) {
-            log.error("Failed to call Course Service for enrollment: {}", e.getMessage());
-            // Note: transaction is already COMPLETED, so we might need manual intervention
-            // or retry mechanism
-            // For MVP, we just log error.
+            log.error("Failed to publish enrollment event: {}", e.getMessage());
+            // Note: DB is updated ("COMPLETED"), but Event failed.
+            // Ideally, we should implement Outbox Pattern here to guarantee delivery.
+            // For now, we log error. Admin re-try mechanism needed.
         }
 
         return courseTransaction;

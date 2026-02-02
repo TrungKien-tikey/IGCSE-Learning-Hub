@@ -19,7 +19,6 @@ public class TransactionDTO {
 
     private Long id;
     private String transactionType;
-    private String transactionTypeDisplay;
     private Long referenceId;
 
     private Long buyerId;
@@ -33,9 +32,7 @@ public class TransactionDTO {
     private BigDecimal platformRevenue;
 
     private String paymentMethod;
-    private String paymentMethodDisplay;
     private String paymentStatus;
-    private String paymentStatusDisplay;
 
     private LocalDateTime transactionDate;
     private LocalDateTime completedAt;
