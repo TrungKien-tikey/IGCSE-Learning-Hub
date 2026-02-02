@@ -259,13 +259,13 @@ const ParentDashboard = () => {
                                     </div>
                                     <div className="mt-8 flex gap-3">
                                         <button
-                                            onClick={() => navigate('/progress')}
+                                            onClick={() => navigate(`/ai/dashboard/parent/${linkedStudent.userId}`)}
                                             className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors"
                                         >
                                             Xem chi tiết tiến độ
                                         </button>
                                         <button
-                                            onClick={() => navigate('/reports')}
+                                            onClick={() => navigate(`/ai/dashboard/parent/${linkedStudent.userId}`)}
                                             className="px-6 py-2.5 bg-indigo-500 text-white rounded-xl font-bold hover:bg-indigo-400 transition-colors border border-indigo-400"
                                         >
                                             Báo cáo tuần

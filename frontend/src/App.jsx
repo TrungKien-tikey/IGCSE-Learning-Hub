@@ -179,6 +179,18 @@ function App() {
         />
 
         <Route
+          path="/ai/dashboard/parent/:studentId"
+          element={
+            <RoleProtectedRoute allowedRoles={['PARENT', 'ADMIN']}>
+              <ParentDashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route path="/progress" element={<Navigate to="/ai/dashboard/student" replace />} />
+        <Route path="/reports" element={<Navigate to="/ai/dashboard/student" replace />} />
+
+        <Route
           path="/course-approval"
           element={
             <RoleProtectedRoute allowedRoles={['MANAGER', 'ADMIN']}>

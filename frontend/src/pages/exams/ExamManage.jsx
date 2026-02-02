@@ -226,16 +226,6 @@ export default function ManageExamsPage() {
                                             {expandedExamId === exam.examId ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                                         </button>
 
-                                        {/* NÚT THỐNG KÊ AI */}
-                                        <button
-                                            onClick={() => navigate(`/ai/dashboard/teacher?examId=${exam.examId}`)}
-                                            className="p-2 text-violet-600 hover:bg-violet-50 rounded-full transition flex items-center gap-1 border border-violet-100"
-                                            title="Thống kê AI"
-                                        >
-                                            <BrainCircuit size={20} />
-                                            <span className="text-xs font-semibold hidden md:inline">AI</span>
-                                        </button>
-
                                         {/* NÚT CHAT */}
                                         <button
                                             onClick={() => openComments(exam.examId)}
