@@ -92,4 +92,27 @@ public interface AIResultRepository extends JpaRepository<AIResult, Long> {
     Double getAverageScoreByStudentIdAndDateRange(@Param("studentId") Long studentId,
             @Param("startDate") Date startDate,
             @Param("endDate") Date endDate);
+
+    // --------- Aggregation cho thống kê theo Exam + Class ---------
+
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.examId = :examId AND r.classId = :classId")
+    Long countByExamIdAndClassId(@Param("examId") Long examId, @Param("classId") Long classId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.examId = :examId AND r.classId = :classId")
+    Double getAverageScoreByExamIdAndClassId(@Param("examId") Long examId, @Param("classId") Long classId);
+
+    List<AIResult> findByExamIdAndClassId(Long examId, Long classId);
+
+    @Query("SELECT DISTINCT r.examId FROM AIResult r WHERE r.classId = :classId")
+    List<Long> findExamIdsByClassId(@Param("classId") Long classId);
+
+    // --------- Aggregation cho thống kê theo Exam (Class-agnostic) ---------
+
+    @Query("SELECT COUNT(r) FROM AIResult r WHERE r.examId = :examId")
+    Long countByExamId(@Param("examId") Long examId);
+
+    @Query("SELECT AVG(r.score) FROM AIResult r WHERE r.examId = :examId")
+    Double getAverageScoreByExamId(@Param("examId") Long examId);
+
+    List<AIResult> findByExamId(Long examId);
 }

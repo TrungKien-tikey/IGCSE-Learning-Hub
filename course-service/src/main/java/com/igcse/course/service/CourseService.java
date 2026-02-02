@@ -25,7 +25,7 @@ public class CourseService {
     @Autowired
     private EnrollmentRepository enrollmentRepository;
     @Autowired
-    private LessonProgressRepository lessonProgressRepository;
+    private com.igcse.course.client.PaymentClient paymentClient;
 
     // ==========================================
     // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
@@ -59,6 +59,13 @@ public class CourseService {
         // Default to hidden until manager approves
         course.setActive(false);
         course.setStatus("PENDING");
+
+        // Trừ 1 suất học của giáo viên
+        boolean slotDeducted = paymentClient.useSlot(teacherId);
+        if (!slotDeducted) {
+            throw new RuntimeException("Bạn không còn suất học để tạo khóa học mới. Vui lòng mua thêm!");
+        }
+
         return courseRepository.save(course);
     }
 
@@ -89,8 +96,14 @@ public class CourseService {
     }
 
     public boolean deleteCourse(Long id) {
-        if (courseRepository.existsById(id)) {
+        Course course = courseRepository.findById(id).orElse(null);
+        if (course != null) {
+            Long teacherId = course.getTeacherId();
             courseRepository.deleteById(id);
+            // Hoàn trả 1 suất học cho giáo viên
+            if (teacherId != null) {
+                paymentClient.returnSlot(teacherId);
+            }
             return true;
         }
         return false;

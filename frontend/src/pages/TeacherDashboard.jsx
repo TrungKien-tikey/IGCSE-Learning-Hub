@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import axiosClient from '../api/axiosClient';
+import userClient from '../api/userClient';
+import { getTeacherSlots } from '../api/paymentService';
 import {
     Users, BookOpen, Clock, CheckCircle,
     BarChart3, PlusCircle, ArrowRight,
     Edit, Trash2, Eye, EyeOff, BookMarked, FileText
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import './TeacherDashboard.css';
 
 export default function TeacherDashboard() {
@@ -16,6 +18,11 @@ export default function TeacherDashboard() {
     const teacherName = storedUser.fullName || "Giáo viên";
     const [courses, setCourses] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // State cho slot availability
+    const [teacherId, setTeacherId] = useState(storedUser.userId || storedUser.id);
+    const [availableSlots, setAvailableSlots] = useState(0);
+    const [slotsLoading, setSlotsLoading] = useState(true);
 
     // State cho Modal Sửa/Thêm Khóa học
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,6 +34,28 @@ export default function TeacherDashboard() {
     });
 
     const API_URL = '/courses';
+
+    // Fetch teacher slots
+    const fetchTeacherSlots = async () => {
+        try {
+            let userId = teacherId;
+            if (!userId) {
+                const userRes = await userClient.get('/me');
+                userId = userRes.data?.userId || userRes.data?.id;
+                setTeacherId(userId);
+            }
+
+            if (userId) {
+                const slotsRes = await getTeacherSlots(userId);
+                setAvailableSlots(slotsRes?.availableSlots || 0);
+            }
+        } catch (err) {
+            console.error('Error fetching slots:', err);
+            setAvailableSlots(0);
+        } finally {
+            setSlotsLoading(false);
+        }
+    };
 
     const fetchCourses = async () => {
         try {
@@ -57,6 +86,7 @@ export default function TeacherDashboard() {
 
     useEffect(() => {
         fetchCourses();
+        fetchTeacherSlots();
     }, []);
 
     const handleInputChange = (e) => {
@@ -97,6 +127,7 @@ export default function TeacherDashboard() {
                 await axiosClient.post(API_URL, formData);
             }
             fetchCourses();
+            fetchTeacherSlots(); // Cập nhật lại số suất học hiển thị
             closeModal();
         } catch (err) {
             console.error("Lỗi lưu khóa học:", err);
@@ -110,6 +141,7 @@ export default function TeacherDashboard() {
             try {
                 await axiosClient.delete(`${API_URL}/${courseId}`);
                 setCourses(prev => prev.filter(c => c.courseId !== courseId));
+                fetchTeacherSlots(); // Hoàn trả lại 1 suất khi xóa
             } catch (err) {
                 toast.error("Không thể xóa (Có thể do ràng buộc dữ liệu)!");
             }
@@ -187,15 +219,37 @@ export default function TeacherDashboard() {
                                 <FileText className="w-5 h-5 text-indigo-600" />
                                 Quản lý Khóa học & Lớp học
                             </h2>
-                            <p className="text-sm text-slate-500 mt-1">Danh sách các khóa học do bạn trực tiếp giảng dạy và quản lý.</p>
+                            <p className="text-sm text-slate-500 mt-1">
+                                Danh sách các khóa học do bạn trực tiếp giảng dạy và quản lý.
+                                {!slotsLoading && (
+                                    <span className={`ml-2 font-semibold ${availableSlots > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                        (Còn {availableSlots} suất học)
+                                    </span>
+                                )}
+                            </p>
                         </div>
-                        <button
-                            onClick={openAddModal}
-                            className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-100 flex items-center gap-2 text-sm"
-                        >
-                            <PlusCircle className="w-4 h-4" />
-                            Tạo Khóa Học Mới
-                        </button>
+                        <div className="flex flex-col items-end gap-2">
+                            <button
+                                onClick={openAddModal}
+                                disabled={availableSlots <= 0}
+                                className={`px-6 py-2.5 rounded-xl font-bold transition shadow-lg flex items-center gap-2 text-sm ${availableSlots > 0
+                                    ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
+                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    }`}
+                                title={availableSlots <= 0 ? 'Bạn cần mua gói suất học để tạo khóa mới' : ''}
+                            >
+                                <PlusCircle className="w-4 h-4" />
+                                Tạo Khóa Học Mới
+                            </button>
+                            {availableSlots <= 0 && !slotsLoading && (
+                                <Link
+                                    to="/teacher/buy-slots"
+                                    className="text-indigo-600 text-sm font-medium hover:underline"
+                                >
+                                    👉 Mua gói suất học
+                                </Link>
+                            )}
+                        </div>
                     </div>
 
                     <div className="p-6 md:p-8">
@@ -210,13 +264,27 @@ export default function TeacherDashboard() {
                                     <BookMarked className="w-16 h-16 text-slate-200" />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-800 mb-2">Chưa có khóa học nào</h3>
-                                <p className="text-slate-500 max-w-sm mb-8">Bắt đầu hành trình giảng dạy bằng cách tạo lớp học/khóa học đầu tiên của bạn ngay hôm nay.</p>
-                                <button
-                                    onClick={openAddModal}
-                                    className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all hover:scale-105 shadow-xl shadow-indigo-100"
-                                >
-                                    Thêm lớp học đầu tiên
-                                </button>
+                                <p className="text-slate-500 max-w-sm mb-8">
+                                    {availableSlots > 0
+                                        ? 'Bắt đầu hành trình giảng dạy bằng cách tạo lớp học/khóa học đầu tiên của bạn ngay hôm nay.'
+                                        : 'Bạn cần mua gói suất học trước khi tạo khóa học mới.'
+                                    }
+                                </p>
+                                {availableSlots > 0 ? (
+                                    <button
+                                        onClick={openAddModal}
+                                        className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all hover:scale-105 shadow-xl shadow-indigo-100"
+                                    >
+                                        Thêm lớp học đầu tiên
+                                    </button>
+                                ) : (
+                                    <Link
+                                        to="/teacher/buy-slots"
+                                        className="px-10 py-4 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all hover:scale-105 shadow-xl shadow-indigo-100"
+                                    >
+                                        👉 Mua gói suất học
+                                    </Link>
+                                )}
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -243,7 +311,7 @@ export default function TeacherDashboard() {
                                             </p>
 
                                             <div className="flex justify-between items-center bg-slate-50/50 p-3 rounded-xl border border-slate-50">
-                                                <span className="text-indigo-600 font-extrabold">{course.price ? `$${course.price}` : 'Free'}</span>
+                                                <span className="text-indigo-600 font-extrabold">{course.price ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
                                                 <div className="flex items-center gap-1.5 text-slate-500 text-xs font-semibold">
                                                     <Clock size={14} />
                                                     {course.duration || '--'}
@@ -298,8 +366,8 @@ export default function TeacherDashboard() {
                                 </div>
                                 <div className="flex gap-4">
                                     <div className="form-group flex-1">
-                                        <label>Giá ($)</label>
-                                        <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="0" />
+                                        <label>Giá (VNĐ)</label>
+                                        <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="VD: 500000" step="10000" />
                                     </div>
                                     <div className="form-group flex-1">
                                         <label>Thời lượng</label>

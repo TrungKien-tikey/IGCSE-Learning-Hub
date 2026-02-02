@@ -53,7 +53,7 @@ export default function AllCoursesPage() {
 
                 <div className="card-meta">
                   <span className="price-tag" style={{ background: '#e8f5e9', color: '#2e7d32' }}>
-                    {course.price > 0 ? `$${course.price}` : 'Miễn phí'}
+                    {course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}
                   </span>
                   <span className="duration-tag">⏱ {course.duration}</span>
                 </div>

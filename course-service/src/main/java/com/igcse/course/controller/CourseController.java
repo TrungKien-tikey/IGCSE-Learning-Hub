@@ -363,6 +363,25 @@ public class CourseController {
         return ResponseEntity.ok(participantIds);
     }
 
+    // --- INTERNAL APIs (For Microservices) ---
+    @PostMapping("/internal/{courseId}/enroll")
+    public ResponseEntity<?> internalEnroll(
+            @PathVariable Long courseId,
+            @RequestParam Long userId) {
+        try {
+            System.out.println("Processing internal enrollment: Course " + courseId + ", User " + userId);
+            boolean success = courseService.enrollCourse(courseId, userId);
+            if (success) {
+                return ResponseEntity.ok("Internal enrollment successful");
+            } else {
+                return ResponseEntity.badRequest().body("Already enrolled or failed");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
     // API Bước 4: Duyệt khóa học (Chỉ dành cho MANAGER/ADMIN)
     @PutMapping("/{id}/approve")
     public ResponseEntity<?> approveCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {

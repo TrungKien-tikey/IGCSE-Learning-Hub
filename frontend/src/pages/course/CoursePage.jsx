@@ -2,13 +2,20 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
-import { useNavigate } from 'react-router-dom'; // Dùng để chuyển trang
+import userClient from '../../api/userClient';
+import { getTeacherSlots } from '../../api/paymentService';
+import { useNavigate, Link } from 'react-router-dom'; // Dùng để chuyển trang
 import './CoursePage.css';
 
 export default function CoursePage() {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // State cho slot availability
+  const [teacherId, setTeacherId] = useState(null);
+  const [availableSlots, setAvailableSlots] = useState(0);
+  const [slotsLoading, setSlotsLoading] = useState(true);
 
   // State cho Modal Sửa/Thêm Khóa học
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -20,6 +27,25 @@ export default function CoursePage() {
   });
 
   const API_URL = '/courses';
+
+  // Fetch teacher info and slots
+  const fetchTeacherSlots = async () => {
+    try {
+      const userRes = await userClient.get('/me');
+      const userId = userRes.data?.userId || userRes.data?.id;
+      setTeacherId(userId);
+
+      if (userId) {
+        const slotsRes = await getTeacherSlots(userId);
+        setAvailableSlots(slotsRes?.availableSlots || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching slots:', err);
+      setAvailableSlots(0);
+    } finally {
+      setSlotsLoading(false);
+    }
+  };
 
   const fetchCourses = async () => {
     try {
@@ -35,6 +61,7 @@ export default function CoursePage() {
 
   useEffect(() => {
     fetchCourses();
+    fetchTeacherSlots();
   }, []);
 
   const handleInputChange = (e) => {
@@ -139,11 +166,40 @@ export default function CoursePage() {
         <div className="page-header">
           <div>
             <h1 className="page-title">Quản Lý Khóa Học</h1>
-            <p style={{ color: '#666' }}>Giáo viên: Nguyễn Văn A</p>
+            <p style={{ color: '#666' }}>
+              Suất học còn lại: {slotsLoading ? 'Đang tải...' : (
+                <span style={{
+                  color: availableSlots > 0 ? '#28a745' : '#dc3545',
+                  fontWeight: 'bold'
+                }}>
+                  {availableSlots} suất
+                </span>
+              )}
+            </p>
           </div>
-          <button onClick={openAddModal} className="btn-add">
-            + Tạo Khóa Mới
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
+            <button
+              onClick={openAddModal}
+              className="btn-add"
+              disabled={availableSlots <= 0}
+              style={availableSlots <= 0 ? { opacity: 0.5, cursor: 'not-allowed' } : {}}
+              title={availableSlots <= 0 ? 'Bạn cần mua gói suất học để tạo khóa mới' : ''}
+            >
+              + Tạo Khóa Mới
+            </button>
+            {availableSlots <= 0 && !slotsLoading && (
+              <Link
+                to="/teacher/buy-slots"
+                style={{
+                  color: '#007bff',
+                  fontSize: '0.85em',
+                  textDecoration: 'underline'
+                }}
+              >
+                👉 Mua gói suất học
+              </Link>
+            )}
+          </div>
         </div>
 
         {/* Grid Danh sách */}
@@ -159,7 +215,7 @@ export default function CoursePage() {
                 </h2>
                 <p className="course-desc">{course.description}</p>
                 <div className="card-meta">
-                  <span className="price-tag">{course.price ? `$${course.price}` : 'Free'}</span>
+                  <span className="price-tag">{course.price ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'Miễn phí'}</span>
                   <span className="duration-tag">⏱ {course.duration}</span>
                 </div>
               </div>
@@ -224,8 +280,8 @@ export default function CoursePage() {
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <div className="form-group" style={{ flex: 1 }}>
-                      <label>Giá ($)</label>
-                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" />
+                      <label>Giá (VNĐ)</label>
+                      <input type="number" name="price" value={formData.price} onChange={handleInputChange} className="form-input" placeholder="VD: 500000" step="10000" />
                     </div>
                     <div className="form-group" style={{ flex: 1 }}>
                       <label>Thời lượng</label>
