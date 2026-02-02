@@ -63,6 +63,11 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Xóa dữ liệu cũ để tránh conflict role
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('userId');
+
     // 👇 4. Chặn submit nếu dữ liệu chưa nhập đủ
     if (!validateForm()) {
       return;
