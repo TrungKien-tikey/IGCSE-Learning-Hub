@@ -267,19 +267,19 @@ public class CourseController {
 
     // 4. Sửa bài học
     // Ví dụ trong Controller
-@PutMapping("/lessons/{lessonId}")
-public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson lessonDto) {
-    Lesson updated = courseService.updateLesson(
-        lessonId, 
-        lessonDto.getTitle(), 
-        lessonDto.getContent(), 
-        lessonDto.getOrderIndex(), 
-        lessonDto.getVideoUrl(), 
-        lessonDto.getResourceUrl(),
-        lessonDto.getResourceName() // Đảm bảo lấy thêm trường này
-    );
-    return ResponseEntity.ok(updated);
-}
+    @PutMapping("/lessons/{lessonId}")
+    public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson lessonDto) {
+        Lesson updated = courseService.updateLesson(
+                lessonId,
+                lessonDto.getTitle(),
+                lessonDto.getContent(),
+                lessonDto.getOrderIndex(),
+                lessonDto.getVideoUrl(),
+                lessonDto.getResourceUrl(),
+                lessonDto.getResourceName() // Đảm bảo lấy thêm trường này
+        );
+        return ResponseEntity.ok(updated);
+    }
 
     // 5. Xóa bài học
     @DeleteMapping("/lessons/{lessonId}")
@@ -466,4 +466,22 @@ public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @Request
         return ResponseEntity.ok(completedIds);
     }
 
+    @GetMapping("/student/{studentId}/summary")
+    public ResponseEntity<?> getStudentProgressSummary(@PathVariable Long studentId) {
+        // Trả về danh sách DTO
+        return ResponseEntity.ok(courseService.getStudentProgressSummary(studentId));
+    }
+
+    // --- BỔ SUNG API NÀY ---
+    
+    // API: Học sinh tự xem tổng quan tiến độ của mình (Dùng cho Student Dashboard)
+    @GetMapping("/my-summary")
+    public ResponseEntity<?> getMySummary(@RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Unauthorized");
+        }
+        // Gọi hàm getStudentProgressSummary đã viết trong Service (tái sử dụng logic)
+        return ResponseEntity.ok(courseService.getStudentProgressSummary(userId));
+    }
 }
