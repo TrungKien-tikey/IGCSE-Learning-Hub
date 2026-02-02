@@ -201,8 +201,10 @@ services:
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       # URL của Payment Service để kiểm tra/trừ suất học
       - PAYMENT_SERVICE_URL=http://payment-service:8084
-      # Nếu sau này bạn dùng RabbitMQ (như các service khác), hãy uncomment dòng dưới:
       - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - mysql-db
     networks:
@@ -228,7 +230,12 @@ services:
       - SPRING_DATASOURCE_PASSWORD=root
       - SPRING_JPA_HIBERNATE_DDL_AUTO=update
       - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
       - SPRING_JACKSON_TIME_ZONE=Asia/Ho_Chi_Minh
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_RABBITMQ_PORT=5672
+      - SPRING_RABBITMQ_USERNAME=guest
+      - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - mysql-db
     networks:
