@@ -10,10 +10,10 @@ import java.util.Date;
 public class JwtUtils {
 
     // Key bí mật
-    private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789"; 
-    
+    private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
+
     // Thời gian hết hạn Access Token: 1 ngày
-    private static final long EXPIRATION_TIME = 86400000L; 
+    private static final long EXPIRATION_TIME = 86400000L;
 
     // [MỚI] Thời gian hết hạn Refresh Token: 7 ngày (604800000 ms)
     private static final long REFRESH_EXPIRATION_TIME = 604800000L;
@@ -23,11 +23,12 @@ public class JwtUtils {
     }
 
     // 1. Tạo Access Token (Ngắn hạn)
-    public String generateToken(String email, String role, Long userId) {
+    public String generateToken(String email, String role, Long userId, String verificationStatus) {
         return Jwts.builder()
                 .setSubject(email)
                 .claim("role", role)
                 .claim("userId", userId)
+                .claim("verificationStatus", verificationStatus != null ? verificationStatus : "NONE") // Thêm status
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
@@ -57,7 +58,7 @@ public class JwtUtils {
                 .getBody()
                 .getSubject();
     }
-    
+
     // [MỚI] Lấy thời gian hết hạn (Dùng cho Logout nếu cần)
     public Date extractExpiration(String token) {
         return Jwts.parserBuilder()
@@ -67,7 +68,7 @@ public class JwtUtils {
                 .getBody()
                 .getExpiration();
     }
-    
+
     // [MỚI] Kiểm tra token hết hạn chưa
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());

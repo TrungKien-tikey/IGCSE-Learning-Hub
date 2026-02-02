@@ -26,11 +26,11 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
 
-    public AuthService(UserRepository userRepository, 
-                       PasswordEncoder passwordEncoder, 
-                       JwtUtils jwtUtils, 
-                       AuthenticationManager authenticationManager,
-                       RabbitTemplate rabbitTemplate) {
+    public AuthService(UserRepository userRepository,
+            PasswordEncoder passwordEncoder,
+            JwtUtils jwtUtils,
+            AuthenticationManager authenticationManager,
+            RabbitTemplate rabbitTemplate) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
@@ -48,22 +48,27 @@ public class AuthService {
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        
+
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
         switch (requestedRole) {
-            case "TEACHER": user.setRole("TEACHER"); break;
-            case "PARENT": user.setRole("PARENT"); break;
-            default: user.setRole("STUDENT"); break;
+            case "TEACHER":
+                user.setRole("TEACHER");
+                break;
+            case "PARENT":
+                user.setRole("PARENT");
+                break;
+            default:
+                user.setRole("STUDENT");
+                break;
         }
-        
+
         user.setActive(true);
         User savedUser = userRepository.save(user);
 
         // RabbitMQ
         try {
             UserSyncDTO syncData = new UserSyncDTO(
-                savedUser.getId(), savedUser.getEmail(), savedUser.getFullName(), savedUser.getRole()
-            );
+                    savedUser.getId(), savedUser.getEmail(), savedUser.getFullName(), savedUser.getRole());
             rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_SYNC_ROUTING_KEY, syncData);
         } catch (Exception e) {
             System.err.println(">>> [RabbitMQ] Loi gui tin nhan: " + e.getMessage());
@@ -75,19 +80,20 @@ public class AuthService {
     // 2. Đăng nhập (ĐÃ SỬA CHO KHỚP VỚI JWTUTILS MỚI)
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
         // Sinh Access Token (1 ngày)
-        String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
-        
+        String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
+                user.getVerificationStatus());
+
         // Sinh Refresh Token (7 ngày) từ JwtUtils
         String refreshToken = jwtUtils.generateRefreshToken(user.getEmail(), user.getRole(), user.getId());
-        
-        // [QUAN TRỌNG] Ở đây refreshToken là String rồi, nên truyền thẳng vào, KHÔNG dùng .getToken() nữa
+
+        // [QUAN TRỌNG] Ở đây refreshToken là String rồi, nên truyền thẳng vào, KHÔNG
+        // dùng .getToken() nữa
         return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole());
     }
 
@@ -110,6 +116,7 @@ public class AuthService {
 
         return "Doi mat khau thanh cong!";
     }
+
     // 5. Làm mới Token (Refresh Token - Stateless)
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.getRefreshToken();
@@ -127,7 +134,8 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User khong ton tai!"));
 
         // 4. Tạo Access Token MỚI (1 ngày)
-        String newAccessToken = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId());
+        String newAccessToken = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
+                user.getVerificationStatus());
 
         // 5. Trả về:
         // - Access Token: MỚI TINH
