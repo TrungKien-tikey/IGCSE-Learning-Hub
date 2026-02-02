@@ -78,7 +78,7 @@ export default function MyCoursesPage() {
               <p>Bạn chưa đăng ký khóa học nào.</p>
               {/* Có thể thêm nút dẫn về trang danh sách khóa học để mua */}
               <button
-                onClick={() => navigate('/courses')}
+                onClick={() => navigate('/all-courses')}
                 style={{ marginTop: '10px', padding: '8px 16px', background: '#1976d2', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
               >
                 Tìm khóa học ngay

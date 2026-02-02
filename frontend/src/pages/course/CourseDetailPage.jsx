@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
-import { purchaseCourse } from '../../api/paymentService'; // Import payment API
+import userClient from '../../api/userClient';
+import { purchaseCourse, createVNPayPayment } from '../../api/paymentService'; // Import payment API
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
 export default function CourseDetailPage() {
@@ -52,7 +53,7 @@ export default function CourseDetailPage() {
             const token = localStorage.getItem('accessToken');
             if (token) {
                 try {
-                    const res = await axiosClient.get('/users/me');
+                    const res = await userClient.get('/me');
                     setCurrentUser(res.data);
                 } catch (e) {
                     console.error("Error fetching user", e);
@@ -62,9 +63,30 @@ export default function CourseDetailPage() {
         fetchUser();
     }, [courseId]);
 
+    // Xử lý thanh toán VNPay
+    const handleVNPayPayment = async (transactionId, amount, courseTitle) => {
+        try {
+            const vnpayResponse = await createVNPayPayment({
+                transactionId: transactionId,
+                transactionType: "COURSE",
+                amount: amount,
+                orderInfo: `Thanh toan khoa hoc: ${courseTitle}`,
+                language: "vn"
+            });
+
+            if (vnpayResponse.code === "00" && vnpayResponse.paymentUrl) {
+                window.location.href = vnpayResponse.paymentUrl;
+            } else {
+                toast.error("Không thể tạo liên kết VNPay. Vui lòng thử lại sau.");
+            }
+        } catch (error) {
+            console.error('VNPay error:', error);
+            toast.error("Lỗi khi kết nối với cổng thanh toán VNPay.");
+        }
+    };
+
     // Xử lý khi bấm nút Đăng Ký
     const handleEnroll = async () => {
-        // 1. Lấy Token
         const token = localStorage.getItem('accessToken');
 
         if (!token) {
@@ -76,27 +98,39 @@ export default function CourseDetailPage() {
         try {
             if (window.confirm(`Bạn có muốn đăng ký khóa học "${course.title}" với giá ${course.price > 0 ? `${Number(course.price).toLocaleString('vi-VN')} ₫` : 'miễn phí'}?`)) {
 
-                // 2. Logic thanh toán
                 const paymentData = {
-                    studentId: currentUser?.userId || currentUser?.id, // Fallback ID
-                    studentName: currentUser?.fullName || currentUser?.username || "Student",
+                    studentId: currentUser?.userId || currentUser?.id,
+                    studentName: currentUser?.fullName || "Student",
                     courseId: course.id || course.courseId,
-                    teacherId: course.teacherId || 1, // Default teacher ID if missing (mock)
-                    amount: course.price,
+                    courseTitle: course.title,
+                    teacherId: course.teacherId || 1,
+                    teacherName: course.teacherName || "Giáo viên",
+                    originalPrice: course.price,
+                    discountAmount: 0,
                     paymentMethod: "BANK_TRANSFER"
                 };
 
                 const result = await purchaseCourse(paymentData);
 
                 if (result.success) {
-                    toast.success(result.message);
-                    // Alert Payment Info
-                    alert(`Vui lòng chuyển khoản ${Number(course.price).toLocaleString('vi-VN')} ₫ đến STK: 123456789 (Vietcombank)\nNội dung: "KHOA HOC ${result.transactionId}"\n\nAdmin sẽ kích hoạt khóa học sau khi nhận được thanh toán.`);
-                    // Note: isEnrolled remains false until confirmed by Admin. 
-                    // Ideally should show "Pending" status.
-                } else {
-                    // Nếu amount = 0 hoặc logic khác
-                    setIsEnrolled(true);
+                    toast.success("Đã tạo yêu cầu đăng ký!");
+
+                    if (course.price > 0) {
+                        const paymentChoice = window.confirm(
+                            `Bạn muốn thanh toán qua VNPay để kích hoạt tự động?\n\n` +
+                            `- Nhấn OK để thanh toán VNPay\n` +
+                            `- Nhấn Cancel để chuyển khoản ngân hàng thủ công`
+                        );
+
+                        if (paymentChoice) {
+                            handleVNPayPayment(result.transactionId, result.amount, course.title);
+                        } else {
+                            alert(`Vui lòng chuyển khoản ${Number(course.price).toLocaleString('vi-VN')} ₫ đến STK: 123456789 (Vietcombank)\nNội dung: "KHOA HOC ${result.transactionId}"\n\nAdmin sẽ kích hoạt khóa học sau khi nhận được thanh toán.`);
+                        }
+                    } else {
+                        setIsEnrolled(true);
+                        toast.success("Đăng ký khóa học miễn phí thành công!");
+                    }
                 }
             }
         } catch (err) {
@@ -105,7 +139,7 @@ export default function CourseDetailPage() {
                 toast.error("Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.");
                 navigate('/login');
             } else {
-                toast.error("Lỗi đăng ký: " + (err.response?.data || "Có lỗi xảy ra"));
+                toast.error("Lỗi đăng ký: " + (err.response?.data?.message || err.response?.data || "Có lỗi xảy ra"));
             }
         }
     };
