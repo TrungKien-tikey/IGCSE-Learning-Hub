@@ -340,24 +340,41 @@ export default function ProfilePage() {
                                         <div className="mt-2 flex justify-center">
                                             {formData.verificationStatus === 'APPROVED' && (
                                                 <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200 flex items-center gap-1">
-                                                    ✅ Đã xác thực
+                                                    <CheckCircle size={14} /> Đã xác thực
                                                 </span>
                                             )}
                                             {formData.verificationStatus === 'PENDING' && (
                                                 <span className="px-3 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full border border-yellow-200 flex items-center gap-1">
-                                                    ⏳ Đang chờ duyệt
+                                                    <BookOpen size={14} /> Đang chờ duyệt
                                                 </span>
                                             )}
                                             {formData.verificationStatus === 'REJECTED' && (
                                                 <span className="px-3 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full border border-red-200 flex items-center gap-1">
-                                                    ❌ Bị từ chối
+                                                    <X size={14} /> Bị từ chối
                                                 </span>
                                             )}
                                             {(formData.verificationStatus === 'NONE' || !formData.verificationStatus) && (
                                                 <span className="px-3 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-full border border-gray-200 flex items-center gap-1">
-                                                    ⚪ Chưa xác thực
+                                                    <Lock size={14} /> Chưa xác thực
                                                 </span>
                                             )}
+                                        </div>
+                                    )}
+
+                                    {/* Link Code Badge for Students */}
+                                    {user.role === 'STUDENT' && user.linkCode && (
+                                        <div className="mt-4 px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-lg text-center relative group max-w-[200px] mx-auto">
+                                            <p className="text-[10px] text-indigo-500 uppercase font-bold mb-0.5 tracking-wider">Mã kết nối</p>
+                                            <div className="flex items-center justify-center gap-2 cursor-pointer hover:bg-indigo-100 rounded-md py-1 transition-colors"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(user.linkCode);
+                                                    toast.success("Đã sao chép mã kết nối!");
+                                                }}
+                                                title="Nhấn để sao chép"
+                                            >
+                                                <span className="text-lg font-mono font-bold text-indigo-700 tracking-widest">{user.linkCode}</span>
+                                                <ClipboardList size={14} className="text-indigo-400 group-hover:text-indigo-600 transition" />
+                                            </div>
                                         </div>
                                     )}
 
