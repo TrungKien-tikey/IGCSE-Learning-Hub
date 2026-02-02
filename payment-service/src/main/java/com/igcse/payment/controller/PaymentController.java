@@ -3,8 +3,10 @@ package com.igcse.payment.controller;
 import com.igcse.payment.dto.*;
 import com.igcse.payment.entity.*;
 import com.igcse.payment.service.PaymentService;
+import com.igcse.payment.service.VNPayService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final VNPayService vnPayService;
 
     // ==================== SLOT PACKAGES ====================
 
@@ -266,6 +269,61 @@ public class PaymentController {
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "message", "Đã hoàn trả 1 suất học"));
+    }
+
+    // ==================== VNPAY INTEGRATION ====================
+
+    @PostMapping("/vnpay/create")
+    @Operation(summary = "Tạo URL thanh toán VNPay", description = "Tạo URL redirect đến cổng thanh toán VNPay")
+    public ResponseEntity<?> createVNPayPayment(
+            @RequestBody VNPayDTO.CreatePaymentRequest request,
+            HttpServletRequest httpRequest) {
+        log.info("API: Creating VNPay payment for transaction {} type {}",
+                request.getTransactionId(), request.getTransactionType());
+        try {
+            VNPayDTO.CreatePaymentResponse response = vnPayService.createPaymentUrl(request, httpRequest);
+            if ("00".equals(response.getCode())) {
+                return ResponseEntity.ok(response);
+            } else {
+                return ResponseEntity.badRequest().body(response);
+            }
+        } catch (Exception e) {
+            log.error("Error creating VNPay payment URL", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "code", "99",
+                    "message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/vnpay/return")
+    @Operation(summary = "Xử lý kết quả VNPay", description = "Xử lý callback từ VNPay khi user được redirect về")
+    public ResponseEntity<?> vnpayReturn(@RequestParam Map<String, String> params) {
+        log.info("API: VNPay return callback with params: {}", params);
+        try {
+            VNPayDTO.VNPayCallbackResponse response = vnPayService.processReturnUrl(params);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error processing VNPay return", e);
+            return ResponseEntity.badRequest().body(Map.of(
+                    "valid", false,
+                    "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/vnpay/ipn")
+    @Operation(summary = "VNPay IPN Webhook", description = "Webhook nhận thông báo từ VNPay server")
+    public ResponseEntity<?> vnpayIPN(@RequestParam Map<String, String> params) {
+        log.info("API: VNPay IPN callback with params: {}", params);
+        try {
+            VNPayDTO.IPNResponse response = vnPayService.processIPN(params);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error processing VNPay IPN", e);
+            return ResponseEntity.ok(VNPayDTO.IPNResponse.builder()
+                    .RspCode("99")
+                    .Message("Unknown error")
+                    .build());
+        }
     }
 
     // ==================== HEALTH CHECK ====================

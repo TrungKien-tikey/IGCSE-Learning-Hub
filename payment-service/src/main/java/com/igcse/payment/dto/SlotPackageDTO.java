@@ -21,7 +21,6 @@ public class SlotPackageDTO {
     private String description;
     private Integer slotCount;
     private BigDecimal price;
-    private String priceFormatted;
     private Integer durationDays;
     private Boolean isActive;
 

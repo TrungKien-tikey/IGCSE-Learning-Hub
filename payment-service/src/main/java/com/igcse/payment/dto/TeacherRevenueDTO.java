@@ -19,7 +19,6 @@ public class TeacherRevenueDTO {
     private Long teacherId;
     private String teacherName;
     private BigDecimal totalRevenue;
-    private String totalRevenueFormatted;
     private Long coursesSold;
     private Integer rank;
 
