@@ -1,18 +1,12 @@
 package com.igcse.auth.service;
 
 import com.igcse.auth.config.RabbitMQConfig;
-import com.igcse.auth.dto.AuthResponse;
-import com.igcse.auth.dto.ChangePasswordRequest;
-import com.igcse.auth.dto.LoginRequest;
-import com.igcse.auth.dto.RefreshTokenRequest;
-import com.igcse.auth.dto.RegisterRequest;
-import com.igcse.auth.dto.UserSyncDTO;
-import com.igcse.auth.entity.User;
+import com.igcse.auth.dto.*;
 import com.igcse.auth.entity.BlacklistedToken;
+import com.igcse.auth.entity.User;
 import com.igcse.auth.repository.BlacklistedTokenRepository;
 import com.igcse.auth.repository.UserRepository;
 import com.igcse.auth.util.JwtUtils;
-
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -31,17 +25,16 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final RabbitTemplate rabbitTemplate;
     private final EmailService emailService;
-
-    // 1. [FIX] ĐÃ KHAI BÁO THÊM BIẾN NÀY ĐỂ HẾT LỖI
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
+    // Constructor Injection (Thay vì @Autowired)
     public AuthService(UserRepository userRepository,
-            PasswordEncoder passwordEncoder,
-            JwtUtils jwtUtils,
-            AuthenticationManager authenticationManager,
-            RabbitTemplate rabbitTemplate,
-            EmailService emailService,
-            BlacklistedTokenRepository blacklistedTokenRepository) {
+                       PasswordEncoder passwordEncoder,
+                       JwtUtils jwtUtils,
+                       AuthenticationManager authenticationManager,
+                       RabbitTemplate rabbitTemplate,
+                       EmailService emailService,
+                       BlacklistedTokenRepository blacklistedTokenRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
@@ -51,7 +44,7 @@ public class AuthService {
         this.blacklistedTokenRepository = blacklistedTokenRepository;
     }
 
-    // 1. Đăng ký
+    // 1. ĐĂNG KÝ (Có bắn RabbitMQ)
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email nay da ton tai!");
@@ -62,6 +55,7 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
+        // Xử lý Role
         String requestedRole = (request.getRole() != null) ? request.getRole().toUpperCase() : "STUDENT";
         switch (requestedRole) {
             case "TEACHER":
@@ -78,13 +72,14 @@ public class AuthService {
         user.setActive(true);
         User savedUser = userRepository.save(user);
 
-        // RabbitMQ
+        // Gửi thông tin sang User Service qua RabbitMQ
         try {
             UserSyncDTO syncData = new UserSyncDTO(
                     savedUser.getId(),
                     savedUser.getEmail(),
                     savedUser.getFullName(),
                     savedUser.getRole());
+            
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.USER_EXCHANGE,
                     RabbitMQConfig.USER_SYNC_ROUTING_KEY,
@@ -97,7 +92,7 @@ public class AuthService {
         return "Dang ky thanh cong!";
     }
 
-    // 2. Đăng nhập (ĐÃ SỬA CHO KHỚP VỚI JWTUTILS MỚI)
+    // 2. ĐĂNG NHẬP
     public AuthResponse login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
@@ -106,24 +101,26 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
         // Sinh Access Token (1 ngày)
-
         String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
                 user.getVerificationStatus());
 
-        // Sinh Refresh Token (7 ngày) từ JwtUtils
+        // Sinh Refresh Token (7 ngày)
         String refreshToken = jwtUtils.generateRefreshToken(user.getEmail(), user.getRole(), user.getId());
 
-        // [QUAN TRỌNG] Ở đây refreshToken là String rồi, nên truyền thẳng vào, KHÔNG
-        // dùng .getToken() nữa
         return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole());
     }
 
-    // 3. Xác thực token
+    // 3. CHECK EMAIL TỒN TẠI (Dùng cho nút Đăng ký Frontend)
+    public boolean checkEmailExist(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    // 4. VERIFY TOKEN
     public boolean verifyToken(String token) {
         return jwtUtils.validateToken(token);
     }
 
-    // 4. Đổi mật khẩu
+    // 5. ĐỔI MẬT KHẨU
     public String changePassword(ChangePasswordRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
@@ -138,33 +135,26 @@ public class AuthService {
         return "Doi mat khau thanh cong!";
     }
 
-    // 5. Làm mới Token (Refresh Token - Stateless)
+    // 6. REFRESH TOKEN
     public AuthResponse refreshToken(RefreshTokenRequest request) {
         String requestRefreshToken = request.getRefreshToken();
 
-        // 1. Kiểm tra Token có hợp lệ không (còn hạn không, chữ ký đúng không)
         if (!jwtUtils.validateToken(requestRefreshToken)) {
             throw new RuntimeException("Refresh Token khong hop le hoac da het han!");
         }
 
-        // 2. Lấy email từ trong token ra
         String email = jwtUtils.extractEmail(requestRefreshToken);
 
-        // 3. Check lại xem User này còn tồn tại trong DB không (nhỡ bị xóa rồi)
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai!"));
 
-        // 4. Tạo Access Token MỚI (1 ngày)
         String newAccessToken = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
                 user.getVerificationStatus());
 
-        // 5. Trả về:
-        // - Access Token: MỚI TINH
-        // - Refresh Token: GIỮ NGUYÊN CÁI CŨ
         return new AuthResponse(newAccessToken, requestRefreshToken, user.getEmail(), user.getRole());
     }
 
-    // 6. Quên mật khẩu
+    // 7. QUÊN MẬT KHẨU
     public void forgotPassword(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email khong ton tai trong he thong!"));
@@ -174,6 +164,7 @@ public class AuthService {
         user.setTokenExpirationTime(LocalDateTime.now().plusMinutes(15));
         userRepository.save(user);
 
+        // Lưu ý: Đổi port 5173 thành port Frontend của bạn nếu cần
         String resetLink = "http://localhost:5173/reset-password?token=" + token;
 
         String emailBody = "Xin chao " + user.getFullName() + ",\n\n"
@@ -185,7 +176,7 @@ public class AuthService {
         emailService.sendEmail(user.getEmail(), "Yeu cau dat lai mat khau - IGCSE Hub", emailBody);
     }
 
-    // 7. Đặt lại mật khẩu
+    // 8. ĐẶT LẠI MẬT KHẨU (RESET)
     public void resetPassword(String token, String newPassword) {
         User user = userRepository.findByResetPasswordToken(token)
                 .orElseThrow(() -> new RuntimeException("Ma Token khong hop le hoac khong ton tai"));
@@ -201,32 +192,17 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    // 8. Kiểm tra email tồn tại
-    public boolean checkEmailExists(String email) {
-        return userRepository.existsByEmail(email);
-    }
-
-    public com.igcse.auth.dto.UserSyncDTO getUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Khong tim thay User ID: " + id));
-
-        return new com.igcse.auth.dto.UserSyncDTO(
-                user.getId(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getRole());
-    }
-
-    // 9. Đăng xuất
+    // 9. ĐĂNG XUẤT
     public void logout(String token) {
         if (jwtUtils.isTokenExpired(token)) {
             return;
         }
 
-        BlacklistedToken blacklistedToken = BlacklistedToken.builder()
-                .token(token)
-                .expirationTime(jwtUtils.extractExpiration(token))
-                .build();
+        // --- SỬA ĐOẠN NÀY (Dùng new thay vì builder) ---
+        BlacklistedToken blacklistedToken = new BlacklistedToken();
+        blacklistedToken.setToken(token);
+        blacklistedToken.setExpirationTime(jwtUtils.extractExpiration(token));
+        // ------------------------------------------------
 
         blacklistedTokenRepository.save(blacklistedToken);
     }
