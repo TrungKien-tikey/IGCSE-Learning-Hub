@@ -188,22 +188,20 @@ public class CourseController {
     }
 
     // 4. Sửa bài học
-    @PutMapping("/lessons/{lessonId}")
-    public ResponseEntity<?> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson req) {
-        Lesson updatedLesson = courseService.updateLesson(
-                lessonId,
-                req.getTitle(),
-                req.getContent(),
-                req.getOrderIndex(),
-                req.getVideoUrl(),
-                req.getResourceUrl());
-
-        if (updatedLesson != null) {
-            return ResponseEntity.ok(updatedLesson);
-        } else {
-            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy bài học ID " + lessonId);
-        }
-    }
+    // Ví dụ trong Controller
+@PutMapping("/lessons/{lessonId}")
+public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson lessonDto) {
+    Lesson updated = courseService.updateLesson(
+        lessonId, 
+        lessonDto.getTitle(), 
+        lessonDto.getContent(), 
+        lessonDto.getOrderIndex(), 
+        lessonDto.getVideoUrl(), 
+        lessonDto.getResourceUrl(),
+        lessonDto.getResourceName() // Đảm bảo lấy thêm trường này
+    );
+    return ResponseEntity.ok(updated);
+}
 
     // 5. Xóa bài học
     @DeleteMapping("/lessons/{lessonId}")
