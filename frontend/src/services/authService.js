@@ -1,20 +1,19 @@
 import axiosClient from '../api/axiosClient';
 
 const authService = {
+  // 1. Đăng ký
   register: (data) => {
-    // URL thực tế: /api/v1/auth/register (Qua Gateway)
     return axiosClient.post('/auth/register', data);
   },
 
+  // 2. Đăng nhập
   login: async (data) => {
-    // URL thực tế: /api/v1/auth/login
     const response = await axiosClient.post('/auth/login', data);
     
-    // ✅ Lưu Token vào LocalStorage ngay khi Login thành công
+    // Lưu Token
     if (response.data.token) {
         localStorage.setItem('accessToken', response.data.token);
         
-        // Nếu Backend trả về refreshToken thì lưu luôn
         if (response.data.refreshToken) {
             localStorage.setItem('refreshToken', response.data.refreshToken);
         }
@@ -27,13 +26,20 @@ const authService = {
     return response;
   },
 
+  // 👇 3. [QUAN TRỌNG] THÊM HÀM NÀY VÀO ĐÂY
+  checkEmail: (email) => {
+    // URL thực tế: /api/v1/auth/check-email
+    // Gửi body dạng JSON: { "email": "..." }
+    return axiosClient.post('/auth/check-email', { email });
+  },
+
+  // 4. Đăng xuất
   logout: () => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-        // URL thực tế: /api/v1/auth/logout
         axiosClient.post('/auth/logout', { token }).catch(() => {});
     }
-    localStorage.clear(); // Xóa sạch LocalStorage
+    localStorage.clear();
   }
 };
 
