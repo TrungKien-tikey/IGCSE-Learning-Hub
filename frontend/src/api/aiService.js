@@ -146,6 +146,51 @@ export async function getInsights(studentId) {
   return fetchApi(`/insights/student/${studentId}`);
 }
 
+/**
+ * Lấy thống kê nâng cao (Learning Curve, Effort)
+ * @param {number|string} studentId
+ * @returns {Promise<LearningAnalyticsDTO>}
+ */
+export async function getLearningAnalytics(studentId) {
+  validateId(studentId, "Student ID");
+  return fetchApi(`/statistics/analytics/${studentId}`);
+}
+
+/**
+ * Lấy tóm tắt dành cho phụ huynh
+ * @param {number|string} studentId
+ * @returns {Promise<ParentSummaryDTO>}
+ */
+export async function getParentSummary(studentId) {
+  validateId(studentId, "Student ID");
+  return fetchApi(`/statistics/parent/summary/${studentId}`);
+}
+
+/**
+ * Get participated exams for a class
+ * @param {number|string} classId
+ * @returns {Promise<number[]>} List of Exam IDs
+ */
+export async function getParticipatedExams(classId) {
+  validateId(classId, "Class ID");
+  return fetchApi(`/statistics/class/${classId}/exams`);
+}
+
+/**
+ * Get detailed statistics for an exam
+ * @param {number|string} examId
+ * @param {number|string} classId
+ * @returns {Promise<ExamStatisticsDTO>}
+ */
+export async function getExamStatistics(examId, classId) {
+  validateId(examId, "Exam ID");
+  let url = `/statistics/exam/${examId}`;
+  if (classId) {
+    url += `?classId=${classId}`;
+  }
+  return fetchApi(url);
+}
+
 // ============================================
 // Health Check
 // ============================================

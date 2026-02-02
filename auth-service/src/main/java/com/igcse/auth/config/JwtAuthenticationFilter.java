@@ -27,8 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public JwtAuthenticationFilter(
             JwtUtils jwtUtils,
             UserDetailsService userDetailsService,
-            BlacklistedTokenRepository blacklistedTokenRepository
-    ) {
+            BlacklistedTokenRepository blacklistedTokenRepository) {
         this.jwtUtils = jwtUtils;
         this.userDetailsService = userDetailsService;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
@@ -38,8 +37,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain
-    ) throws ServletException, IOException {
+            @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
@@ -62,24 +60,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         // -----------------------
 
-        // 3. [FIX] Sửa extractUsername -> extractEmail (cho khớp với JwtUtils)
-        userEmail = jwtUtils.extractEmail(jwt);
+        // 3. Trích xuất Email từ Token và load User
+        try {
+            userEmail = jwtUtils.extractEmail(jwt);
 
-        // 4. Xác thực
-        if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+            // 4. Nếu có Email và chưa được xác thực
+            if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                // Lấy thông tin User từ Database
+                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-            // 5. [FIX] Sửa isTokenValid -> validateToken (cho khớp với JwtUtils)
-            // Lưu ý: validateToken của chúng ta chỉ cần truyền token String
-            if (jwtUtils.validateToken(jwt)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+                // 5. Kiểm tra Token có hợp lệ không
+                if (jwtUtils.validateToken(jwt)) {
+
+                    // 6. Tạo đối tượng Authentication
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                            userDetails,
+                            null,
+                            userDetails.getAuthorities());
+
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    // 7. LƯU VÀO SECURITY CONTEXT
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+        } catch (Exception e) {
+            // Nếu token sai, hết hạn hoặc user không tồn tại trong DB mới
+            // Chỉ cần log và cho phép request đi tiếp (nếu là public API)
+            logger.error("JWT validation failed: " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);

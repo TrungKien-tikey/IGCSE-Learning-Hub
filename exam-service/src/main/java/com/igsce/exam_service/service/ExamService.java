@@ -121,7 +121,8 @@ public class ExamService {
         // Gọi Repository lấy danh sách
         List<ExamAttempt> attempts = attemptRepository.findByExam_ExamIdOrderBySubmittedAtDesc(examId);
 
-        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi convert JSON
+        // (Tùy chọn) Force load dữ liệu nếu cần thiết để tránh lỗi Lazy Loading khi
+        // convert JSON
         // Nhưng thường với danh sách bảng điểm thì không cần load sâu User Answers
 
         return attempts;
@@ -284,8 +285,7 @@ public class ExamService {
                 ExamCreatedEvent event = new ExamCreatedEvent(
                         savedExam.getExamId(),
                         savedExam.getTitle(),
-                    savedExam.getDescription()
-                );
+                        savedExam.getDescription());
 
                 // Sử dụng Exchange chuyên cho notification (khai báo bên dưới)
                 rabbitTemplate.convertAndSend("exam.notification.exchange", "exam.created", event);

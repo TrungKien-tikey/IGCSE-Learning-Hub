@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { MessageCircle, X, Eye, ChevronUp, ChevronDown } from "lucide-react";
+import { MessageCircle, X, Eye, ChevronUp, ChevronDown, BrainCircuit } from "lucide-react";
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from "../../components/CommentRoom";
 import axiosClient from "../../api/axiosClient";
+
+
 
 export default function ManageExamsPage() {
     const [exams, setExams] = useState([]);
@@ -87,10 +89,10 @@ export default function ManageExamsPage() {
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {
                 try {
                     const userRes = await axiosClient.get(`/api/v1/auth/users/${attempt.userId}`, { baseURL: '' });
-                    
+
                     const userData = userRes.data;
                     let fullName = userData.full_name || userData.fullName || userData.email || `User #${attempt.userId}`;
-                    
+
                     return { ...attempt, studentName: fullName };
                 } catch (err) {
                     return { ...attempt, studentName: `User #${attempt.userId}` };
