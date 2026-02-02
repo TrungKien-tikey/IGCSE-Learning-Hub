@@ -12,98 +12,43 @@ import InsightCard from './ai/components/InsightCard';
 import RecommendationPanel from './ai/components/RecommendationPanel';
 import { useNavigate } from 'react-router-dom';
 
-// Component thẻ thống kê
-const StatCard = ({ title, value, icon: Icon, color, trend }) => {
-    const colorStyles = {
-        blue: "border-l-blue-500 bg-blue-50 text-blue-600",
-        teal: "border-l-teal-500 bg-teal-50 text-teal-600",
-        amber: "border-l-amber-500 bg-amber-50 text-amber-600",
-        purple: "border-l-purple-500 bg-purple-50 text-purple-600",
-    };
-
-    const selectedColor = colorStyles[color] || colorStyles.blue;
-    const iconBg = selectedColor.replace("border-l-", "").split(" ")[1];
-
-    return (
-        <div className={`bg-white p-3 sm:p-4 md:p-6 rounded-lg sm:rounded-xl border border-gray-100 shadow-sm border-l-4 ${selectedColor.split(" ")[0]} hover:shadow-md transition-shadow`}>
-            <div className="flex justify-between items-start mb-2 sm:mb-3 md:mb-4">
-                <div className="flex-1 min-w-0">
-                    <p className="text-gray-500 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 truncate">{title}</p>
-                    <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">{value}</h3>
-                </div>
-                <div className={`p-2 sm:p-2.5 md:p-3 rounded-lg ${iconBg} bg-opacity-50 flex-shrink-0 ml-2`}>
-                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-                </div>
-            </div>
-            <p className="text-[10px] sm:text-xs font-medium text-gray-500 line-clamp-1">{trend}</p>
-        </div>
-    );
-};
-
-// Custom Confirmation Modal Component
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-scale-up">
-                <div className="p-6 text-center">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <AlertCircle className="w-8 h-8 text-red-600" />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-                    <p className="text-gray-500 mb-6">{message}</p>
-
-                    <div className="flex gap-3 justify-center">
-                        <button
-                            onClick={onClose}
-                            disabled={isLoading}
-                            className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
-                        >
-                            Hủy bỏ
-                        </button>
-                        <button
-                            onClick={onConfirm}
-                            disabled={isLoading}
-                            className="px-5 py-2.5 rounded-xl bg-red-600 text-white font-bold hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center gap-2"
-                        >
-                            {isLoading ? "Đang xử lý..." : "Xác nhận hủy"}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
+// Import Component con (Nhớ điều chỉnh đường dẫn nếu bạn đặt file ở thư mục khác)
+import StatCard from '../components/common/StatCard';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const ParentDashboard = () => {
     const navigate = useNavigate();
     const [studentEmail, setStudentEmail] = useState("");
-    const [children, setChildren] = useState([]); // List of linked children
-    const [selectedChildId, setSelectedChildId] = useState(null); // Currently selected child ID
+    const [children, setChildren] = useState([]);
+    const [selectedChildId, setSelectedChildId] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
-    const [showAddForm, setShowAddForm] = useState(false); // To toggle Add Student form
+    const [showAddForm, setShowAddForm] = useState(false);
+    
+    // State cho tiến độ khóa học
+    const [coursesProgress, setCoursesProgress] = useState([]);
+    const [isLoadingProgress, setIsLoadingProgress] = useState(false);
 
     // Modal State
     const [isUnlinkModalOpen, setIsUnlinkModalOpen] = useState(false);
     const [isUnlinking, setIsUnlinking] = useState(false);
 
-    // Fetch initial list of children
+    // --- LOGIC GỌI API ---
+
+    // 1. Fetch danh sách con (Chạy 1 lần khi load trang)
     useEffect(() => {
         const fetchChildren = async () => {
             try {
-                // Fetch persistent list from Backend
                 const res = await axiosClient.get('/relationships/children-details', {
                     baseURL: '/api/users'
                 });
-
-                // Response structure: [{ relationship: {...}, student: {...} }]
+                
+                // API trả về [{ relationship:..., student:... }] -> lấy student
                 const students = res.data.map(item => item.student);
 
                 if (students.length > 0) {
                     setChildren(students);
 
-                    // Restore selection or default to first
+                    // Khôi phục bé đang chọn từ localStorage hoặc chọn bé đầu tiên
                     const lastSelectedId = localStorage.getItem("lastSelectedChildId");
                     if (lastSelectedId && students.some(s => s.userId === Number(lastSelectedId))) {
                         setSelectedChildId(Number(lastSelectedId));
@@ -119,28 +64,43 @@ const ParentDashboard = () => {
         fetchChildren();
     }, []);
 
-    // Save selection preference
-    useEffect(() => {
-        if (selectedChildId) {
-            localStorage.setItem("lastSelectedChildId", selectedChildId);
-        }
-    }, [selectedChildId]);
-
-    // Get selected student object
+    // Derived State: Tìm object học sinh đang chọn
     const linkedStudent = children.find(c => c.userId === selectedChildId);
 
-    // Sử dụng hook lấy dữ liệu nếu đã liên kết và có chọn bé
+    // 2. Fetch Tiến độ khóa học (Chạy mỗi khi đổi con)
+    const fetchStudentProgress = async (studentId) => {
+        setIsLoadingProgress(true);
+        try {
+            const res = await axiosClient.get(`/courses/student/${studentId}/summary`);
+            setCoursesProgress(res.data);
+        } catch (error) {
+            console.error("Lỗi lấy tiến độ:", error);
+        } finally {
+            setIsLoadingProgress(false);
+        }
+    };
+
+    useEffect(() => {
+        if (linkedStudent?.userId) {
+            // Lưu preference
+            localStorage.setItem("lastSelectedChildId", linkedStudent.userId);
+            // Gọi API tiến độ
+            fetchStudentProgress(linkedStudent.userId);
+        }
+    }, [linkedStudent]);
+
+    // Hook AI Data
     const { statistics, insights, recommendations, loading: dataLoading, error: dataError } =
         useStudentData(linkedStudent?.userId);
+
+    // --- HANDLERS ---
 
     const handleLinkStudent = async (e) => {
         e.preventDefault();
         if (!studentEmail) return;
 
         setIsSearching(true);
-
         try {
-            console.log(">>> [Connect] Connecting with code:", studentEmail);
             const res = await axiosClient.post('/relationships/connect-by-code',
                 { linkCode: studentEmail },
                 { baseURL: '/api/users' }
@@ -148,23 +108,16 @@ const ParentDashboard = () => {
 
             const relationship = res.data;
             if (relationship && relationship.status === 'ACCEPTED') {
-                // 1. Fetch Student Detail
                 const studentId = relationship.studentId;
                 const studentRes = await axiosClient.get(`/${studentId}`, { baseURL: '/api/users' });
                 const newStudent = studentRes.data;
 
-                // 2. Add to list (Check duplicate)
                 setChildren(prev => {
                     if (prev.some(c => c.userId === newStudent.userId)) return prev;
                     return [...prev, newStudent];
                 });
 
-                // 3. Select new student
                 setSelectedChildId(newStudent.userId);
-
-                // 4. Update LocalStorage (Legacy support for single student - or migrate to list later)
-                localStorage.setItem("linkedStudent", JSON.stringify(newStudent));
-
                 setStudentEmail("");
                 setShowAddForm(false);
                 toast.success(`Kết nối thành công với ${newStudent.fullName}!`);
@@ -172,10 +125,8 @@ const ParentDashboard = () => {
                 toast.error("Kết nối chưa được chấp thuận (Status: " + relationship?.status + ")");
             }
         } catch (err) {
-            const msg = err.response?.data || "Lỗi kết nối hoặc mã không hợp lệ.";
-            // If msg is object, try to extract message
-            const errorText = typeof msg === 'string' ? msg : (msg.message || "Mã liên kết không đúng hoặc lỗi hệ thống.");
-            toast.error(errorText);
+            const msg = err.response?.data?.message || "Mã liên kết không đúng hoặc lỗi hệ thống.";
+            toast.error(msg);
         } finally {
             setIsSearching(false);
         }
@@ -189,17 +140,14 @@ const ParentDashboard = () => {
                 baseURL: '/api/users'
             });
 
-            // Remove from local list
             const newChildren = children.filter(c => c.userId !== selectedChildId);
             setChildren(newChildren);
 
-            // Select another child or reset
             if (newChildren.length > 0) {
                 setSelectedChildId(newChildren[0].userId);
             } else {
                 setSelectedChildId(null);
                 setShowAddForm(false);
-                localStorage.removeItem("linkedStudent");
             }
             toast.success("Đã hủy liên kết thành công.");
             setIsUnlinkModalOpen(false);
@@ -285,8 +233,6 @@ const ParentDashboard = () => {
                                 />
                             </div>
 
-
-
                             <div className="flex gap-3">
                                 {children.length > 0 && (
                                     <button
@@ -367,7 +313,7 @@ const ParentDashboard = () => {
                         <div className="space-y-4">
                             <div className="flex items-center gap-2">
                                 <Bot className="w-8 h-8 text-indigo-600" />
-                                <h2 className="text-2xl font-bold text-gray-900">AI Learning Insights for Parent</h2>
+                                <h2 className="text-2xl font-bold text-gray-900">AI Learning Insights</h2>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -389,52 +335,84 @@ const ParentDashboard = () => {
                             </div>
                         </div>
 
-                        {/* Recent Alerts / Quick Links */}
+                        {/* 3. Tiến độ học tập & Thông báo */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {/* Cột trái: Thông báo */}
                             <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                                 <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                                     <Bell size={18} className="text-amber-500" /> Thông báo mới nhất
                                 </h4>
                                 <div className="space-y-4">
                                     <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-800">
-                                        Con bạn vừa hoàn thành bài luyện tập với số điểm 9.5
+                                        Hệ thống: Vừa cập nhật tiến độ học tập mới.
                                     </div>
                                     <div className="p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800">
-                                        Con bạn chưa làm bài tập Module Math Logic trong 3 ngày.
+                                        Gợi ý: Nhắc con hoàn thành bài tập về nhà.
                                     </div>
                                 </div>
                             </div>
 
-                            <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-2xl shadow-lg text-white relative overflow-hidden">
-                                <div className="relative z-10 flex flex-col h-full justify-between">
-                                    <div>
-                                        <h3 className="text-2xl font-bold mb-2">Đồng hành cùng con</h3>
-                                        <p className="text-indigo-100 text-sm max-w-md">
-                                            Xem chi tiết các báo cáo hiệu suất và nhận gợi ý từ chuyên gia AI để giúp con bạn đạt kết quả tốt nhất.
-                                        </p>
-                                    </div>
-                                    <div className="mt-8 flex gap-3">
+                            {/* Cột phải: Tiến độ khóa học */}
+                            <div className="md:col-span-2 space-y-6">
+                                {/* Banner báo cáo tuần */}
+                                <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-2xl shadow-lg text-white relative overflow-hidden">
+                                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                                        <div>
+                                            <h3 className="text-xl font-bold mb-1">Báo cáo chi tiết AI</h3>
+                                            <p className="text-indigo-100 text-sm">Xem phân tích sâu về điểm mạnh/yếu của con.</p>
+                                        </div>
                                         <button
                                             onClick={() => navigate(`/ai/dashboard/parent/${linkedStudent.userId}`)}
-                                            className="px-6 py-2.5 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors"
+                                            className="px-6 py-2 bg-white text-indigo-600 rounded-xl font-bold hover:bg-indigo-50 transition-colors whitespace-nowrap"
                                         >
-                                            Xem chi tiết tiến độ
-                                        </button>
-                                        <button
-                                            onClick={() => navigate(`/ai/dashboard/parent/${linkedStudent.userId}`)}
-                                            className="px-6 py-2.5 bg-indigo-500 text-white rounded-xl font-bold hover:bg-indigo-400 transition-colors border border-indigo-400"
-                                        >
-                                            Báo cáo tuần
+                                            Xem báo cáo
                                         </button>
                                     </div>
+                                    <BarChart3 className="absolute -right-8 -bottom-8 w-48 h-48 text-white/10 rotate-12" />
                                 </div>
-                                <BarChart3 className="absolute -right-8 -bottom-8 w-48 h-48 text-white/10 rotate-12" />
+
+                                {/* List khóa học */}
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        <BookOpen className="w-6 h-6 text-blue-600" />
+                                        Tiến độ các khóa học
+                                    </h3>
+
+                                    {isLoadingProgress ? (
+                                        <p className="text-gray-500">Đang tải dữ liệu...</p>
+                                    ) : coursesProgress.length > 0 ? (
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {coursesProgress.map((course) => (
+                                                <div key={course.courseId} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                    <div className="flex-1">
+                                                        <div className="flex justify-between items-center mb-2">
+                                                            <h4 className="font-semibold text-gray-800">{course.courseTitle}</h4>
+                                                            <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                                                {Math.round(course.progress)}%
+                                                            </span>
+                                                        </div>
+                                                        <div className="w-full bg-gray-200 rounded-full h-2">
+                                                            <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: `${course.progress}%` }}></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 whitespace-nowrap text-right">
+                                                        {course.completedLessons}/{course.totalLessons} bài
+                                                        {course.progress === 100 && <span className="block text-green-600 font-bold mt-1">Hoàn thành</span>}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+                                            <p className="text-gray-500">Bé chưa đăng ký khóa học nào.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
                 )}
 
-                {/* Modal Component Instance */}
                 <ConfirmationModal
                     isOpen={isUnlinkModalOpen}
                     onClose={() => setIsUnlinkModalOpen(false)}

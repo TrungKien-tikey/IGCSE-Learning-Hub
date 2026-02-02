@@ -68,12 +68,6 @@ const RecentExamsCompact = ({ exams }) => {
     );
 };
 
-// Dữ liệu User (Lấy từ localStorage đã đăng nhập)
-const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
-const user = {
-    name: storedUser.fullName || "User",
-    role: (localStorage.getItem("userRole") || "student").toLowerCase()
-};
 
 // Component thẻ thống kê (Đã chuẩn hóa Tailwind)
 const StatCard = ({ title, value, icon: Icon, color, trend }) => {
@@ -113,11 +107,34 @@ const roleMessages = {
 const StudentDashboardGeneral = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    
+    const [loadingCourses, setLoadingCourses] = useState(true);
+    // Dữ liệu User (Lấy từ localStorage đã đăng nhập)
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+    const user = {
+        name: storedUser.fullName || "User",
+        role: (localStorage.getItem("userRole") || "student").toLowerCase()
+    };
+
+    // 3. Gọi API lấy tiến độ thật
+    useEffect(() => {
+        const fetchProgress = async () => {
+            try {
+                const res = await axiosClient.get('/courses/my-summary');
+                // Chỉ lấy 3 khóa học đầu tiên để hiển thị trên Dashboard cho gọn
+                setMyCourses(res.data.slice(0, 3));
+            } catch (error) {
+                console.error("Lỗi tải tiến độ:", error);
+            } finally {
+                setLoadingCourses(false);
+            }
+        };
+        fetchProgress();
+    }, []);
+
     // Get studentId with validation - sử dụng useMemo để chỉ tính toán một lần
     const studentId = useMemo(() => {
         let id = searchParams.get("studentId") || localStorage.getItem("userId");
-        
+
         // Validate studentId: không được undefined/null string
         if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
             // Thử lấy từ JWT token nếu có
@@ -130,20 +147,20 @@ const StudentDashboardGeneral = () => {
                     // Ignore decode error
                 }
             }
-            
+
             // Fallback cuối cùng
             if (!id || id === "undefined" || id === "null") {
                 id = "1";
             }
         }
-        
+
         // Final validation: phải là số hợp lệ
         const numId = Number(id);
         if (isNaN(numId) || numId <= 0) {
             // Fallback về "1" nếu không hợp lệ (không log warning vì đây là fallback bình thường)
             return "1";
         }
-        
+
         return String(numId);
     }, [searchParams]);
 
@@ -182,12 +199,26 @@ const StudentDashboardGeneral = () => {
     }, [studentId]);
 
     // Filtering logic
+    // Filtering logic
     const filteredCourses = myCourses.filter(course => {
-        const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (course.courseId && course.courseId.toString().includes(searchTerm));
+        // 1. Kiểm tra an toàn: Nếu course bị null/undefined thì bỏ qua
+        if (!course) return false;
+
+        // 2. Lấy title an toàn: Dùng String() để đảm bảo luôn là chuỗi, tránh lỗi undefined
+        const rawTitle = course.title || course.courseTitle || "";
+        const titleLower = String(rawTitle).toLowerCase();
+
+        // 3. Lấy từ khóa tìm kiếm an toàn: Nếu searchTerm null thì coi là ""
+        const searchLower = String(searchTerm || "").toLowerCase();
+
+        // 4. So sánh
+        const matchesSearch = titleLower.includes(searchLower) ||
+            (course.courseId && String(course.courseId).includes(searchLower));
 
         if (filterStatus === "all") return matchesSearch;
-        // Giả sử có thuộc tính status hoặc isActive
+
+        // Logic lọc Active/Inactive
+        // Lưu ý: Cần kiểm tra kỹ trường isActive có tồn tại không
         if (filterStatus === "active") return matchesSearch && (course.isActive !== false);
         if (filterStatus === "inactive") return matchesSearch && (course.isActive === false);
 
@@ -272,14 +303,33 @@ const StudentDashboardGeneral = () => {
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h3 className="text-sm font-semibold text-gray-700 hover:text-blue-600 transition-colors">
-                                                [{course.courseId || '0000'}] - {course.title}
+                                                [{course.courseId || '0000'}] - {course.title || course.courseTitle}
                                             </h3>
                                             <p className="text-[11px] text-gray-400 mt-1 uppercase tracking-tight">
                                                 [CQ]_HKII2024-2025_IGCSE Learning Hub
                                             </p>
-                                            <p className="text-[11px] text-gray-500 mt-1 font-medium">
-                                                50% complete
-                                            </p>
+                                            {/* --- BẮT ĐẦU PHẦN THAY THẾ --- */}
+                                            <div className="mt-2 w-full max-w-[200px]">
+                                                {/* Dòng chữ hiển thị % và số bài */}
+                                                <div className="flex justify-between items-center text-[11px] font-medium mb-1">
+                                                    <span className={course.progress === 100 ? "text-green-600 font-bold" : "text-indigo-600"}>
+                                                        {Math.round(course.progress || 0)}%
+                                                    </span>
+                                                    <span className="text-gray-400">
+                                                        {course.completedLessons || 0}/{course.totalLessons || 0} bài
+                                                    </span>
+                                                </div>
+
+                                                {/* Thanh tiến độ (Visual Bar) */}
+                                                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden border border-gray-100">
+                                                    <div
+                                                        className={`h-full rounded-full transition-all duration-500 ease-out ${course.progress === 100 ? 'bg-green-500' : 'bg-indigo-500'
+                                                            }`}
+                                                        style={{ width: `${course.progress || 0}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                            {/* --- KẾT THÚC PHẦN THAY THẾ --- */}
                                         </div>
                                         <button className="text-gray-300 hover:text-gray-600 p-1">
                                             <MoreVertical size={18} />
@@ -297,7 +347,7 @@ const StudentDashboardGeneral = () => {
                         <div>
                             <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                                 <ShoppingCart className="w-5 h-5 text-indigo-600" />
-                                Khám Phá 
+                                Khám Phá
                             </h2>
                             <p className="text-xs text-gray-500">Gợi ý những khóa học phù hợp nhất với hành trình của bạn.</p>
                         </div>
