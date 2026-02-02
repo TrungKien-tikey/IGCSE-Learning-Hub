@@ -1,6 +1,6 @@
 package com.igcse.auth.config;
 
-import com.igcse.auth.repository.BlacklistedTokenRepository; // <--- 1. MỚI: Import Repository
+import com.igcse.auth.repository.BlacklistedTokenRepository;
 import com.igcse.auth.util.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,10 +22,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
-    // 2. MỚI: Khai báo biến Repository
     private final BlacklistedTokenRepository blacklistedTokenRepository;
 
-    // 3. MỚI: Cập nhật Constructor để nhận Repository vào
     public JwtAuthenticationFilter(
             JwtUtils jwtUtils,
             UserDetailsService userDetailsService,
@@ -45,35 +43,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
-        // 1. Kiểm tra xem Header có Token không
+        // 1. Kiểm tra Header
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 2. Lấy Token ra
+        // 2. Lấy Token
         jwt = authHeader.substring(7);
 
-        // --- [QUAN TRỌNG] BƯỚC KIỂM TRA BLACKLIST (MỚI THÊM) ---
-        // Nếu Token nằm trong danh sách đen -> Chặn ngay lập tức!
+        // --- CHECK BLACKLIST ---
         if (blacklistedTokenRepository.existsByToken(jwt)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // Trả về mã lỗi 401
-            response.getWriter().write("Token da het han hoac da dang xuat!"); // Ghi thông báo lỗi
-            return; // Dừng lại, không cho đi tiếp vào Controller
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token da het han hoac da dang xuat!");
+            return;
         }
-        // -------------------------------------------------------
+        // -----------------------
 
         // 3. Trích xuất Email từ Token và load User
         try {
-            userEmail = jwtUtils.extractUsername(jwt);
+            userEmail = jwtUtils.extractEmail(jwt);
 
             // 4. Nếu có Email và chưa được xác thực
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // Lấy thông tin User từ Database
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
 
-                // 5. Kiểm tra Token có hợp lệ không (Đúng chữ ký, chưa hết hạn thời gian)
-                if (jwtUtils.isTokenValid(jwt, userDetails)) {
+                // 5. Kiểm tra Token có hợp lệ không
+                if (jwtUtils.validateToken(jwt)) {
 
                     // 6. Tạo đối tượng Authentication
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -94,7 +91,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             logger.error("JWT validation failed: " + e.getMessage());
         }
 
-        // Cho phép request đi tiếp
         filterChain.doFilter(request, response);
     }
 }
