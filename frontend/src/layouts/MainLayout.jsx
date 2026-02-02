@@ -64,7 +64,14 @@ const MainLayout = ({ children }) => {
   // State quản lý User để trigger re-render khi cập nhật
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : {};
+    const savedUser = saved ? JSON.parse(saved) : {};
+    const currentRole = localStorage.getItem("userRole");
+
+    // Nếu Role trong User cũ khác với Role vừa đăng nhập -> Data cũ -> Bỏ qua
+    if (currentRole && savedUser.role && savedUser.role !== currentRole) {
+      return {};
+    }
+    return savedUser;
   });
 
   // Fetch user profile if missing
