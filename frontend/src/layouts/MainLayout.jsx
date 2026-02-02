@@ -34,6 +34,8 @@ const menuItems = {
   admin: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
+    { title: "Xét duyệt Giáo viên", icon: ShieldCheck, url: "/admin/verify" },
+    { title: "Duyệt khóa học", icon: BookOpen, url: "/course-approval" },
   ],
   parent: [
     { title: "Tổng quan", icon: Home, url: "/" },
