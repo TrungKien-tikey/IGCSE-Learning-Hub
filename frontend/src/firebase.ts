@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps } from "firebase/app";
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
 
 // Dán config bạn vừa copy từ Firebase Console vào đây
@@ -12,7 +12,7 @@ const firebaseConfig = {
   measurementId: "G-627C4EZM57"
 };
 
-const app = initializeApp(firebaseConfig);
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 export const requestForToken = async () => {
   try {
@@ -20,7 +20,7 @@ export const requestForToken = async () => {
     // VapidKey: Bạn lấy ở tab "Cloud Messaging" -> "Web configuration" trong Firebase Console
     // Nếu lười thì để trống hàm getToken() cũng được, nhưng tốt nhất nên tạo key pair trên console
     const permission = await Notification.requestPermission();
-    
+
     if (permission === "granted") {
       const token = await getToken(messaging, {
         vapidKey: "BAIvhEKMsQq9NfpHqBI72wKj0QhNIdQf88zXWEnrzkfv57fs0Kh_dLmuwU2p1kcUQExekAU1CIp3rlkof9NWU8Y"
@@ -44,10 +44,10 @@ export const onMessageListener = () => {
         const messaging = getMessaging(app);
         // Nghe tin nhắn khi đang mở tab
         import("firebase/messaging").then(({ onMessage }) => {
-            onMessage(messaging, (payload) => {
-                console.log("Message received: ", payload);
-                resolve(payload);
-            });
+          onMessage(messaging, (payload) => {
+            console.log("Message received: ", payload);
+            resolve(payload);
+          });
         });
       }
     });

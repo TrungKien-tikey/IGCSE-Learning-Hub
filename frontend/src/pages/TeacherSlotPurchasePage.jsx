@@ -10,7 +10,7 @@ import {
     purchaseSlotPackage,
     getTeacherSlots
 } from '../api/paymentService'; // Đảm bảo import đúng đường dẫn
-import axiosClient from '../api/axiosClient';
+import userClient from '../api/userClient'; // Dùng cho user-service API
 
 // Format tiền VNĐ
 const formatCurrency = (value) => {
@@ -35,7 +35,7 @@ export default function TeacherSlotPurchasePage() {
         const fetchUserData = async () => {
             try {
                 // Lấy thông tin user hiện tại
-                const res = await axiosClient.get('/users/me');
+                const res = await userClient.get('/me');
                 if (res.data) {
                     setTeacherId(res.data.userId || res.data.id);
                     setTeacherName(res.data.fullName);
@@ -91,14 +91,59 @@ export default function TeacherSlotPurchasePage() {
 
             if (result.success) {
                 toast.success(`🎉 ${result.message}`);
-                // Hiển thị thông tin chuyển khoản (Giả lập)
-                alert(`Vui lòng chuyển khoản ${formatCurrency(result.amount)} đến STK: 123456789 (Vietcombank) - Nội dung: "MUA SLOT ${result.transactionId}"`);
+                // Hiển thị lựa chọn thanh toán
+                const paymentChoice = window.confirm(
+                    `Bạn muốn thanh toán qua VNPay?\n\n` +
+                    `- Nhấn OK để thanh toán qua VNPay\n` +
+                    `- Nhấn Cancel để chuyển khoản thủ công`
+                );
+
+                if (paymentChoice) {
+                    // Thanh toán qua VNPay
+                    handleVNPayPayment(result.transactionId, result.amount, pkg.name);
+                } else {
+                    // Hiển thị thông tin chuyển khoản
+                    alert(`Vui lòng chuyển khoản ${formatCurrency(result.amount)} đến STK: 123456789 (Vietcombank) - Nội dung: "MUA SLOT ${result.transactionId}"`);
+                }
             }
         } catch (error) {
             console.error('Purchase error:', error);
             toast.error(error.response?.data?.message || "Lỗi giao dịch!");
         } finally {
             setPurchasing(false);
+        }
+    };
+
+    const handleVNPayPayment = async (transactionId, amount, packageName) => {
+        try {
+            console.log('=== handleVNPayPayment called ===');
+            console.log('transactionId:', transactionId);
+            console.log('amount:', amount);
+            console.log('packageName:', packageName);
+
+            const { createVNPayPayment } = await import('../api/paymentService');
+
+            const vnpayResponse = await createVNPayPayment({
+                transactionId: transactionId,
+                transactionType: "SLOT",
+                amount: amount,
+                orderInfo: `Mua goi suat hoc: ${packageName}`,
+                language: "vn"
+            });
+
+            console.log('VNPay response:', vnpayResponse);
+
+            if (vnpayResponse.code === "00" && vnpayResponse.paymentUrl) {
+                console.log('Redirecting to:', vnpayResponse.paymentUrl);
+                // Redirect đến VNPay
+                window.location.href = vnpayResponse.paymentUrl;
+            } else {
+                console.error('VNPay response not OK:', vnpayResponse);
+                toast.error(vnpayResponse.message || "Không thể tạo URL thanh toán VNPay");
+            }
+        } catch (error) {
+            console.error('VNPay payment error:', error);
+            toast.error("Lỗi kết nối VNPay. Vui lòng thử lại hoặc chuyển khoản thủ công.");
         }
     };
 
@@ -240,8 +285,8 @@ export default function TeacherSlotPurchasePage() {
                                         onClick={() => handlePurchase(pkg)}
                                         disabled={purchasing}
                                         className={`w-full py-4 rounded-xl font-bold text-lg transition-transform active:scale-95 flex items-center justify-center gap-2 ${idx === 1
-                                                ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'
-                                                : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
+                                            ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'
+                                            : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                                             }`}
                                     >
                                         <CreditCard className="w-5 h-5" />
