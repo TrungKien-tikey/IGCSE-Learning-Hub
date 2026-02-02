@@ -161,15 +161,15 @@ public class CourseService {
     }
 
     public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl,
-                           String resourceUrl, String resourceName) { // Thêm tham số resourceName ở đây
-    Lesson lesson = getLessonById(lessonId);
-    if (lesson != null) {
-        // Cập nhật đầy đủ các tham số theo cấu hình mới của Entity Lesson
-        lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName);
-        return lessonRepository.save(lesson);
+            String resourceUrl, String resourceName) { // Thêm tham số resourceName ở đây
+        Lesson lesson = getLessonById(lessonId);
+        if (lesson != null) {
+            // Cập nhật đầy đủ các tham số theo cấu hình mới của Entity Lesson
+            lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName);
+            return lessonRepository.save(lesson);
+        }
+        return null;
     }
-    return null;
-}
 
     public boolean removeLesson(Long lessonId) {
         if (lessonRepository.existsById(lessonId)) {
@@ -288,5 +288,33 @@ public class CourseService {
         return progressList.stream()
                 .map(LessonProgress::getLessonId)
                 .collect(Collectors.toList());
+    }
+
+    public List<com.igcse.course.dto.StudentProgressDTO> getStudentProgressSummary(Long studentId) {
+        // 1. Lấy danh sách khóa học user đã đăng ký
+        List<Enrollment> enrollments = enrollmentRepository.findByUserId(studentId);
+
+        // 2. Tính toán tiến độ cho từng khóa
+        return enrollments.stream().map(enrollment -> {
+            Course course = enrollment.getCourse();
+
+            // Tận dụng hàm getCourseProgress đã có
+            double progress = getCourseProgress(studentId, course.getCourseId());
+
+            // Đếm số bài
+            long totalLessons = lessonRepository.countByCourseCourseId(course.getCourseId());
+            long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndIsCompleted(studentId,
+                    course.getCourseId(), true);
+
+            // Map sang DTO
+            com.igcse.course.dto.StudentProgressDTO dto = new com.igcse.course.dto.StudentProgressDTO();
+            dto.setCourseId(course.getCourseId());
+            dto.setCourseTitle(course.getTitle());
+            dto.setProgress(progress);
+            dto.setTotalLessons((int) totalLessons);
+            dto.setCompletedLessons((int) completedLessons);
+
+            return dto;
+        }).collect(Collectors.toList());
     }
 }
