@@ -64,9 +64,8 @@ function Login() {
     e.preventDefault();
 
     // Xóa dữ liệu cũ để tránh conflict role
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('userId');
+    // Xóa toàn bộ dữ liệu cũ để tránh conflict role
+    localStorage.clear();
 
     // 👇 4. Chặn submit nếu dữ liệu chưa nhập đủ
     if (!validateForm()) {

@@ -145,8 +145,6 @@ export default function ProfilePage() {
                 qualifications: formData.qualifications,
                 subjects: formData.subjects,
                 verificationDocument: formData.verificationDocument
-            }, {
-                baseURL: '/api'
             });
 
             const updatedUser = res.data;
