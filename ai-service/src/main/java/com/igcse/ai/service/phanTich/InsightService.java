@@ -118,7 +118,8 @@ public class InsightService implements IInsightService {
         }
 
         try {
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, nifiData,
+                    null);
 
             // Lấy các bản phân tích cũ làm ngữ cảnh so sánh
             List<AIInsight> recentLogics = aiInsightRepository
@@ -243,7 +244,7 @@ public class InsightService implements IInsightService {
             String dataSummary = tierManagerService.buildTextSummary(analysis);
             dataSummary += " Đây là kết quả của một bài thi cụ thể (Attempt ID: " + attemptId + ").";
 
-            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null);
+            TierManagerService.AnalysisMetadata metadata = tierManagerService.extractMetadata(studentId, null, null);
             String aiLanguageName = languageService.getAiLanguageName("vi");
             try {
                 insight = insightAiService.generateInsight(dataSummary, metadata.studentName(),
@@ -323,5 +324,31 @@ public class InsightService implements IInsightService {
         insight.setAreasForImprovement(new ArrayList<>());
         insight.setActionPlan("Vui lòng hoàn thành bài thi để nhận được insights.");
         return insight;
+    }
+
+    /**
+     * Châm ngòi phân tích chủ động ngay sau khi chấm điểm xong.
+     */
+    @Override
+    @org.springframework.scheduling.annotation.Async
+    public void triggerProactiveAnalysis(Long studentId, Long attemptId) {
+        logger.info(">>> [Proactive] Triggering deep analysis for student {} and attempt {}", studentId, attemptId);
+
+        // 1. Phân tích cho riêng bài thi này (Kết quả hiển thị trong AIResultPage)
+        try {
+            getInsightByAttempt(attemptId);
+        } catch (Exception e) {
+            logger.error(">>> [Proactive] Failed to generate attempt insight", e);
+        }
+
+        // 2. Cập nhật phân tích tổng thể toàn Dashboard (Kết quả hiển thị trong
+        // StudentDashboard)
+        try {
+            refreshInsight(studentId, null);
+        } catch (Exception e) {
+            logger.error(">>> [Proactive] Failed to refresh global student insight", e);
+        }
+
+        logger.info(">>> [Proactive] Deep analysis completed for student {}", studentId);
     }
 }

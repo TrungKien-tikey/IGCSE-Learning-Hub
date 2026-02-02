@@ -4,12 +4,13 @@ import {
   LayoutDashboard, Calculator, BarChart3, FileText, User, LogOut,
   Users, ShieldCheck, ClipboardList, BookOpen, GraduationCap,
   Home, Settings, TrendingUp, ShoppingCart, Bell,
-  PlayCircle, Menu, X, Award
+  PlayCircle, Menu, X, Award, Brain, Activity
 } from 'lucide-react';
 
 // [UPDATED] Import các thư viện cần thiết cho Notification
 import { requestForToken, onMessageListener } from '../firebase'; // Đảm bảo đường dẫn đúng tới file firebase.ts/.js của bạn
-import axiosClient from '../api/axiosClient';
+import axiosClient from '../api/axiosClient'; // Cho FCM token registration
+import userClient from '../api/userClient'; // Cho user-service API
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 const menuItems = {
@@ -23,9 +24,10 @@ const menuItems = {
   ],
   teacher: [
     { title: "Tổng quan", icon: LayoutDashboard, url: "/" },
+    { title: "Lớp học & AI Insights", icon: BarChart3, url: "/ai/dashboard/teacher" },
     // { title: "Quản lý giảng dạy", icon: FileText, url: "/course/courses" },
     { title: "Quản lý bài kiểm tra", icon: GraduationCap, url: "/exams/manage" },
-    // { title: "Đánh giá", icon: ClipboardList, url: "/grading" },
+    { title: "Mua Suất Học", icon: ShoppingCart, url: "/teacher/buy-slots" },
   ],
   manager: [
     { title: "Tổng quan", icon: Home, url: "/" },
@@ -36,11 +38,12 @@ const menuItems = {
     { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
     { title: "Xét duyệt Giáo viên", icon: ShieldCheck, url: "/admin/verify" },
     { title: "Duyệt khóa học", icon: BookOpen, url: "/course-approval" },
+    { title: "Phân tích AI Admin", icon: Brain, url: "/ai/dashboard/admin" }, // New Link
+    { title: "Gói suất học", icon: ShoppingCart, url: "/admin/slot-packages" },
   ],
   parent: [
     { title: "Tổng quan", icon: Home, url: "/" },
-    { title: "Tiến độ học sinh", icon: BarChart3, url: "/progress" },
-    { title: "Báo cáo học tập", icon: FileText, url: "/reports" },
+    { title: "Hồ sơ học tập AI", icon: Activity, url: "/ai/dashboard/parent/placeholder" }, // Will be replaced dynamic
   ],
 };
 
@@ -61,7 +64,14 @@ const MainLayout = ({ children }) => {
   // State quản lý User để trigger re-render khi cập nhật
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem("user");
-    return saved ? JSON.parse(saved) : {};
+    const savedUser = saved ? JSON.parse(saved) : {};
+    const currentRole = localStorage.getItem("userRole");
+
+    // Nếu Role trong User cũ khác với Role vừa đăng nhập -> Data cũ -> Bỏ qua
+    if (currentRole && savedUser.role && savedUser.role !== currentRole) {
+      return {};
+    }
+    return savedUser;
   });
 
   // Fetch user profile if missing
@@ -69,7 +79,7 @@ const MainLayout = ({ children }) => {
     const fetchProfile = async () => {
       if (!currentUser.fullName || !currentUser.email) {
         try {
-          const res = await axiosClient.get('/users/me', { baseURL: '/api' });
+          const res = await userClient.get('/me');
           if (res.data) {
             setCurrentUser(res.data);
             localStorage.setItem("user", JSON.stringify(res.data));
@@ -97,15 +107,21 @@ const MainLayout = ({ children }) => {
   let items = menuItems[role] || menuItems["student"];
 
   // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
+
   if (role === 'parent') {
     const linkedStudent = JSON.parse(localStorage.getItem("linkedStudent") || "null");
     if (linkedStudent && linkedStudent.userId) {
       items = items.map(item => {
-        if (item.url === '/progress' || item.url === '/reports') {
-          return { ...item, url: `/ai/dashboard/student?studentId=${linkedStudent.userId}` };
+        // Cũ: /progress -> /ai/dashboard/student
+        // Mới: /ai/dashboard/parent/placeholder -> /ai/dashboard/parent/{studentId}
+        if (item.url.includes('/placeholder')) {
+          return { ...item, url: `/ai/dashboard/parent/${linkedStudent.userId}` };
         }
         return item;
       });
+    } else {
+      // Fallback demo ONLY for testing if no student linked yet (User ID + 1 assumed or keep placeholder)
+      // In prod: Hide item or show "Link Student"
     }
   }
 

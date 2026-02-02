@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// 1. [SỬA LẠI] Dùng đường dẫn tương đối để đi qua Proxy/Gateway
+// 1. Tạo instance với path tương đối - sẽ đi qua Vite proxy -> Kong Gateway
+// Không dùng port cố định để tận dụng proxy configuration
 const axiosClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL + '/api/v1',
+  baseURL: '/api/v1', // Sử dụng path tương đối, Vite sẽ proxy đến Kong (port 8000)
   headers: {
     'Content-Type': 'application/json',
     "ngrok-skip-browser-warning": "69420",
@@ -36,20 +37,18 @@ axiosClient.interceptors.response.use(
 
       try {
         const refreshToken = localStorage.getItem('refreshToken');
-        
+
         if (!refreshToken) {
-            throw new Error("No refresh token available");
+          throw new Error("No refresh token available");
         }
 
-        // [QUAN TRỌNG] Sửa lại đường dẫn gọi API Refresh Token
-        // Bỏ 'http://localhost:8080' đi, dùng đường dẫn tương đối giống baseURL
-        // Vì baseURL là '/api/v1' -> API login là '/auth/login'
-        // Nên API refresh sẽ là '/api/v1/auth/refresh-token'
-        const result = await axios.post('/api/v1/auth/refresh-token', { 
+        // Gọi API Refresh Token qua Kong Gateway
+        // ⚠️ Lưu ý: Dùng 'axios' gốc để gọi tránh lặp vô tận
+        const result = await axios.post('/api/v1/auth/refresh-token', {
           refreshToken: refreshToken
         });
 
-        const { token } = result.data; 
+        const { token } = result.data;
 
         localStorage.setItem('accessToken', token);
 
@@ -63,7 +62,7 @@ axiosClient.interceptors.response.use(
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('role');
-        window.location.href = '/login'; 
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       }
     }
