@@ -100,7 +100,7 @@ const MainLayout = ({ children }) => {
   let items = menuItems[role] || menuItems["student"];
 
   // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
-  // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
+
   if (role === 'parent') {
     const linkedStudent = JSON.parse(localStorage.getItem("linkedStudent") || "null");
     if (linkedStudent && linkedStudent.userId) {

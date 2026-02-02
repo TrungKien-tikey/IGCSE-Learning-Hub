@@ -25,6 +25,8 @@ public class CourseService {
     @Autowired
     private EnrollmentRepository enrollmentRepository;
     @Autowired
+    private LessonProgressRepository lessonProgressRepository;
+    @Autowired
     private com.igcse.course.client.PaymentClient paymentClient;
 
     // ==========================================
