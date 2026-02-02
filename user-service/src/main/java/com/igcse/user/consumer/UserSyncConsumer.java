@@ -38,6 +38,14 @@ public class UserSyncConsumer {
                 user.setEmail(dto.getEmail());
                 user.setFullName(dto.getFullName());
                 user.setRole(dto.getRole());
+
+                // Generate Link Code for Student
+                if ("STUDENT".equals(dto.getRole())) {
+                    String linkCode = "HS-" + (int) (Math.random() * 900000 + 100000);
+                    user.setLinkCode(linkCode);
+                    System.out.println("Generated LinkCode for " + dto.getEmail() + ": " + linkCode);
+                }
+
                 user.setActive(true);
                 userRepository.save(user);
                 System.out.println("Successfully synced new user to user_db: " + dto.getEmail());
