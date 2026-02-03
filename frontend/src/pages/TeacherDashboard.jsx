@@ -33,7 +33,7 @@ export default function TeacherDashboard() {
         title: '', description: '', price: '', duration: ''
     });
 
-    const API_URL = '/courses';
+    const API_URL = '/api/courses';
 
     // Fetch teacher slots
     const fetchTeacherSlots = async () => {
