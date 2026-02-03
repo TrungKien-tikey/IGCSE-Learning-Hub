@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
 import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 import userClient from '../api/userClient';
 import {
     getRevenueOverview,
@@ -155,7 +156,7 @@ export default function GeneralAdminDashboard() {
     // Hàm fetch tổng số người dùng
     const fetchTotalUsers = async () => {
         try {
-            const response = await userClient.get('/admin/list', {
+            const response = await axiosClient.get('/api/admin/users', {
                 params: { page: 0, size: 1 }
             });
             if (response.data?.totalElements !== undefined) {

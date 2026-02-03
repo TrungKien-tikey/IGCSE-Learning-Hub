@@ -44,7 +44,7 @@ axiosClient.interceptors.response.use(
 
         // Gọi API Refresh Token qua Kong Gateway
         // ⚠️ Lưu ý: Dùng 'axios' gốc để gọi tránh lặp vô tận
-        const result = await axios.post('/api/v1/auth/refresh-token', {
+        const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/v1/auth/refresh-token`, {
           refreshToken: refreshToken
         });
 

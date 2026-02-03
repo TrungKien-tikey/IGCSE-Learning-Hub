@@ -46,7 +46,7 @@ userClient.interceptors.response.use(
         }
 
         // Gọi API Refresh Token
-        const result = await axios.post('/api/v1/auth/refresh-token', {
+        const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/v1/auth/refresh-token`, {
           refreshToken: refreshToken
         });
 
