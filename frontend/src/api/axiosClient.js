@@ -35,6 +35,13 @@ if (baseURL.endsWith('/api')) {
    baseURL = baseURL.replace(/\/api\/?$/, '');
 }
 
+// Đảm bảo không có trailing slash
+if (baseURL.endsWith('/')) {
+  baseURL = baseURL.slice(0, -1);
+}
+
+console.log("✓ AxiosClient BaseURL:", baseURL);
+
 const axiosClient = axios.create({
   baseURL: baseURL, 
   headers: {
@@ -47,8 +54,15 @@ const axiosClient = axios.create({
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
+    console.log(`📤 ${config.method.toUpperCase()} ${config.url}`, {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0
+    });
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
+      console.log("✓ Token attached to request");
+    } else {
+      console.warn("⚠️ No token in localStorage");
     }
     return config;
   },
