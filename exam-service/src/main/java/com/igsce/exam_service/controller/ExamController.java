@@ -16,7 +16,7 @@ import java.util.Map;
 @RequestMapping("/api/exams")
 @RequiredArgsConstructor
 // Vẫn giữ CrossOrigin để phòng hờ, nhưng Proxy đã giải quyết vấn đề này
-@CrossOrigin(origins = { "http://localhost:5173", "http://localhost:5174" })
+@CrossOrigin(origins = { "https://igcse-learning-hub.vercel.app", "http://localhost:5173", "http://localhost:5174" })
 public class ExamController {
 
     private final ExamService examService;
