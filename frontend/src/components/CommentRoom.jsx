@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import authClient from '../api/authClient';
+import userClient from '../api/userClient';
 import commentClient from '../api/commentClient';
 
 const CommentRoom = ({ examId }) => {
@@ -35,13 +35,13 @@ const CommentRoom = ({ examId }) => {
         const fetchUserFromAuth = async () => {
             if (!currentUserId) return;
             try {
-                const res = await authClient.get(`/users/${currentUserId}`);
+                const res = await userClient.get(`/${currentUserId}`);
                 if (res.data && res.data.fullName) {
                     setResolvedUsername(res.data.fullName);
-                    localStorage.setItem('fullName', res.data.fullName); // Cập nhật lại cache
+                    localStorage.setItem('fullName', res.data.fullName);
                 }
             } catch (err) {
-                console.error("Lỗi lấy thông tin người dùng từ Auth Service:", err);
+                console.error("Lỗi lấy thông tin người dùng từ User Service:", err);
             }
         };
 
@@ -73,7 +73,7 @@ const CommentRoom = ({ examId }) => {
                 senderName = cachedName;
             } else {
                 try {
-                    const res = await authClient.get(`/users/${currentUserId}`);
+                    const res = await userClient.get(`/${currentUserId}`);
                     if (res.data && res.data.fullName) {
                         senderName = res.data.fullName;
                     }

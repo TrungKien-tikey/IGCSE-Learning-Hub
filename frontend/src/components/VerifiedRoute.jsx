@@ -20,9 +20,9 @@ const VerifiedRoute = ({ children }) => {
     // Hàm lấy lại thông tin user nếu thiếu
     const fetchUserProfile = async () => {
         try {
-            const { default: authClient } = await import('../api/authClient');
+            const { default: userClient } = await import('../api/userClient');
 
-            const response = await authClient.get('/users/me');
+            const response = await userClient.get('/me');
             const userData = response.data;
 
             localStorage.setItem("user", JSON.stringify(userData));
