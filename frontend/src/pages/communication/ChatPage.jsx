@@ -137,8 +137,8 @@ export default function ChatPage() {
 
         // Use Gateway URL for WebSocket/SockJS
         const socketUrl = import.meta.env.VITE_MAIN_API_URL
-            ? `${import.meta.env.VITE_MAIN_API_URL}/ws`
-            : 'http://localhost:8089/ws';
+            ? `${import.meta.env.VITE_MAIN_API_URL}/api/chat/ws`
+            : 'http://localhost:8089/api/chat/ws';
         const socket = new SockJS(socketUrl);
         const client = Stomp.over(socket);
         client.debug = null;
