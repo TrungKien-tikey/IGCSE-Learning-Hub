@@ -46,6 +46,8 @@ services:
       RABBITMQ_DEFAULT_PASS: guest
     networks:
       - igcse-network
+    
+    
 
   # 1.3 AUTH SERVICE (Java Spring Boot - Cần thêm cái này!)
   auth-service:
@@ -395,6 +397,24 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     networks:
       - igcse-network
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: igcse_jenkins
+    privileged: true
+    user: root
+    restart: always
+    ports:
+      - "8088:8080"   # Cổng truy cập giao diện Web Jenkins
+      - "50000:50000" # Cổng kết nối Agent (nếu cần)
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      # Quan trọng: Gắn socket của Docker để Jenkins có thể build/run container
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - igcse-network
+
 
   # =========================================
   # PHẦN 5: FRONTEND (React + Vite + Nginx)
@@ -432,3 +452,4 @@ volumes:
   nifi_flowfile_repository:
   nifi_content_repository:
   nifi_provenance_repository:
+  jenkins_home:
