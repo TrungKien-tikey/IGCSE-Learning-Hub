@@ -26,7 +26,7 @@ export default function CoursePage() {
     title: '', description: '', price: '', duration: ''
   });
 
-  const API_URL = '/courses';
+  const API_URL = '/api/courses';
 
   // Fetch teacher info and slots
   const fetchTeacherSlots = async () => {
