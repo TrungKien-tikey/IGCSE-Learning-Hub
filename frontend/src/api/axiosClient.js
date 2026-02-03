@@ -3,10 +3,36 @@ import axios from 'axios';
 // 1. Tạo instance với path tương đối - sẽ đi qua Vite proxy -> Kong Gateway
 // Không dùng port cố định để tận dụng proxy configuration
 // 1. Lấy Base URL từ env. Nếu không có VITE_MAIN_API_URL, thử suy diễn từ các biến khác
-const baseURL = import.meta.env.VITE_MAIN_API_URL;
+// 1. Lấy Base URL từ env
+// Ưu tiên VITE_MAIN_API_URL. Nếu không có, fallback sang Ngrok URL đang dùng.
+const HARDCODED_URL = 'https://aniya-scrumptious-lina.ngrok-free.dev';
+let baseURL = import.meta.env.VITE_MAIN_API_URL;
 
 if (!baseURL) {
-  console.error("❌ CRITICAL: VITE_MAIN_API_URL is not set! API calls may fail.");
+  // Thử suy luận từ các biến khác nếu có
+  const otherUrl = import.meta.env.VITE_AI_SERVICE_URL || 
+                   import.meta.env.VITE_USER_SERVICE_URL || 
+                   import.meta.env.VITE_ADMIN_API_URL;
+                   
+  if (otherUrl && otherUrl.includes('/api')) {
+    baseURL = otherUrl.split('/api')[0];
+  } else {
+    // Fallback cuối cùng
+    baseURL = HARDCODED_URL;
+  }
+  
+  console.log("⚠️ AxiosClient: VITE_MAIN_API_URL missing using fallback:", baseURL);
+}
+
+// 🛡️ BẢO VỆ CHỐNG LẶP URL: Xóa đuôi /api/v1 nếu có
+if (baseURL.endsWith('/api/v1')) {
+  baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
+} else if (baseURL.endsWith('/api/v1/')) {
+    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
+}
+// Xóa luôn đuôi /api nếu lỡ có (để thống nhất logic cộng chuỗi)
+if (baseURL.endsWith('/api')) {
+   baseURL = baseURL.replace(/\/api\/?$/, '');
 }
 
 const axiosClient = axios.create({
