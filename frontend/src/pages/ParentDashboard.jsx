@@ -70,7 +70,7 @@ const ParentDashboard = () => {
     const fetchStudentProgress = async (studentId) => {
         setIsLoadingProgress(true);
         try {
-            const res = await axiosClient.get(`/courses/student/${studentId}/summary`);
+            const res = await axiosClient.get(`/api/courses/student/${studentId}/summary`);
             setCoursesProgress(res.data);
         } catch (error) {
             console.error("Lỗi lấy tiến độ:", error);
