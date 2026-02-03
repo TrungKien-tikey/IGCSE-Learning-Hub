@@ -18,7 +18,7 @@ export default function CourseDetailPage() {
     const [currentUser, setCurrentUser] = useState(null); // User info
 
     // GIẢ LẬP ID USER (Sau này lấy từ localStorage)
-    const API_URL = '/courses';
+    const API_URL = '/api/courses';
 
     useEffect(() => {
         const fetchData = async () => {
