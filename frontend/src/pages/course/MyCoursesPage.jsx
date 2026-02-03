@@ -12,7 +12,7 @@ export default function MyCoursesPage() {
 
   const userRole = localStorage.getItem('userRole');
 
-  const API_URL = '/courses';
+  const API_URL = '/api/courses';
 
   useEffect(() => {
     const fetchMyCourses = async () => {
