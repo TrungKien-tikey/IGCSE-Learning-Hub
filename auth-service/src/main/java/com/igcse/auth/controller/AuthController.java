@@ -58,13 +58,35 @@ public class AuthController {
         return ResponseEntity.ok(authService.verifyToken(token));
     }
 
-    // 6. API Đổi mật khẩu
+    // 6. API Quên mật khẩu (Public - Không cần auth)
+    @PostMapping("/forgot-password")
+    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+        try {
+            authService.forgotPassword(email);
+            return ResponseEntity.ok("Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 7. API Đặt lại mật khẩu (Public - Không cần auth)
+    @PostMapping("/reset-password")
+    public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
+        try {
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok("Mật khẩu đã được đặt lại thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 8. API Đổi mật khẩu (Cần auth)
     @PostMapping("/change-password")
     public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request) {
         return ResponseEntity.ok(authService.changePassword(request));
     }
 
-    // 7. API Refresh Token
+    // 9. API Refresh Token
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
         try {
