@@ -9,9 +9,9 @@ import java.util.Optional;
 
 @Repository
 public interface ParentStudentRepository extends JpaRepository<ParentStudentRelationship, Long> {
-    List<ParentStudentRelationship> findByParentId(Long parentId);
+    List<ParentStudentRelationship> findByParent_UserId(Long parentId);
 
-    List<ParentStudentRelationship> findByStudentId(Long studentId);
+    List<ParentStudentRelationship> findByStudent_UserId(Long studentId);
 
-    Optional<ParentStudentRelationship> findByParentIdAndStudentId(Long parentId, Long studentId);
+    Optional<ParentStudentRelationship> findByParent_UserIdAndStudent_UserId(Long parentId, Long studentId);
 }
