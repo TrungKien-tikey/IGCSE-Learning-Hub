@@ -67,7 +67,7 @@ export default function TeacherGradingPage() {
 
   const fetchStudentName = async (userId) => {
     try {
-      const res = await axiosClient.get(`/api/auth/users/${userId}`, { baseURL: '' });
+      const res = await axiosClient.get(`/api/auth/users/${userId}`);
       if (res.status === 200) {
         const userData = res.data;
         return userData.full_name || userData.fullName || userData.email;

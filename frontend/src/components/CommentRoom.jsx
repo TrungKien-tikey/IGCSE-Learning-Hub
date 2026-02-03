@@ -35,7 +35,7 @@ const CommentRoom = ({ examId }) => {
             if (!currentUserId) return;
             try {
                 // Sử dụng axiosClient để có Header Authorization (tránh lỗi 403)
-                const res = await axiosClient.get(`/auth/users/${currentUserId}`);
+                const res = await axiosClient.get(`/api/auth/users/${currentUserId}`);
                 if (res.data && res.data.fullName) {
                     setResolvedUsername(res.data.fullName);
                     localStorage.setItem('fullName', res.data.fullName); // Cập nhật lại cache
@@ -53,7 +53,7 @@ const CommentRoom = ({ examId }) => {
     const fetchComments = async () => {
         if (!examId) return;
         try {
-            const res = await axiosClient.get(`/comments/exam/${examId}`);
+            const res = await axiosClient.get(`/api/comments/exam/${examId}`);
             setComments(res.data);
         } catch (error) {
             console.error("Lỗi tải bình luận:", error);
@@ -73,7 +73,7 @@ const CommentRoom = ({ examId }) => {
                 senderName = cachedName;
             } else {
                 try {
-                    const res = await axiosClient.get(`/auth/users/${currentUserId}`);
+                    const res = await axiosClient.get(`/api/auth/users/${currentUserId}`);
                     if (res.data && res.data.fullName) {
                         senderName = res.data.fullName;
                     }
@@ -91,7 +91,7 @@ const CommentRoom = ({ examId }) => {
         };
 
         try {
-            await axiosClient.post('/comments', commentData);
+            await axiosClient.post('/api/comments', commentData);
             setNewComment(""); 
             fetchComments(); // Tải lại danh sách sau khi gửi thành công
         } catch (error) {

@@ -89,7 +89,7 @@ export default function ManageExamsPage() {
 
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {
                 try {
-                    const userRes = await axiosClient.get(`/api/auth/users/${attempt.userId}`, { baseURL: '' });
+                    const userRes = await axiosClient.get(`/api/auth/users/${attempt.userId}`);
 
                     const userData = userRes.data;
                     let fullName = userData.full_name || userData.fullName || userData.email || `User #${attempt.userId}`;
