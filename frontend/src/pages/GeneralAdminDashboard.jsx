@@ -119,6 +119,8 @@ export default function GeneralAdminDashboard() {
     const [slotStats, setSlotStats] = useState(null);
     const [isLoadingPayment, setIsLoadingPayment] = useState(false);
     const [activeTab, setActiveTab] = useState('overview'); // overview, transactions, teachers
+    const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, COMPLETED, PENDING, FAILED, REFUNDED
+    const [itemsPerPage] = useState(10);
 
     // Hàm check health cho 1 service
     const checkSingleService = async (svc, retries = 1) => {
@@ -419,56 +421,101 @@ export default function GeneralAdminDashboard() {
 
                         {/* Transactions Tab */}
                         {activeTab === 'transactions' && (
-                            <div className="overflow-x-auto">
-                                {transactions.length > 0 ? (
-                                    <table className="w-full">
-                                        <thead>
-                                            <tr className="text-left text-xs text-slate-500 border-b border-slate-100">
-                                                <th className="pb-3 font-medium">ID</th>
-                                                <th className="pb-3 font-medium">Loại</th>
-                                                <th className="pb-3 font-medium">Người mua</th>
-                                                <th className="pb-3 font-medium">Số tiền</th>
-                                                <th className="pb-3 font-medium">Trạng thái</th>
-                                                <th className="pb-3 font-medium">Hành động</th>
-                                                <th className="pb-3 font-medium">Ngày</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="text-sm">
-                                            {transactions.map((trans, idx) => (
-                                                <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50">
-                                                    <td className="py-3 font-mono text-xs text-slate-400">#{trans.id}</td>
-                                                    <td className="py-3"><TypeBadge type={trans.transactionType} /></td>
-                                                    <td className="py-3">
-                                                        <div>
-                                                            <p className="font-medium text-slate-700">{trans.buyerName || 'N/A'}</p>
-                                                            <p className="text-xs text-slate-400">{trans.buyerRole}</p>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-3 font-semibold text-slate-800">{formatCurrency(trans.amount)}</td>
-                                                    <td className="py-3"><StatusBadge status={trans.paymentStatus} /></td>
-                                                    <td className="py-3">
-                                                        {trans.paymentStatus === 'PENDING' && (
-                                                            <button
-                                                                onClick={() => handleConfirm(trans)}
-                                                                className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200 transition-colors"
-                                                                title="Xác nhận thanh toán"
-                                                            >
-                                                                <Check size={16} />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-3 text-slate-500 text-xs">
-                                                        {trans.transactionDate ? new Date(trans.transactionDate).toLocaleDateString('vi-VN') : 'N/A'}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="h-32 flex items-center justify-center text-slate-400">
-                                        {isLoadingPayment ? "Đang tải dữ liệu..." : "Chưa có giao dịch nào"}
+                            <div className="space-y-4">
+                                {/* Filter Status */}
+                                <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                                    <span className="text-sm font-medium text-slate-600">Lọc:</span>
+                                    <div className="flex gap-2">
+                                        {['ALL', 'COMPLETED', 'PENDING', 'FAILED', 'REFUNDED'].map(status => (
+                                            <button
+                                                key={status}
+                                                onClick={() => setStatusFilter(status)}
+                                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                                                    statusFilter === status
+                                                        ? 'bg-indigo-600 text-white'
+                                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                }`}
+                                            >
+                                                {status === 'ALL' ? 'Tất cả' :
+                                                 status === 'COMPLETED' ? 'Hoàn thành' :
+                                                 status === 'PENDING' ? 'Đang chờ' :
+                                                 status === 'FAILED' ? 'Thất bại' : 'Hoàn tiền'}
+                                            </button>
+                                        ))}
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Transactions Table */}
+                                <div className="overflow-x-auto">
+                                    {transactions.length > 0 ? (
+                                        <>
+                                            <table className="w-full">
+                                                <thead>
+                                                    <tr className="text-left text-xs text-slate-500 border-b border-slate-100">
+                                                        <th className="pb-3 font-medium">ID</th>
+                                                        <th className="pb-3 font-medium">Loại</th>
+                                                        <th className="pb-3 font-medium">Người mua</th>
+                                                        <th className="pb-3 font-medium">Số tiền</th>
+                                                        <th className="pb-3 font-medium">Trạng thái</th>
+                                                        <th className="pb-3 font-medium">Hành động</th>
+                                                        <th className="pb-3 font-medium">Ngày</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="text-sm">
+                                                    {transactions
+                                                        .filter(trans => statusFilter === 'ALL' || trans.paymentStatus === statusFilter)
+                                                        .slice(0, itemsPerPage)
+                                                        .map((trans, idx) => (
+                                                            <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50">
+                                                                <td className="py-3 font-mono text-xs text-slate-400">#{trans.id}</td>
+                                                                <td className="py-3"><TypeBadge type={trans.transactionType} /></td>
+                                                                <td className="py-3">
+                                                                    <div>
+                                                                        <p className="font-medium text-slate-700">{trans.buyerName || 'N/A'}</p>
+                                                                        <p className="text-xs text-slate-400">{trans.buyerRole}</p>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-3 font-semibold text-slate-800">{formatCurrency(trans.amount)}</td>
+                                                                <td className="py-3"><StatusBadge status={trans.paymentStatus} /></td>
+                                                                <td className="py-3">
+                                                                    {trans.paymentStatus === 'PENDING' && (
+                                                                        <button
+                                                                            onClick={() => handleConfirm(trans)}
+                                                                            className="p-1 bg-emerald-100 text-emerald-600 rounded hover:bg-emerald-200 transition-colors"
+                                                                            title="Xác nhận thanh toán"
+                                                                        >
+                                                                            <Check size={16} />
+                                                                        </button>
+                                                                    )}
+                                                                </td>
+                                                                <td className="py-3 text-slate-500 text-xs">
+                                                                    {trans.transactionDate ? new Date(trans.transactionDate).toLocaleDateString('vi-VN') : 'N/A'}
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                </tbody>
+                                            </table>
+                                            {/* Summary */}
+                                            <div className="mt-4 p-3 bg-slate-50 rounded-lg text-xs text-slate-600 flex justify-between">
+                                                <span>
+                                                    Hiển thị {Math.min(itemsPerPage, transactions.filter(t => statusFilter === 'ALL' || t.paymentStatus === statusFilter).length)} / {transactions.filter(t => statusFilter === 'ALL' || t.paymentStatus === statusFilter).length} giao dịch
+                                                </span>
+                                                <span className="font-semibold">
+                                                    Tổng: {formatCurrency(
+                                                        transactions
+                                                            .filter(t => statusFilter === 'ALL' || t.paymentStatus === statusFilter)
+                                                            .slice(0, itemsPerPage)
+                                                            .reduce((sum, t) => sum + (t.amount || 0), 0)
+                                                    )}
+                                                </span>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="h-32 flex items-center justify-center text-slate-400">
+                                            {isLoadingPayment ? "Đang tải dữ liệu..." : "Chưa có giao dịch nào"}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 
