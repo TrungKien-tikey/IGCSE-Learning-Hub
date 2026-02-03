@@ -29,7 +29,7 @@ export default function StudentLearningPage() {
     const [completedLessonIds, setCompletedLessonIds] = useState([]);
     const [currentUser, setCurrentUser] = useState(null); // State lưu user
 
-    const API_URL = '/courses';
+    const API_URL = '/api/courses';
 
     useEffect(() => {
         fetchCourseAndLessons();
