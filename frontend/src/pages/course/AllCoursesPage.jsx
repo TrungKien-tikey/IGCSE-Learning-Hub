@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axiosClient from '../../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react'
 import './CoursePage.css'; // Tận dụng lại CSS cũ cho nhanh
 
 export default function AllCoursesPage() {
@@ -30,10 +31,29 @@ export default function AllCoursesPage() {
   return (
     <div className="course-page">
       <div className="container">
-        <div className="page-header">
+        {/* HEADER ĐÃ THÊM NÚT QUAY LẠI */}
+        <div className="page-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '15px' }}>
+          <button
+            onClick={() => navigate('/')}
+            className="btn-back"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0',
+              background: 'none',
+              border: 'none',
+              color: '#1976d2',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
+            <ArrowLeft size={18} /> Quay lại Dashboard
+          </button>
+
           <div>
-            <h1 className="page-title">Thư Viện Khóa Học</h1>
-            <p style={{ color: '#666' }}>Khám phá và nâng cao kiến thức IGCSE</p>
+            <h1 className="page-title" style={{ margin: 0 }}>Thư Viện Khóa Học</h1>
+            <p style={{ color: '#666', marginTop: '5px' }}>Khám phá và nâng cao kiến thức IGCSE</p>
           </div>
         </div>
 
