@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
+const AI_SERVICE_URL = import.meta.env.VITE_AI_SERVICE_URL;
+
 export const useSystemData = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -11,8 +13,10 @@ export const useSystemData = () => {
             setLoading(true);
             try {
                 const token = localStorage.getItem('accessToken');
-                const response = await axios.get('/api/ai/statistics/system', {
+                const response = await axios.get(`${AI_SERVICE_URL}/statistics/system`, {
                     headers: {
+                        'Content-Type': 'application/json',
+                        'ngrok-skip-browser-warning': '69420',
                         ...(token ? { "Authorization": `Bearer ${token}` } : {})
                     }
                 });

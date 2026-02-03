@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import MainLayout from '../layouts/MainLayout';
 import axios from 'axios';
-import axiosClient from '../api/axiosClient';
+import userClient from '../api/userClient';
 import {
     getRevenueOverview,
     getMonthlyRevenue,
@@ -20,8 +20,14 @@ import {
 } from '../api/paymentService';
 import { toast } from 'react-toastify';
 
-// Dùng một instance axios riêng không qua interceptor auth
-const monitorClient = axios.create();
+// Monitor client with Ngrok URL for health checks
+const NGROK_BASE_URL = import.meta.env.VITE_MAIN_API_URL?.replace('/api/v1', '') || '';
+const monitorClient = axios.create({
+    baseURL: NGROK_BASE_URL,
+    headers: {
+        'ngrok-skip-browser-warning': '69420',
+    },
+});
 
 // Hàm format tiền VNĐ
 const formatCurrency = (value) => {
@@ -149,8 +155,7 @@ export default function GeneralAdminDashboard() {
     // Hàm fetch tổng số người dùng
     const fetchTotalUsers = async () => {
         try {
-            const response = await axiosClient.get('/admin/users', {
-                baseURL: '/api',
+            const response = await userClient.get('/admin/list', {
                 params: { page: 0, size: 1 }
             });
             if (response.data?.totalElements !== undefined) {
