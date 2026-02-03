@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import userClient from '../../api/userClient';
+import { ArrowLeft } from 'lucide-react';
 import { purchaseCourse, createVNPayPayment } from '../../api/paymentService'; // Import payment API
 import './CourseDetailPage.css'; // File CSS ở bước 3
 
@@ -158,6 +159,30 @@ export default function CourseDetailPage() {
             <div className="detail-header">
                 <div className="container header-content">
                     <div className="header-text">
+                        <button
+                            onClick={() => navigate(-1)} // navigate(-1) sẽ quay lại trang trước đó (All Courses hoặc My Courses)
+                            className="btn-back-header"
+                            style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                color: 'white',
+                                border: '1px solid rgba(255, 255, 255, 0.3)',
+                                padding: '8px 16px',
+                                borderRadius: '20px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500',
+                                marginBottom: '20px',
+                                transition: 'all 0.2s',
+                                width: 'fit-content'
+                            }}
+                            onMouseOver={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.3)'}
+                            onMouseOut={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
+                        >
+                            <ArrowLeft size={18} /> Trở về danh sách
+                        </button>
                         <span className="badge-cat">IGCSE Math</span>
                         <h1>{course.title}</h1>
                         <p className="desc">{course.description || "Khóa học chất lượng cao dành cho học sinh IGCSE, bám sát chương trình chuẩn Cambridge."}</p>

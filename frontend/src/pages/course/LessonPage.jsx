@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
-import { 
-  MessageSquare, 
-  ArrowLeft, 
-  Plus, 
-  Trash2, 
-  FileUp, 
-  CheckCircle, 
+import {
+  MessageSquare,
+  ArrowLeft,
+  Plus,
+  Trash2,
+  FileUp,
+  CheckCircle,
   XCircle,
   Video,
   FileText,
@@ -16,7 +16,7 @@ import {
   BookOpen,
   LayoutDashboard,
   Loader2
-} from 'lucide-react'; 
+} from 'lucide-react';
 import './LessonPage.css';
 
 export default function LessonPage() {
@@ -24,22 +24,24 @@ export default function LessonPage() {
   const navigate = useNavigate();
 
   const [lessons, setLessons] = useState([]);
-  const [selectedLessonId, setSelectedLessonId] = useState(null); 
+  const [selectedLessonId, setSelectedLessonId] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0); // Trạng thái phần trăm tải lên
 
   const [formData, setFormData] = useState({
-    title: '', 
-    content: '', 
-    videoUrl: '', 
-    resourceUrl: '', 
-    resourceName: '', 
-    orderIndex: 1
+    title: '',
+    content: '',
+    videoUrl: '',
+    resourceUrl: '',
+    resourceName: '',
+    orderIndex: 1,
+    meetingUrl: '', // MỚI
+    startTime: ''   // MỚI
   });
 
   const API_URL = '/courses';
-  const CLOUD_NAME = "dnssxbv0k"; 
-  const UPLOAD_PRESET = "dnssxbv0k"; 
+  const CLOUD_NAME = "dnssxbv0k";
+  const UPLOAD_PRESET = "dnssxbv0k";
 
   useEffect(() => {
     fetchLessons();
@@ -49,8 +51,8 @@ export default function LessonPage() {
     try {
       const res = await axiosClient.get(`${API_URL}/${courseId}/lessons`);
       setLessons(res.data);
-    } catch (err) { 
-      console.error("Lỗi khi lấy danh sách bài học:", err); 
+    } catch (err) {
+      console.error("Lỗi khi lấy danh sách bài học:", err);
     }
   };
 
@@ -108,8 +110,10 @@ export default function LessonPage() {
       content: lesson.content || '',
       videoUrl: lesson.videoUrl || '',
       resourceUrl: lesson.resourceUrl || '',
-      resourceName: lesson.resourceName || '', 
-      orderIndex: lesson.orderIndex
+      resourceName: lesson.resourceName || '',
+      orderIndex: lesson.orderIndex,
+      meetingUrl: lesson.meetingUrl || '', // MỚI
+      startTime: lesson.startTime || ''   // MỚI
     });
     setUploadProgress(0);
     setIsUploading(false);
@@ -117,9 +121,10 @@ export default function LessonPage() {
 
   const handleCreateNew = () => {
     setSelectedLessonId(null);
-    setFormData({ 
+    setFormData({
       title: '', content: '', videoUrl: '', resourceUrl: '', resourceName: '',
-      orderIndex: lessons.length + 1 
+      orderIndex: lessons.length + 1, meetingUrl: '', // MỚI
+      startTime: ''   // MỚI
     });
     setUploadProgress(0);
     setIsUploading(false);
@@ -135,8 +140,8 @@ export default function LessonPage() {
   const handleSave = async (e) => {
     e.preventDefault();
     if (isUploading) {
-        alert("Vui lòng đợi file tải lên hoàn tất!");
-        return;
+      alert("Vui lòng đợi file tải lên hoàn tất!");
+      return;
     }
 
     try {
@@ -151,17 +156,17 @@ export default function LessonPage() {
       await fetchLessons();
       alert("Đã lưu bài giảng thành công!");
       if (!selectedLessonId) handleCreateNew();
-    } catch (err) { 
-      alert("Lỗi lưu dữ liệu bài học."); 
+    } catch (err) {
+      alert("Lỗi lưu dữ liệu bài học.");
     }
   };
 
   const handleDeleteLesson = async (e, lessonId) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
     if (window.confirm("Xóa bài học này?")) {
       try {
         await axiosClient.delete(`${API_URL}/lessons/${lessonId}`);
-        fetchLessons(); 
+        fetchLessons();
         if (selectedLessonId === lessonId) handleCreateNew();
       } catch (err) {
         alert("Lỗi khi xóa.");
@@ -205,7 +210,7 @@ export default function LessonPage() {
               <Plus size={20} />
             </button>
           </div>
-          
+
           <div className="lesson-nav-list">
             {lessons.map((l) => (
               <div
@@ -242,11 +247,11 @@ export default function LessonPage() {
                   <label>Tiêu đề bài học</label>
                   <div className="input-with-icon">
                     <BookOpen className="field-icon" />
-                    <input 
-                      value={formData.title} 
-                      onChange={e => setFormData({ ...formData, title: e.target.value })} 
-                      placeholder="Nhập tiêu đề..." 
-                      required 
+                    <input
+                      value={formData.title}
+                      onChange={e => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Nhập tiêu đề..."
+                      required
                     />
                   </div>
                 </div>
@@ -266,39 +271,80 @@ export default function LessonPage() {
                     <input value={formData.videoUrl} onChange={e => setFormData({ ...formData, videoUrl: e.target.value })} placeholder="Link video..." />
                   </div>
                 </div>
+                {/* --- Link Google Drive (Lưu vào resourceUrl) --- */}
+                <div className="form-item full-width">
+                  <label>Link Google Drive (Nếu không dùng tệp tải lên)</label>
+                  <div className="input-with-icon">
+                    <BookOpen className="field-icon" />
+                    <input
+                      value={formData.resourceUrl}
+                      onChange={e => {
+                        // Nếu dán link drive thì tự đặt tên resourceName để dễ quản lý
+                        setFormData({ ...formData, resourceUrl: e.target.value, resourceName: "Link Google Drive" });
+                      }}
+                      placeholder="Dán link folder/file Drive vào đây..."
+                    />
+                  </div>
+                </div>
+
+                {/* --- Link Google Meet --- */}
+                <div className="form-item">
+                  <label>Link Google Meet (Lớp trực tuyến)</label>
+                  <div className="input-with-icon">
+                    <Video className="field-icon" />
+                    <input
+                      value={formData.meetingUrl}
+                      onChange={e => setFormData({ ...formData, meetingUrl: e.target.value })}
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
+                </div>
+
+                {/* --- Thời gian bắt đầu học --- */}
+                <div className="form-item">
+                  <label>Thời gian bắt đầu học</label>
+                  <div className="input-with-icon">
+                    <ListOrdered className="field-icon" />
+                    <input
+                      type="datetime-local"
+                      value={formData.startTime}
+                      onChange={e => setFormData({ ...formData, startTime: e.target.value })}
+                    />
+                  </div>
+                </div>
 
                 <div className="form-item full-width">
-                   <div className="upload-container-modern">
-                      <label className="upload-label">Tài liệu đính kèm</label>
-                      
-                      {formData.resourceUrl ? (
-                        <div className="active-file-card">
-                           <div className="f-icon-box"><FileText size={24} /></div>
-                           <div className="f-info">
-                              <span className="f-name">{formData.resourceName}</span>
-                           </div>
-                           <button type="button" onClick={handleRemoveAttachment} className="f-delete">
-                              <Trash2 size={18} />
-                           </button>
+                  <div className="upload-container-modern">
+                    <label className="upload-label">Tài liệu đính kèm</label>
+
+                    {formData.resourceUrl ? (
+                      <div className="active-file-card">
+                        <div className="f-icon-box"><FileText size={24} /></div>
+                        <div className="f-info">
+                          <span className="f-name">{formData.resourceName}</span>
                         </div>
-                      ) : (
-                        <div className={`modern-drop-zone ${isUploading ? 'disabled' : ''}`}>
-                           <FileUp size={32} className="drop-icon" />
-                           <div className="drop-info">
-                              <p>{isUploading ? `Đang tải lên... ${uploadProgress}%` : 'Nhấn để chọn tệp tải lên ngay'}</p>
-                              <small>PDF, DOCX, ZIP (Max 10MB)</small>
-                           </div>
-                           <input type="file" onChange={handleFileChange} disabled={isUploading} />
-                           
-                           {/* THANH TIẾN TRÌNH (PROGRESS BAR) */}
-                           {isUploading && (
-                             <div className="progress-bar-container">
-                                <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
-                             </div>
-                           )}
+                        <button type="button" onClick={handleRemoveAttachment} className="f-delete">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className={`modern-drop-zone ${isUploading ? 'disabled' : ''}`}>
+                        <FileUp size={32} className="drop-icon" />
+                        <div className="drop-info">
+                          <p>{isUploading ? `Đang tải lên... ${uploadProgress}%` : 'Nhấn để chọn tệp tải lên ngay'}</p>
+                          <small>PDF, DOCX, ZIP (Max 10MB)</small>
                         </div>
-                      )}
-                   </div>
+                        <input type="file" onChange={handleFileChange} disabled={isUploading} />
+
+                        {/* THANH TIẾN TRÌNH (PROGRESS BAR) */}
+                        {isUploading && (
+                          <div className="progress-bar-container">
+                            <div className="progress-bar-fill" style={{ width: `${uploadProgress}%` }}></div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="form-item full-width">

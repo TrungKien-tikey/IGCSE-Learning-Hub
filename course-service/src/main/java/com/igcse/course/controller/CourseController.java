@@ -276,8 +276,9 @@ public class CourseController {
                 lessonDto.getOrderIndex(),
                 lessonDto.getVideoUrl(),
                 lessonDto.getResourceUrl(),
-                lessonDto.getResourceName() // Đảm bảo lấy thêm trường này
-        );
+                lessonDto.getResourceName(), // Đảm bảo lấy thêm trường này
+                lessonDto.getMeetingUrl(), // <--- KHÔI PHỤC
+                lessonDto.getStartTime());
         return ResponseEntity.ok(updated);
     }
 
@@ -473,7 +474,7 @@ public class CourseController {
     }
 
     // --- BỔ SUNG API NÀY ---
-    
+
     // API: Học sinh tự xem tổng quan tiến độ của mình (Dùng cho Student Dashboard)
     @GetMapping("/my-summary")
     public ResponseEntity<?> getMySummary(@RequestHeader("Authorization") String tokenHeader) {
