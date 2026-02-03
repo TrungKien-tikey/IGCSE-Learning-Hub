@@ -20,17 +20,20 @@ public class ParentStudentService {
     private UserRepository userRepository;
 
     public ParentStudentRelationship requestConnection(Long parentId, String studentEmail) {
+        User parent = userRepository.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Parent not found"));
+
         User student = userRepository.findByEmail(studentEmail)
                 .orElseThrow(() -> new RuntimeException("Student not found with email: " + studentEmail));
 
         // Check if relationship already exists
-        Optional<ParentStudentRelationship> existing = relationshipRepository.findByParentIdAndStudentId(parentId,
-                student.getUserId());
+        Optional<ParentStudentRelationship> existing = relationshipRepository.findByParent_UserIdAndStudent_UserId(
+                parentId, student.getUserId());
         if (existing.isPresent()) {
             throw new RuntimeException("Relationship already exists");
         }
 
-        ParentStudentRelationship relationship = new ParentStudentRelationship(parentId, student.getUserId());
+        ParentStudentRelationship relationship = new ParentStudentRelationship(parent, student);
         return relationshipRepository.save(relationship);
     }
 
@@ -38,7 +41,7 @@ public class ParentStudentService {
         ParentStudentRelationship relationship = relationshipRepository.findById(relationshipId)
                 .orElseThrow(() -> new RuntimeException("Relationship not found"));
 
-        if (!relationship.getStudentId().equals(studentId)) {
+        if (!relationship.getStudent().getUserId().equals(studentId)) {
             throw new RuntimeException("Unauthorized");
         }
 
@@ -49,19 +52,19 @@ public class ParentStudentService {
     public List<ParentStudentRelationship> getMyChildren(Long parentId) {
         // Chỉ lấy những liên kết đang hoạt động (ACCEPTED hoặc PENDING), loại bỏ
         // CANCELLED
-        return relationshipRepository.findByParentId(parentId).stream()
+        return relationshipRepository.findByParent_UserId(parentId).stream()
                 .filter(rel -> !"CANCELLED".equals(rel.getStatus()))
                 .toList();
     }
 
     public List<ParentStudentRelationship> getMyParents(Long studentId) {
-        return relationshipRepository.findByStudentId(studentId).stream()
+        return relationshipRepository.findByStudent_UserId(studentId).stream()
                 .filter(rel -> !"CANCELLED".equals(rel.getStatus()))
                 .toList();
     }
 
     public void disconnect(Long parentId, Long studentId) {
-        ParentStudentRelationship rel = relationshipRepository.findByParentIdAndStudentId(parentId, studentId)
+        ParentStudentRelationship rel = relationshipRepository.findByParent_UserIdAndStudent_UserId(parentId, studentId)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy liên kết này"));
 
         rel.setStatus("CANCELLED"); // Soft Delete
@@ -69,13 +72,17 @@ public class ParentStudentService {
     }
 
     public ParentStudentRelationship connectByLinkCode(Long parentId, String linkCode) {
+        User parent = userRepository.findById(parentId)
+                .orElseThrow(() -> new RuntimeException("Parent not found"));
+
         // 1. Tìm học sinh theo Link Code
         User student = userRepository.findByLinkCode(linkCode)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy học sinh với mã này"));
 
         // 2. Kiểm tra nếu học sinh này đã được liên kết với phụ huynh này chưa
-        Optional<ParentStudentRelationship> existing = relationshipRepository.findByParentIdAndStudentId(parentId,
-                student.getUserId());
+        Optional<ParentStudentRelationship> existing = relationshipRepository.findByParent_UserIdAndStudent_UserId(
+                parentId, student.getUserId());
+
         if (existing.isPresent()) {
             ParentStudentRelationship rel = existing.get();
             // Nếu đã có và đang ACCEPTED -> Trả về luôn (Coi như kết nối lại thành công)
@@ -88,10 +95,9 @@ public class ParentStudentService {
         }
 
         // 3. Tạo mới liên kết với trạng thái ACCEPTED (vì có mã là tin cậy)
-        ParentStudentRelationship relationship = new ParentStudentRelationship(parentId, student.getUserId());
+        ParentStudentRelationship relationship = new ParentStudentRelationship(parent, student);
         relationship.setStatus("ACCEPTED");
         return relationshipRepository.save(relationship);
-
     }
 
     public List<java.util.Map<String, Object>> getMyChildrenDetails(Long parentId) {
@@ -101,20 +107,11 @@ public class ParentStudentService {
             return java.util.Collections.emptyList();
         }
 
-        List<Long> studentIds = relationships.stream()
-                .map(ParentStudentRelationship::getStudentId)
-                .toList();
-
-        List<User> students = userRepository.findAllById(studentIds);
-
-        // Map student by ID for easy lookup
-        java.util.Map<Long, User> studentMap = students.stream()
-                .collect(java.util.stream.Collectors.toMap(User::getUserId, user -> user));
-
+        // Simplify: User object is already in the relationship!
         return relationships.stream().map(rel -> {
             java.util.Map<String, Object> map = new java.util.HashMap<>();
             map.put("relationship", rel);
-            map.put("student", studentMap.get(rel.getStudentId()));
+            map.put("student", rel.getStudent()); // User is already fetched via EAGER loading
             return map;
         }).toList();
     }
