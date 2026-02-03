@@ -32,6 +32,7 @@ const menuItems = {
   manager: [
     { title: "Tổng quan", icon: Home, url: "/" },
     { title: "Thông báo", icon: Bell, url: "/notifications" },
+    { title: "Xét duyệt Giáo viên", icon: ShieldCheck, url: "/admin/verify" },
   ],
   admin: [
     { title: "Tổng quan", icon: Home, url: "/" },

@@ -5,7 +5,7 @@ import {
     User, Mail, Phone, MapPin, Camera,
     Edit3, BookOpen,
     ClipboardList, Settings, LogOut, Save, X,
-    LayoutDashboard, Lock
+    LayoutDashboard, Lock, CheckCircle
 } from 'lucide-react';
 import authService from '../services/authService';
 import userClient from '../api/userClient';
@@ -378,12 +378,14 @@ export default function ProfilePage() {
                                         </div>
                                     )}
 
-                                    <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
+                                    {/* 
+                                     <div className="mt-6 pt-6 border-t border-gray-100 flex justify-center">
                                         <div>
                                             <span className="block text-2xl font-bold text-blue-600">12</span>
                                             <span className="text-xs text-gray-400 uppercase tracking-wide font-semibold">Khóa học</span>
                                         </div>
-                                    </div>
+                                    </div> 
+                                    */}
                                 </div>
                             </div>
 

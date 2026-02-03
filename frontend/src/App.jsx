@@ -111,7 +111,15 @@ function App() {
         />
         <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
         <Route path="/exams/result" element={<ExamResultPage />} />
-        <Route path="/teacher/grading" element={<TeacherGradingPage />} />
+        {/* <Route path="/teacher/grading" element={<TeacherGradingPage />} /> */}
+        <Route
+          path="/teacher/grading"
+          element={
+            <VerifiedRoute>
+              <TeacherGradingPage />
+            </VerifiedRoute>
+          }
+        />
         <Route path="/exams/review/:attemptId" element={<ExamReviewPage />} />
 
         {/* --- COURSE ROUTES --- */}
@@ -154,9 +162,9 @@ function App() {
         <Route
           path="/teacher/buy-slots"
           element={
-            <RoleProtectedRoute allowedRoles={['TEACHER', 'ADMIN']}>
+            <VerifiedRoute>
               <TeacherSlotPurchasePage />
-            </RoleProtectedRoute>
+            </VerifiedRoute>
           }
         />
 
@@ -172,7 +180,7 @@ function App() {
         <Route
           path="/admin/verify"
           element={
-            <RoleProtectedRoute allowedRoles={['ADMIN']}>
+            <RoleProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}>
               <TeacherVerification />
             </RoleProtectedRoute>
           }
