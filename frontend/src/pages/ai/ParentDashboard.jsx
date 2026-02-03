@@ -24,9 +24,11 @@ export default function ParentDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!studentId) {
-            // Placeholder logic: If no ID, maybe redirect or show error.
-            // For demo, we assume ID is passed.
+        // Validate studentId - must be a valid positive integer
+        const numStudentId = parseInt(studentId, 10);
+        if (!studentId || isNaN(numStudentId) || numStudentId <= 0 || studentId === 'placeholder') {
+            toast.warning("Vui lòng chọn học sinh từ trang Parent Dashboard.");
+            navigate('/parent-dashboard');
             return;
         }
 
@@ -41,8 +43,6 @@ export default function ParentDashboard() {
                 setAnalytics(analyticsRes);
             } catch (err) {
                 console.error("Error fetching parent data:", err);
-                // Fallback demo data if API fails (for testing UI without backend ready)
-                // or just toast error.
                 toast.error("Không thể tải dữ liệu phụ huynh: " + err.message);
             } finally {
                 setLoading(false);
@@ -50,7 +50,8 @@ export default function ParentDashboard() {
         };
 
         fetchData();
-    }, [studentId]);
+    }, [studentId, navigate]);
+
 
     if (loading) {
         return (
