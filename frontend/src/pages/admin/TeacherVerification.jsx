@@ -93,9 +93,8 @@ export default function TeacherVerification() {
         try {
             setLoading(true);
             // Fetch all TEACHERS. Backend supports filtering by role.
-            const res = await axiosClient.get('/users', {
+            const res = await axiosClient.get('/api/users', {
                 params: { role: 'TEACHER', size: 100 }, // Fetch 100 teachers max for now
-                baseURL: '/api'
             });
             // The response from existing API is Page<User> object
             setTeachers(res.data.content || []);
@@ -123,9 +122,8 @@ export default function TeacherVerification() {
         if (!userId) return;
 
         try {
-            await axiosClient.put(`/users/${userId}/verify`, null, {
-                params: { status },
-                baseURL: '/api'
+            await axiosClient.put(`/api/users/${userId}/verify`, null, {
+                params: { status }
             });
             toast.success(`Đã đánh dấu: ${status === 'APPROVED' ? 'Đã duyệt' : 'Từ chối'}`);
             fetchTeachers(); // Refresh list
