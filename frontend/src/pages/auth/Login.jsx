@@ -98,7 +98,7 @@ function Login() {
           const fcmToken = await requestForToken();
 
           if (fcmToken) {
-            await axiosClient.post('/notifications/subscribe', {
+            await axiosClient.post('/api/notifications/subscribe', {
               token: fcmToken
             });
             console.log("--> Đã gửi Token về server thành công!");

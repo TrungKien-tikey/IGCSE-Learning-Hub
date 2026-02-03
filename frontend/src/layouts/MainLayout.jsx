@@ -148,7 +148,7 @@ const MainLayout = ({ children }) => {
         if (fcmToken) {
           // 2. Gọi đúng endpoint /subscribe đã định nghĩa trong NotificationController
           // 3. Gửi dữ liệu dưới dạng JSON Body (Map) thay vì Query Parameter
-          await axiosClient.post("/notifications/subscribe", {
+          await axiosClient.post("/api/notifications/subscribe", {
             token: fcmToken
           });
           console.log("FCM Token registered and subscribed to 'students' topic");
