@@ -43,8 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
 
+        // DEBUG LOG
+        logger.info(">>> JWT Filter: " + request.getRequestURI());
+        logger.info(">>> Authorization Header: " + (authHeader != null ? "EXISTS" : "NULL"));
+
         // 1. Kiểm tra Header
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.debug(">>> No Bearer token found");
             filterChain.doFilter(request, response);
             return;
         }
@@ -63,14 +68,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // 3. Trích xuất Email từ Token và load User
         try {
             userEmail = jwtUtils.extractEmail(jwt);
+            logger.info(">>> Extracted email: " + userEmail);
 
             // 4. Nếu có Email và chưa được xác thực
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 // Lấy thông tin User từ Database
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
+                logger.info(">>> User loaded: " + userEmail);
 
                 // 5. Kiểm tra Token có hợp lệ không
                 if (jwtUtils.validateToken(jwt)) {
+                    logger.info(">>> Token is VALID");
 
                     // 6. Tạo đối tượng Authentication
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
@@ -83,12 +91,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     // 7. LƯU VÀO SECURITY CONTEXT
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    logger.info(">>> Authentication set in SecurityContext");
+                } else {
+                    logger.warn(">>> Token is INVALID");
                 }
             }
         } catch (Exception e) {
             // Nếu token sai, hết hạn hoặc user không tồn tại trong DB mới
             // Chỉ cần log và cho phép request đi tiếp (nếu là public API)
-            logger.error("JWT validation failed: " + e.getMessage());
+            logger.error(">>> JWT validation failed: " + e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);
