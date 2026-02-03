@@ -15,7 +15,7 @@ public class VNPayConfig {
     @Value("${vnpay.pay-url:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}")
     private String vnpPayUrl;
 
-    @Value("${vnpay.return-url:http://localhost:5173/payment/vnpay-return}")
+    @Value("${vnpay.return-url:https://igcse-learning-hub.vercel.app/payment/vnpay-return}")
     private String vnpReturnUrl;
 
     @Value("${vnpay.tmn-code:}")
