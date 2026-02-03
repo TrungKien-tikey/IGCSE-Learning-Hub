@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
-import axiosClient from '../api/axiosClient'; // Đảm bảo đường dẫn này đúng với project của bạn
+import authClient from '../api/authClient';
+import commentClient from '../api/commentClient';
 
 const CommentRoom = ({ examId }) => {
     const [comments, setComments] = useState([]);
@@ -34,8 +35,7 @@ const CommentRoom = ({ examId }) => {
         const fetchUserFromAuth = async () => {
             if (!currentUserId) return;
             try {
-                // Sử dụng axiosClient để có Header Authorization (tránh lỗi 403)
-                const res = await axiosClient.get(`/api/auth/users/${currentUserId}`);
+                const res = await authClient.get(`/users/${currentUserId}`);
                 if (res.data && res.data.fullName) {
                     setResolvedUsername(res.data.fullName);
                     localStorage.setItem('fullName', res.data.fullName); // Cập nhật lại cache
@@ -53,7 +53,7 @@ const CommentRoom = ({ examId }) => {
     const fetchComments = async () => {
         if (!examId) return;
         try {
-            const res = await axiosClient.get(`/api/comments/exam/${examId}`);
+            const res = await commentClient.get(`/exam/${examId}`);
             setComments(res.data);
         } catch (error) {
             console.error("Lỗi tải bình luận:", error);
@@ -73,7 +73,7 @@ const CommentRoom = ({ examId }) => {
                 senderName = cachedName;
             } else {
                 try {
-                    const res = await axiosClient.get(`/api/auth/users/${currentUserId}`);
+                    const res = await authClient.get(`/users/${currentUserId}`);
                     if (res.data && res.data.fullName) {
                         senderName = res.data.fullName;
                     }
@@ -91,7 +91,7 @@ const CommentRoom = ({ examId }) => {
         };
 
         try {
-            await axiosClient.post('/api/comments', commentData);
+            await commentClient.post('', commentData);
             setNewComment(""); 
             fetchComments(); // Tải lại danh sách sau khi gửi thành công
         } catch (error) {

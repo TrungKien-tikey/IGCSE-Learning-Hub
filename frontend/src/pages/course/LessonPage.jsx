@@ -39,7 +39,7 @@ export default function LessonPage() {
     startTime: ''   // MỚI
   });
 
-  const API_URL = '/courses';
+  const API_URL = '/api/courses';
   const CLOUD_NAME = "dnssxbv0k";
   const UPLOAD_PRESET = "dnssxbv0k";
 
