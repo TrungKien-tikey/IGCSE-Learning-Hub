@@ -3,12 +3,12 @@ import axiosClient from '../api/axiosClient';
 const authService = {
   // 1. Đăng ký
   register: (data) => {
-    return axiosClient.post('/api/v1/auth/register', data);
+    return axiosClient.post('/api/auth/register', data);
   },
 
   // 2. Đăng nhập
   login: async (data) => {
-    const response = await axiosClient.post('/api/v1/auth/login', data);
+    const response = await axiosClient.post('/api/auth/login', data);
     
     // Lưu Token
     if (response.data.token) {
@@ -26,18 +26,27 @@ const authService = {
     return response;
   },
 
-  // 👇 3. [QUAN TRỌNG] THÊM HÀM NÀY VÀO ĐÂY
   checkEmail: (email) => {
-    // URL thực tế: /api/v1/auth/check-email
+    // URL thực tế: /api/auth/check-email
     // Gửi body dạng JSON: { "email": "..." }
-    return axiosClient.post('/api/v1/auth/check-email', { email });
+    return axiosClient.post('/api/auth/check-email', { email });
   },
 
-  // 4. Đăng xuất
+  // 4. Quên mật khẩu
+  forgotPassword: (email) => {
+    return axiosClient.post(`/api/auth/forgot-password?email=${email}`);
+  },
+
+  // 5. Đặt lại mật khẩu
+  resetPassword: (token, newPassword) => {
+    return axiosClient.post(`/api/auth/reset-password?token=${token}&newPassword=${newPassword}`);
+  },
+
+  // 6. Đăng xuất
   logout: () => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-        axiosClient.post('/api/v1/auth/logout', { token }).catch(() => {});
+        axiosClient.post('/api/auth/logout', { token }).catch(() => {});
     }
     localStorage.clear();
   }

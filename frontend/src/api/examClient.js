@@ -44,7 +44,7 @@ examClient.interceptors.response.use(
                     throw new Error("No refresh token available");
                 }
 
-                const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/v1/auth/refresh-token`, {
+                const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/auth/refresh-token`, {
                     refreshToken: refreshToken
                 });
 

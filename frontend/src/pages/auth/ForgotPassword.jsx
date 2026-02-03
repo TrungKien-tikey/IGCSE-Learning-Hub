@@ -1,16 +1,16 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
-import './Login.css'; // 👈 Dùng chung CSS với Login cho đồng bộ
+import authService from '../../services/authService';
+import './Login.css';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
-  
+
   // State quản lý lỗi hiển thị
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState(''); // Lỗi từ API trả về
-  
+
   const [isLoading, setIsLoading] = useState(false);
 
   // Hàm validate
@@ -52,9 +52,9 @@ const ForgotPassword = () => {
     setIsLoading(true);
 
     try {
-      // Gọi API (Giữ nguyên logic của bạn)
-      await axios.post(`http://localhost:8000/api/v1/auth/forgot-password?email=${email}`);
-      
+      // Gọi API qua authService
+      await authService.forgotPassword(email);
+
       setMessage('Link đặt lại mật khẩu đã được gửi vào email. Vui lòng kiểm tra hộp thư (cả mục Spam)!');
     } catch (err) {
       const errorMsg = err.response?.data || 'Có lỗi xảy ra, vui lòng thử lại sau.';
@@ -88,8 +88,8 @@ const ForgotPassword = () => {
             {errors.email && <span className="error-message">{errors.email}</span>}
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-submit"
             disabled={isLoading}
             style={isLoading ? { opacity: 0.7, cursor: 'not-allowed' } : {}}
