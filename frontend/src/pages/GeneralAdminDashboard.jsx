@@ -99,13 +99,13 @@ export default function GeneralAdminDashboard() {
 
     // States cho Health Check
     const [serviceHealth, setServiceHealth] = useState([
-        { id: 'auth', name: "Auth Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'user', name: "User Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'ai', name: "AI Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'exam', name: "Exam Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'course', name: "Course Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'communication', name: "Communication Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'payment', name: "Payment Service", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'auth', name: "Auth Service", path: "/api/v1/auth/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'user', name: "User Service", path: "/api/users/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'ai', name: "AI Service", path: "/api/ai/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'exam', name: "Exam Service", path: "/api/exams/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'course', name: "Course Service", path: "/api/courses/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'communication', name: "Communication Service", path: "/api/communication/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'payment', name: "Payment Service", path: "/api/payment/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
     ]);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [totalUsers, setTotalUsers] = useState(0);
@@ -122,7 +122,7 @@ export default function GeneralAdminDashboard() {
     // Hàm check health cho 1 service
     const checkSingleService = async (svc, retries = 1) => {
         try {
-            const res = await monitorClient.get(`/health/${svc.id}`, { timeout: 5000 });
+            const res = await monitorClient.get(svc.path, { timeout: 5000 });
             if (res.data.status === 'UP') {
                 return { ...svc, status: "Running", color: "text-emerald-600", bg: "bg-emerald-500" };
             } else {
