@@ -7,7 +7,7 @@ import { MessageCircle, X, Eye, ChevronUp, ChevronDown, BrainCircuit } from "luc
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from "../../components/CommentRoom";
 import examClient from "../../api/examClient";
-import authClient from "../../api/authClient";
+import userClient from "../../api/userClient";
 
 
 
@@ -89,7 +89,7 @@ export default function ManageExamsPage() {
 
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {
                 try {
-                    const userRes = await authClient.get(`/users/${attempt.userId}`);
+                    const userRes = await userClient.get(`/${attempt.userId}`);
 
                     const userData = userRes.data;
                     let fullName = userData.full_name || userData.fullName || userData.email || `User #${attempt.userId}`;

@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import { FaRobot, FaUserGraduate, FaCheckCircle, FaSave, FaArrowRight, FaArrowLeft, FaList, FaHistory } from "react-icons/fa";
 import MainLayout from '../../layouts/MainLayout';
 import examClient from "../../api/examClient";
-import authClient from "../../api/authClient";
+import userClient from "../../api/userClient";
 
 export default function TeacherGradingPage() {
   const navigate = useNavigate();
@@ -67,7 +67,7 @@ export default function TeacherGradingPage() {
 
   const fetchStudentName = async (userId) => {
     try {
-      const res = await authClient.get(`/users/${userId}`);
+      const res = await userClient.get(`/${userId}`);
       if (res.status === 200) {
         const userData = res.data;
         return userData.full_name || userData.fullName || userData.email;
