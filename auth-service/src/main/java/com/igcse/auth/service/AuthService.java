@@ -122,7 +122,11 @@ public class AuthService {
 
     // 5. ĐỔI MẬT KHẨU
     public String changePassword(ChangePasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
+        // Lấy email từ JWT Token trong SecurityContext
+        String userEmail = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getName();
+        
+        User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {

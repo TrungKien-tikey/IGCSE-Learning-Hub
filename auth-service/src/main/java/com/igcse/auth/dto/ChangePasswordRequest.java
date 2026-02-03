@@ -9,18 +9,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ChangePasswordRequest {
 
-    // 1. [FIX] Thêm trường email để AuthService tìm được User
-    private String email;
-    
     private String oldPassword;
     private String newPassword;
     private String confirmPassword; 
 
     // --- Getter và Setter ---
-
-    // Getter & Setter cho Email (QUAN TRỌNG ĐỂ FIX LỖI)
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
 
     public String getOldPassword() { return oldPassword; }
     public void setOldPassword(String oldPassword) { this.oldPassword = oldPassword; }
