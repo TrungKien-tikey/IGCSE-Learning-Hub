@@ -48,6 +48,10 @@ const authService = {
 
   // 6. Đổi mật khẩu (Cần auth - Có trong ChangePasswordRequest)
   changePassword: (passwordData) => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      return Promise.reject(new Error('Không có token, vui lòng đăng nhập lại'));
+    }
     return axiosClient.post('/api/auth/change-password', {
       oldPassword: passwordData.oldPassword,
       newPassword: passwordData.newPassword,
