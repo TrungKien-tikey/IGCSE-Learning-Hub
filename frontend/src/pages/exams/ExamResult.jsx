@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import axiosClient from "../../api/axiosClient";
+import examClient from "../../api/examClient";
 
 export default function ExamResultPage() {
     const [searchParams] = useSearchParams();
@@ -20,9 +20,7 @@ export default function ExamResultPage() {
         if (showLoading) setIsRefreshing(true);
 
         try {
-            const res = await axiosClient.get(`/api/exams/attempt/${attemptId}`, {
-                baseURL: ''
-            });
+            const res = await examClient.get(`/attempt/${attemptId}`);
 
             setResult(res.data);
         } catch (err) {

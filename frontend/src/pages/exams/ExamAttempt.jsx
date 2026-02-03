@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
-import axiosClient from "../../api/axiosClient";
+import examClient from "../../api/examClient";
 
 export default function ExamAttemptPage() {
   const navigate = useNavigate();
@@ -34,7 +34,7 @@ export default function ExamAttemptPage() {
   useEffect(() => {
     if (!examId || !attemptId) return;
 
-    axiosClient.get(`/api/exams/${examId}`, { baseURL: '' })
+    examClient.get(`/${examId}`)
       .then(res => {
         const data = res.data;
 
@@ -113,11 +113,11 @@ export default function ExamAttemptPage() {
     const finalAnswers = formatPayload(currentAnswers, sourceQuestions);
 
     try {
-      // [4] Dùng axiosClient.post
-      await axiosClient.post(`/api/exams/submit`, {
+      // [4] Dùng examClient.post
+      await examClient.post(`/submit`, {
         attemptId: parseInt(attemptId),
         answers: finalAnswers
-      }, { baseURL: '' });
+      });
 
       localStorage.removeItem(STORAGE_KEY);
       navigate(`/exams/result?attemptId=${attemptId}`);
@@ -271,11 +271,11 @@ export default function ExamAttemptPage() {
     const finalAnswers = formatPayload(answers);
 
     try {
-      // [5] Dùng axiosClient.post
-      await axiosClient.post(`/api/exams/submit`, {
+      // [5] Dùng examClient.post
+      await examClient.post(`/submit`, {
         attemptId: parseInt(attemptId),
         answers: finalAnswers
-      }, { baseURL: '' });
+      });
 
       localStorage.removeItem(STORAGE_KEY);
       navigate(`/exams/result?attemptId=${attemptId}`);

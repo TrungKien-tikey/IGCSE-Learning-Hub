@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaRobot, FaUserGraduate, FaCheckCircle, FaSave, FaArrowRight, FaArrowLeft, FaList, FaHistory } from "react-icons/fa";
 import MainLayout from '../../layouts/MainLayout';
+import examClient from "../../api/examClient";
 import axiosClient from "../../api/axiosClient";
 
 export default function TeacherGradingPage() {
@@ -43,7 +44,7 @@ export default function TeacherGradingPage() {
 
   const fetchSpecificAttempt = async (attemptId) => {
     try {
-      const res = await axiosClient.get(`/api/exams/attempt/${attemptId}`, { baseURL: '' });
+      const res = await examClient.get(`/attempt/${attemptId}`);
       processAttemptData(res.data);
     } catch (err) {
       console.error(err);
@@ -55,7 +56,7 @@ export default function TeacherGradingPage() {
 
   const fetchPendingGrading = async () => {
     try {
-      const res = await axiosClient.get("/api/exams/grading/pending", { baseURL: '' });
+      const res = await examClient.get("/grading/pending");
       setPendingAttempts(res.data);
     } catch (err) {
       console.error(err);
@@ -154,7 +155,7 @@ export default function TeacherGradingPage() {
         feedback: teacherFeedback
       };
 
-      await axiosClient.post("/api/exams/grading/update", payload, { baseURL: '' });
+      await examClient.post("/grading/update", payload);
 
       toast.success("Đã lưu điểm thành công!");
 

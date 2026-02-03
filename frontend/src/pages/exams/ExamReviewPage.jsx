@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaCheckCircle, FaTimesCircle, FaRobot } from "react-icons/fa";
 import MainLayout from '../../layouts/MainLayout';
-import axiosClient from "../../api/axiosClient"
+import examClient from "../../api/examClient"
 
 export default function ExamReviewPage() {
   const { attemptId } = useParams();
@@ -21,9 +21,7 @@ export default function ExamReviewPage() {
 
     const fetchAttemptDetail = async () => {
       try {
-        const res = await axiosClient.get(`/api/exams/attempt/${attemptId}`, {
-          baseURL: ''
-        });
+        const res = await examClient.get(`/attempt/${attemptId}`);
         setAttempt(res.data);
       } catch (err) {
         console.error("Lỗi tải chi tiết bài làm:", err);

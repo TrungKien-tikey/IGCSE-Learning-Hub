@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import { FaCommentDots, FaHistory, FaEye } from "react-icons/fa"; // Thêm icon
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from '../../components/CommentRoom';
-import axiosClient from '../../api/axiosClient';
+import examClient from '../../api/examClient';
 
 export default function ExamListPage() {
   const navigate = useNavigate();
@@ -47,9 +47,7 @@ export default function ExamListPage() {
     // A. Tải danh sách bài thi
     const fetchExams = async () => {
       try {
-        const res = await axiosClient.get('/api/exams', { 
-            baseURL: '' // <--- CẤU HÌNH GHI ĐÈ Ở ĐÂY
-        });
+        const res = await examClient.get('');
         const data = res.data; // Axios trả dữ liệu trong .data
 
         if (Array.isArray(data)) {
@@ -69,9 +67,7 @@ export default function ExamListPage() {
 
     const fetchHistory = async () => {
       try {
-        const res = await axiosClient.get('/api/exams/history', { 
-            baseURL: '' // <--- CẤU HÌNH GHI ĐÈ Ở ĐÂY
-        });
+        const res = await examClient.get('/history');
         const data = res.data;
 
         const map = {};
@@ -157,15 +153,14 @@ export default function ExamListPage() {
 
     // 2. Nếu không -> Gọi API tạo bài mới
     try {
-      const res = await axiosClient.post('/api/exams/start', 
-        { examId: examId }, // Body data
-        { baseURL: '' }     // <--- Config ghi đè baseURL nằm ở tham số thứ 3
+      const res = await examClient.post('/start',
+        { examId: examId }
       );
-      
+
       // Axios sẽ nhảy vào catch nếu lỗi, nên nếu chạy đến đây là thành công (2xx)
       const data = res.data;
       navigate(`/exams/${examId}/attempt?attemptId=${data.attemptId}`);
-      
+
     } catch (error) {
       // Lấy message lỗi từ response của server
       const message = error.response?.data?.message || "Không thể bắt đầu bài thi";

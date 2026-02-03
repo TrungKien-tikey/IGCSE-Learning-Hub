@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
-import axiosClient from "../../api/axiosClient";
+import examClient from "../../api/examClient";
 
 export default function EditExamPage() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export default function EditExamPage() {
     const fetchExamData = async () => {
       try {
         // [2] Thay fetch bằng axiosClient.get, ghi đè baseURL
-        const res = await axiosClient.get(`/api/exams/${examId}`, { baseURL: '' });
+        const res = await examClient.get(`/${examId}`);
         const data = res.data;
 
         setExamInfo({
@@ -254,7 +254,7 @@ export default function EditExamPage() {
     };
 
     try {
-      await axiosClient.put(`/api/exams/${examId}`, payload, { baseURL: '' });
+      await examClient.put(`/${examId}`, payload);
 
       toast.success("Cập nhật bài thi thành công!");
     } catch (error) {
