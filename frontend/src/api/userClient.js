@@ -5,7 +5,7 @@ import axios from 'axios';
  * Dùng cho các API của user-service (/api/users/*)
  */
 const userClient = axios.create({
-  baseURL: '/api/users', // User-service không có /v1 trong path
+  baseURL: 'https://nevaeh-putaminous-obsequiously.ngrok-free.dev/api/users', // User-service không có /v1 trong path
   headers: {
     'Content-Type': 'application/json',
   },
