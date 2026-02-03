@@ -20,14 +20,9 @@ const VerifiedRoute = ({ children }) => {
     // Hàm lấy lại thông tin user nếu thiếu
     const fetchUserProfile = async () => {
         try {
-            // Import axiosClient ở đây hoặc dùng axios gốc nếu cần, 
-            // nhưng tốt nhất là dùng axiosClient để tận dụng logic token
-            // Do file này chưa import axiosClient, ta cần import ở đầu file. 
-            // Tuy nhiên, để tránh sửa header file quá nhiều, ta giả định axiosClient đã được cấu hình global hoặc import động.
-            // Ở đây ta sẽ import axiosClient từ api.
-            const { default: axiosClient } = await import('../api/axiosClient');
+            const { default: authClient } = await import('../api/authClient');
 
-            const response = await axiosClient.get('/api/users/me');
+            const response = await authClient.get('/users/me');
             const userData = response.data;
 
             localStorage.setItem("user", JSON.stringify(userData));
