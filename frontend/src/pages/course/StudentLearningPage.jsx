@@ -1,20 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
-import { 
-  PlayCircle, 
-  FileText, 
-  MessageSquare, 
-  ArrowLeft, 
-  Download, 
-  FileBox, 
-  ChevronRight,
-  BookOpen,
-  MonitorPlay,
-  CheckCircle, 
-  CheckSquare
+import userClient from '../../api/userClient';
+import {
+    PlayCircle,
+    FileText,
+    MessageSquare,
+    ArrowLeft,
+    Download,
+    FileBox,
+    ChevronRight,
+    BookOpen,
+    MonitorPlay,
+    CheckCircle,
+    CheckSquare,
+    Video, // <--- Thêm cái này
+    Clock
 } from 'lucide-react';
-import './LessonPage.css'; 
+import './LessonPage.css';
 
 export default function StudentLearningPage() {
     const { courseId } = useParams();
@@ -24,13 +27,28 @@ export default function StudentLearningPage() {
     const [currentLesson, setCurrentLesson] = useState(null);
     const [courseTitle, setCourseTitle] = useState("Đang tải...");
     const [completedLessonIds, setCompletedLessonIds] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null); // State lưu user
 
     const API_URL = '/courses';
 
     useEffect(() => {
         fetchCourseAndLessons();
         fetchCompletedStatus();
+        fetchUserProfile();
     }, [courseId]);
+
+    // Hàm lấy thông tin profile
+    const fetchUserProfile = async () => {
+        const token = localStorage.getItem('accessToken');
+        if (token) {
+            try {
+                const res = await userClient.get('/me');
+                setCurrentUser(res.data);
+            } catch (e) {
+                console.error("Lỗi khi lấy thông tin người dùng:", e);
+            }
+        }
+    };
 
     const fetchCourseAndLessons = async () => {
         try {
@@ -81,12 +99,12 @@ export default function StudentLearningPage() {
 
         if (role === 'ADMIN') {
             // Admin quay về trang quản lý khóa học (AdminDashboard) hoặc danh sách tất cả khóa
-            navigate('/admin/dashboard'); 
+            navigate('/course-approval');
         } else if (role === 'MANAGER') {
             // Manager quay về trang duyệt bài hoặc thống kê
-            navigate('/course-approval'); 
+            navigate('/course-approval');
         } else if (role === 'TEACHER') {
-             // Giáo viên có thể muốn về Dashboard giáo viên hoặc trang khóa học của tôi
+            // Giáo viên có thể muốn về Dashboard giáo viên hoặc trang khóa học của tôi
             navigate('/teacher-dashboard');
         } else {
             // Học sinh (hoặc mặc định) về trang khóa học của tôi
@@ -123,6 +141,33 @@ export default function StudentLearningPage() {
         const contentArea = document.querySelector('.lp-editor-area');
         if (contentArea) contentArea.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    // 1. Hàm format thời gian sang tiếng Việt
+    const formatMeetingTime = (isoString) => {
+        if (!isoString) return "Chưa cập nhật giờ";
+        const date = new Date(isoString);
+        return date.toLocaleString('vi-VN', {
+            weekday: 'long', // Thứ Hai
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }); // Kết quả: "Thứ Hai, 20/05/2024 14:30"
+    };
+
+    // 2. Hàm kiểm tra trạng thái giờ học (Sắp diễn ra, Đang diễn ra, Đã qua)
+    const getMeetingStatus = (isoString) => {
+        if (!isoString) return { text: "Lên lịch", color: "#2563eb" }; // Mặc định xanh dương
+        const now = new Date();
+        const meetingTime = new Date(isoString);
+        const diffMinutes = (meetingTime - now) / 60000;
+
+        if (diffMinutes > 60) return { text: "Sắp diễn ra", color: "#2563eb" }; // Xanh dương
+        if (diffMinutes > 0 && diffMinutes <= 60) return { text: "Chuẩn bị bắt đầu", color: "#d97706" }; // Cam
+        if (diffMinutes <= 0 && diffMinutes > -120) return { text: "Đang diễn ra", color: "#16a34a" }; // Xanh lá
+        return { text: "Đã kết thúc", color: "#6b7280" }; // Xám
+    };
 
     const isCurrentLessonCompleted = currentLesson && completedLessonIds.includes(currentLesson.lessonId);
 
@@ -145,9 +190,13 @@ export default function StudentLearningPage() {
                         <span>Tin nhắn</span>
                     </button>
                     <div className="p-avatar-group">
-                        <div className="p-avatar-img student-avatar">Use</div>
+                        {/* Hiển thị 2 chữ cái đầu của tên làm Avatar hoặc chữ 'U' mặc định */}
+                        <div className="p-avatar-img student-avatar">
+                            {currentUser?.fullName ? currentUser.fullName.substring(0, 2).toUpperCase() : 'U'}
+                        </div>
                         <div className="p-avatar-info">
-                            <span className="p-name">Người dùng</span>
+                            {/* Hiển thị fullName từ API */}
+                            <span className="p-name">{currentUser?.fullName || "Đang tải..."}</span>
                             <span className="p-status">Đang xem</span>
                         </div>
                     </div>
@@ -162,7 +211,7 @@ export default function StudentLearningPage() {
                             Đã hoàn thành: {completedLessonIds.length}/{lessons.length} bài
                         </div>
                     </div>
-                    
+
                     <div className="lesson-nav-list">
                         {lessons.map((l) => {
                             const isCompleted = completedLessonIds.includes(l.lessonId);
@@ -172,8 +221,8 @@ export default function StudentLearningPage() {
                                     className={`lesson-nav-card ${currentLesson?.lessonId === l.lessonId ? 'active' : ''}`}
                                     onClick={() => handleSelectLesson(l)}
                                 >
-                                    <div className={`nav-card-prefix ${isCompleted ? 'completed-tick' : ''}`} 
-                                         style={isCompleted ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}}>
+                                    <div className={`nav-card-prefix ${isCompleted ? 'completed-tick' : ''}`}
+                                        style={isCompleted ? { background: '#10b981', color: 'white', borderColor: '#10b981' } : {}}>
                                         {isCompleted ? <CheckCircle size={14} /> : l.orderIndex}
                                     </div>
 
@@ -199,7 +248,7 @@ export default function StudentLearningPage() {
                             <div className="student-lesson-header">
                                 <h1 className="lesson-main-title">{currentLesson.title}</h1>
                                 <div className={`lesson-meta-badge ${isCurrentLessonCompleted ? 'completed-badge' : ''}`}
-                                     style={isCurrentLessonCompleted ? { background: '#d1fae5', color: '#065f46' } : {}}>
+                                    style={isCurrentLessonCompleted ? { background: '#d1fae5', color: '#065f46' } : {}}>
                                     {isCurrentLessonCompleted ? 'Đã hoàn thành' : `Bài soạn ${currentLesson.orderIndex}`}
                                 </div>
                             </div>
@@ -231,10 +280,10 @@ export default function StudentLearningPage() {
                                             <span className="attachment-sub">Tệp đính kèm bài học (nhấn để tải)</span>
                                         </div>
                                     </div>
-                                    
-                                    <a 
-                                        href={getDownloadLink(currentLesson.resourceUrl)} 
-                                        target="_blank" 
+
+                                    <a
+                                        href={getDownloadLink(currentLesson.resourceUrl)}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         download={currentLesson.resourceName || "document"}
                                         className="student-dl-btn"
@@ -242,6 +291,86 @@ export default function StudentLearningPage() {
                                         <Download size={18} />
                                         <span>Tải tài liệu</span>
                                     </a>
+                                </div>
+                            )}
+                            {/* --- KHU VỰC GOOGLE MEET CÓ HIỂN THỊ GIỜ --- */}
+                            {currentLesson.meetingUrl && (
+                                <div className="student-meeting-box" style={{
+                                    background: '#f8fafc',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    padding: '20px',
+                                    marginBottom: '24px',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '16px'
+                                }}>
+                                    {/* Dòng 1: Tiêu đề & Trạng thái */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                            <div style={{ background: '#e0f2fe', padding: '8px', borderRadius: '8px', color: '#0284c7' }}>
+                                                <Video size={24} />
+                                            </div>
+                                            <div>
+                                                <h3 style={{ margin: 0, fontSize: '18px', color: '#0f172a' }}>Lớp học trực tuyến</h3>
+                                                <span style={{ fontSize: '14px', color: '#64748b' }}>Học qua Google Meet</span>
+                                            </div>
+                                        </div>
+
+                                        {currentLesson.startTime && (
+                                            <span style={{
+                                                background: getMeetingStatus(currentLesson.startTime).color,
+                                                color: 'white',
+                                                padding: '4px 12px',
+                                                borderRadius: '20px',
+                                                fontSize: '12px',
+                                                fontWeight: '600'
+                                            }}>
+                                                {getMeetingStatus(currentLesson.startTime).text}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {/* Dòng 2: Thời gian & Nút bấm */}
+                                    <div style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        background: 'white',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #f1f5f9'
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#334155' }}>
+                                            <Clock size={18} color="#475569" />
+                                            <span style={{ fontWeight: '500', fontSize: '15px' }}>
+                                                Thời gian: {formatMeetingTime(currentLesson.startTime)}
+                                            </span>
+                                        </div>
+
+                                        <a
+                                            href={currentLesson.meetingUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                                background: '#2563eb',
+                                                color: 'white',
+                                                padding: '10px 24px',
+                                                borderRadius: '6px',
+                                                textDecoration: 'none',
+                                                fontWeight: '600',
+                                                fontSize: '14px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                transition: 'background 0.2s'
+                                            }}
+                                            onMouseOver={(e) => e.target.style.background = '#1d4ed8'}
+                                            onMouseOut={(e) => e.target.style.background = '#2563eb'}
+                                        >
+                                            <Video size={16} /> Tham gia ngay
+                                        </a>
+                                    </div>
                                 </div>
                             )}
 
@@ -254,7 +383,7 @@ export default function StudentLearningPage() {
                             )}
 
                             <div className="lesson-completion-section" style={{ marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #eee' }}>
-                                <button 
+                                <button
                                     className={`mark-complete-btn ${isCurrentLessonCompleted ? 'completed' : ''}`}
                                     onClick={handleMarkAsComplete}
                                     disabled={isCurrentLessonCompleted}

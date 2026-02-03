@@ -24,9 +24,9 @@ export default function MyCoursesPage() {
 
         // 2. Chỉ gọi tiến độ nếu là Học sinh và có danh sách khóa học
         if (userRole === 'STUDENT' && coursesData.length > 0) {
-          
+
           // Dùng Promise.all để gọi song song các API lấy tiến độ
-          const progressPromises = coursesData.map(course => 
+          const progressPromises = coursesData.map(course =>
             // SỬA ĐỔI: Gọi API /progress không cần userId (Backend tự lấy từ Token)
             axiosClient.get(`${API_URL}/${course.courseId}/progress`)
               .then(res => ({ id: course.courseId, val: res.data }))
@@ -34,7 +34,7 @@ export default function MyCoursesPage() {
           );
 
           const results = await Promise.all(progressPromises);
-          
+
           // Chuyển mảng kết quả thành Map { courseId: percent }
           const newMap = {};
           results.forEach(item => { newMap[item.id] = item.val; });
@@ -60,15 +60,31 @@ export default function MyCoursesPage() {
   return (
     <div className="course-page">
       <div className="container">
-        {/* HEADER */}
-        <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <h1 className="page-title">Khóa Học Của Tôi</h1>
-            <p style={{ color: '#666' }}>Tiếp tục hành trình chinh phục kiến thức</p>
-          </div>
-          <button onClick={() => navigate('/')} className="btn-back">
+        {/* HEADER ĐÃ SỬA ĐỔI CẤU TRÚC */}
+        <div className="page-header" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '15px' }}>
+          {/* Nút quay lại nằm trên cùng bên trái */}
+          <button
+            onClick={() => navigate('/')}
+            className="btn-back"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0',
+              background: 'none',
+              border: 'none',
+              color: '#1976d2',
+              fontWeight: '500',
+              cursor: 'pointer'
+            }}
+          >
             <ArrowLeft size={18} /> Quay lại Dashboard
           </button>
+
+          <div>
+            <h1 className="page-title" style={{ margin: 0 }}>Khóa Học Của Tôi</h1>
+            <p style={{ color: '#666', marginTop: '5px' }}>Tiếp tục hành trình chinh phục kiến thức</p>
+          </div>
         </div>
 
         {/* LIST COURSES */}
@@ -76,7 +92,7 @@ export default function MyCoursesPage() {
           {courses.length === 0 ? (
             <div style={{ textAlign: 'center', width: '100%', color: '#666', marginTop: '50px' }}>
               <p>Bạn chưa đăng ký khóa học nào.</p>
-              <button onClick={() => navigate('/all-courses')} className="btn-primary" style={{marginTop: '10px'}}>
+              <button onClick={() => navigate('/all-courses')} className="btn-primary" style={{ marginTop: '10px' }}>
                 Tìm khóa học ngay
               </button>
             </div>
@@ -90,38 +106,38 @@ export default function MyCoursesPage() {
                 <div key={course.courseId} className="course-card">
                   <div className="card-body">
                     {/* Icon đại diện khóa học */}
-                    <div style={{ 
-                        height: '140px', 
-                        background: '#e3f2fd', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        marginBottom: '15px', 
-                        borderRadius: '8px', 
-                        color: '#1976d2', 
-                        fontSize: '3rem',
-                        position: 'relative'
+                    <div style={{
+                      height: '140px',
+                      background: '#e3f2fd',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: '15px',
+                      borderRadius: '8px',
+                      color: '#1976d2',
+                      fontSize: '3rem',
+                      position: 'relative'
                     }}>
                       🎓
                       {progress === 100 && (
-                          <div style={{
-                              position: 'absolute',
-                              top: '10px',
-                              right: '10px',
-                              background: '#4caf50',
-                              color: 'white',
-                              borderRadius: '50%',
-                              padding: '5px'
-                          }}>
-                              <CheckCircle size={24} />
-                          </div>
+                        <div style={{
+                          position: 'absolute',
+                          top: '10px',
+                          right: '10px',
+                          background: '#4caf50',
+                          color: 'white',
+                          borderRadius: '50%',
+                          padding: '5px'
+                        }}>
+                          <CheckCircle size={24} />
+                        </div>
                       )}
                     </div>
 
                     <h2 className="course-title" title={course.title}>
-                        {course.title.length > 50 ? course.title.substring(0, 50) + '...' : course.title}
+                      {course.title.length > 50 ? course.title.substring(0, 50) + '...' : course.title}
                     </h2>
-                    
+
                     <div className="card-meta">
                       <span className="duration-tag">⏱ {course.duration || 'Chưa cập nhật'}</span>
                     </div>
@@ -133,12 +149,12 @@ export default function MyCoursesPage() {
                         <span>{progress}%</span>
                       </div>
                       <div style={{ height: '8px', background: '#e0e0e0', borderRadius: '4px', overflow: 'hidden' }}>
-                        <div style={{ 
-                          width: `${progress}%`, 
-                          height: '100%', 
-                          background: progress === 100 ? '#4caf50' : 'linear-gradient(90deg, #2196f3, #64b5f6)', 
+                        <div style={{
+                          width: `${progress}%`,
+                          height: '100%',
+                          background: progress === 100 ? '#4caf50' : 'linear-gradient(90deg, #2196f3, #64b5f6)',
                           borderRadius: '4px',
-                          transition: 'width 1s ease-in-out' 
+                          transition: 'width 1s ease-in-out'
                         }}></div>
                       </div>
                     </div>
@@ -148,14 +164,14 @@ export default function MyCoursesPage() {
                     <button
                       onClick={() => handleLearn(course.courseId)}
                       className="btn-action"
-                      style={{ 
-                          backgroundColor: progress === 100 ? '#4caf50' : '#1976d2', 
-                          color: 'white', 
-                          width: '100%', 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'center', 
-                          gap: '8px' 
+                      style={{
+                        backgroundColor: progress === 100 ? '#4caf50' : '#1976d2',
+                        color: 'white',
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px'
                       }}
                     >
                       <PlayCircle size={18} /> {progress === 100 ? 'Xem lại khóa học' : 'Tiếp tục học'}
