@@ -14,6 +14,7 @@ const VNPayReturnPage = () => {
     const [loading, setLoading] = useState(true);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [countdown, setCountdown] = useState(5);
 
     useEffect(() => {
         verifyPayment();
@@ -44,6 +45,22 @@ const VNPayReturnPage = () => {
     };
 
     const isSuccess = result?.valid && result?.vnpTransactionStatus === '00';
+
+    // Auto redirect về trang chủ sau 5 giây nếu thanh toán thành công
+    useEffect(() => {
+        if (isSuccess) {
+            const timer = setInterval(() => {
+                setCountdown(prev => {
+                    if (prev <= 1) {
+                        navigate('/');
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+    }, [isSuccess, navigate]);
 
     if (loading) {
         return (
@@ -90,6 +107,12 @@ const VNPayReturnPage = () => {
 
                 <h2>{isSuccess ? 'Thanh toán thành công!' : 'Thanh toán không thành công'}</h2>
                 <p className="message">{result?.message}</p>
+                
+                {isSuccess && (
+                    <p style={{ marginTop: '12px', fontSize: '14px', color: '#666', fontStyle: 'italic' }}>
+                        ⏱ Sẽ quay về trang chủ trong <strong>{countdown}</strong> giây...
+                    </p>
+                )}
 
                 <div className="payment-details">
                     <div className="detail-row">
