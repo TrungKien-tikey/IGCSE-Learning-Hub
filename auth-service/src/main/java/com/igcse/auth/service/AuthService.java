@@ -165,7 +165,7 @@ public class AuthService {
         userRepository.save(user);
 
         // Lưu ý: Đổi port 5173 thành port Frontend của bạn nếu cần
-        String resetLink = "http://localhost:5173/reset-password?token=" + token;
+        String resetLink = "https://igcse-learning-hub.vercel.app/reset-password?token=" + token;
 
         String emailBody = "Xin chao " + user.getFullName() + ",\n\n"
                 + "Ban da yeu cau dat lai mat khau.\n"
