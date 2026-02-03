@@ -10,14 +10,16 @@ public class ParentStudentRelationship {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "parent_id", nullable = false)
-    private Long parentId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "parent_id", nullable = false)
+    private User parent;
 
-    @Column(name = "student_id", nullable = false)
-    private Long studentId;
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "student_id", nullable = false)
+    private User student;
 
     @Column(nullable = false)
-    private String status; // PENDING, ACCEPTED, REJECTED
+    private String status; // PENDING, ACCEPTED, REJECTED, CANCELLED
 
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
@@ -25,9 +27,9 @@ public class ParentStudentRelationship {
     public ParentStudentRelationship() {
     }
 
-    public ParentStudentRelationship(Long parentId, Long studentId) {
-        this.parentId = parentId;
-        this.studentId = studentId;
+    public ParentStudentRelationship(User parent, User student) {
+        this.parent = parent;
+        this.student = student;
         this.status = "PENDING";
         this.createdAt = new Date();
     }
@@ -41,20 +43,20 @@ public class ParentStudentRelationship {
         this.id = id;
     }
 
-    public Long getParentId() {
-        return parentId;
+    public User getParent() {
+        return parent;
     }
 
-    public void setParentId(Long parentId) {
-        this.parentId = parentId;
+    public void setParent(User parent) {
+        this.parent = parent;
     }
 
-    public Long getStudentId() {
-        return studentId;
+    public User getStudent() {
+        return student;
     }
 
-    public void setStudentId(Long studentId) {
-        this.studentId = studentId;
+    public void setStudent(User student) {
+        this.student = student;
     }
 
     public String getStatus() {
@@ -71,5 +73,17 @@ public class ParentStudentRelationship {
 
     public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
+    }
+
+    // Helper methods for JSON compatibility and ease of use (keeps old frontend
+    // working)
+    @Transient
+    public Long getParentId() {
+        return parent != null ? parent.getUserId() : null;
+    }
+
+    @Transient
+    public Long getStudentId() {
+        return student != null ? student.getUserId() : null;
     }
 }
