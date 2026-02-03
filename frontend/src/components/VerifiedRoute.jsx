@@ -7,8 +7,38 @@ import { toast } from 'react-toastify';
  */
 const VerifiedRoute = ({ children }) => {
     const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
-    const userStr = localStorage.getItem("user");
+    const [user, setUser] = React.useState(() => {
+        try {
+            return JSON.parse(localStorage.getItem("user"));
+        } catch (e) {
+            return null;
+        }
+    });
+    const [isLoading, setIsLoading] = React.useState(!user); // Nếu chưa có user thì loading
     const [shouldRedirect, setShouldRedirect] = React.useState(null);
+
+    // Hàm lấy lại thông tin user nếu thiếu
+    const fetchUserProfile = async () => {
+        try {
+            // Import axiosClient ở đây hoặc dùng axios gốc nếu cần, 
+            // nhưng tốt nhất là dùng axiosClient để tận dụng logic token
+            // Do file này chưa import axiosClient, ta cần import ở đầu file. 
+            // Tuy nhiên, để tránh sửa header file quá nhiều, ta giả định axiosClient đã được cấu hình global hoặc import động.
+            // Ở đây ta sẽ import axiosClient từ api.
+            const { default: axiosClient } = await import('../api/axiosClient');
+
+            const response = await axiosClient.get('/users/me');
+            const userData = response.data;
+
+            localStorage.setItem("user", JSON.stringify(userData));
+            setUser(userData);
+        } catch (error) {
+            console.error("Lỗi xác thực lại user:", error);
+            setShouldRedirect("/login");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     React.useEffect(() => {
         if (!token) {
@@ -16,24 +46,28 @@ const VerifiedRoute = ({ children }) => {
             return;
         }
 
-        let user = null;
-        try {
-            user = JSON.parse(userStr);
-        } catch (e) {
-            console.error("Lỗi parse user info", e);
-            setShouldRedirect("/login");
-            return;
+        // Nếu chưa có user trong localStorage -> Gọi API lấy lại
+        if (!user) {
+            fetchUserProfile();
+            return; // Đợi fetch xong mới check tiếp
         }
 
-        // 1. Phải là Teacher
-        if (user?.role !== 'TEACHER') {
+        // Đã có user, bắt đầu check quyền
+        setIsLoading(false);
+
+        // 1. Phải là Teacher (hoặc Admin - Admin được quyền vào mọi trang Teacher để kiểm tra)
+        if (user.role === 'ADMIN') {
+            return; // OK
+        }
+
+        if (user.role !== 'TEACHER') {
             toast.error("Trang này chỉ dành cho Giáo viên!");
             setShouldRedirect("/");
             return;
         }
 
         // 2. Phải được APPROVED
-        const status = user?.teacherProfile?.verificationStatus;
+        const status = user.teacherProfile?.verificationStatus;
         if (status !== 'APPROVED') {
             const msg = status === 'PENDING'
                 ? "Tài khoản đang CHỜ DUYỆT. Vui lòng đợi Admin phê duyệt để truy cập Dashboard."
@@ -41,35 +75,27 @@ const VerifiedRoute = ({ children }) => {
                     ? "Tài khoản của bạn đã bị TỪ CHỐI. Vui lòng cập nhật hồ sơ."
                     : "Vui lòng cập nhật hồ sơ để xác thực tài khoản Teacher.";
 
-            // Thay vì toast ngay, ta set thông báo vào state để Profile hiển thị
             setShouldRedirect({ path: "/profile", state: { verificationError: msg } });
-            return;
         }
-    }, [token, userStr]);
+    }, [token, user]); // Chạy lại khi user thay đổi (sau khi fetch xong)
 
     if (shouldRedirect) {
-        // Chuyển hướng kèm state thông báo
+        if (typeof shouldRedirect === 'string') {
+            return <Navigate to={shouldRedirect} replace />;
+        }
         return <Navigate to={shouldRedirect.path} state={shouldRedirect.state} replace />;
     }
 
-    // Nếu chưa check xong hoặc hợp lệ thì hiện children
-    // (Lưu ý: Nếu user hợp lệ thì logic trên không setShouldRedirect -> render children)
-    // Tuy nhiên, để tránh "nháy" content khi đang check, ta có thể check điều kiện hợp lệ ngay
-    // Nhưng vì logic useEffect chạy sau render, nên an toàn nhất là check điều kiện "Hợp lệ" để render luôn.
+    if (isLoading) {
+        return <div style={{ display: 'flex', justifyContent: 'center', marginTop: '50px' }}>Loading...</div>;
+    }
 
-    // Code tối ưu lại như sau để tránh nháy:
-    let user = null;
-    try { user = JSON.parse(userStr); } catch (e) { }
-
-    // Nếu hợp lệ thì render luôn không cần đợi useEffect
-    if (token && user?.role === 'TEACHER' && user?.teacherProfile?.verificationStatus === 'APPROVED') {
+    // Double check an toàn trước khi render
+    if (user?.role === 'ADMIN' || (user?.role === 'TEACHER' && user?.teacherProfile?.verificationStatus === 'APPROVED')) {
         return children;
     }
 
-    // Nếu chưa xác định (đang đợi useEffect check để redirect) -> Return null hoặc Loading
-    // Nhưng nếu return null thì màn hình trắng.
-    // Tốt nhất là return null để đợi redirect.
-    return null;
+    return null; // Trường hợp đang xử lý hoặc lọt lưới
 };
 
 export default VerifiedRoute;
