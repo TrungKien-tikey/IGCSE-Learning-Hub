@@ -32,19 +32,27 @@ const authService = {
     return axiosClient.post('/api/auth/check-email', { email });
   },
 
-  // 4. Quên mật khẩu
+  // 4. Quên mật khẩu (Public endpoint)
   forgotPassword: (email) => {
-    return axiosClient.post(`/api/auth/forgot-password?email=${email}`);
+    return axiosClient.post(`/api/auth/forgot-password`, null, {
+      params: { email }
+    });
   },
 
-  // 5. Đặt lại mật khẩu
+  // 5. Đặt lại mật khẩu (Public endpoint)
   resetPassword: (token, newPassword) => {
-    return axiosClient.post(`/api/auth/reset-password?token=${token}&newPassword=${newPassword}`);
+    return axiosClient.post(`/api/auth/reset-password`, null, {
+      params: { token, newPassword }
+    });
   },
 
-  // 6. Đổi mật khẩu (ĐÃ THÊM MỚI)
-  changePassword: (data) => {
-    return axiosClient.post('/api/auth/change-password', data);
+  // 6. Đổi mật khẩu (Cần auth - Có trong ChangePasswordRequest)
+  changePassword: (passwordData) => {
+    return axiosClient.post('/api/auth/change-password', {
+      oldPassword: passwordData.oldPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword
+    });
   },
 
   // 7. Đăng xuất
