@@ -237,6 +237,7 @@ services:
       - SPRING_RABBITMQ_HOST=rabbitmq
       - SPRING_RABBITMQ_PORT=5672
       - SPRING_RABBITMQ_USERNAME=guest
+      - VNPAY_RETURN_URL=https://igcse-learning-hub.vercel.app/payment/vnpay-return
       - SPRING_RABBITMQ_PASSWORD=guest
     depends_on:
       - mysql-db
