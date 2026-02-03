@@ -3,7 +3,7 @@
  * Centralized API calls for AI module
  */
 
-const AI_SERVICE_BASE_URL = "/api/ai";
+const AI_SERVICE_BASE_URL = "https://nevaeh-putaminous-obsequiously.ngrok-free.dev/api/ai";
 
 /**
  * Custom error class for API errors

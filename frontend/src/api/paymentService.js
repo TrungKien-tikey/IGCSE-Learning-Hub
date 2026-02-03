@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Payment Service API client
 const paymentClient = axios.create({
-    baseURL: '/api/payment', // Sẽ được proxy đến payment-service:8084
+    baseURL: 'https://nevaeh-putaminous-obsequiously.ngrok-free.dev/api/payment', // Sẽ được proxy đến payment-service:8084
     headers: {
         'Content-Type': 'application/json',
     },
