@@ -81,10 +81,10 @@ function App() {
 
         {/* --- CÁC TRANG CÔNG KHAI KHÁC --- */}
         <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
 
         {/* --- EXAM ROUTES --- */}
-        <Route path="/exams" element={<ExamListPage />} />
+        <Route path="/exams" element={<ProtectedRoute><ExamListPage /></ProtectedRoute>} />
         <Route
           path="/exams/create"
           element={
@@ -109,8 +109,8 @@ function App() {
             </VerifiedRoute>
           }
         />
-        <Route path="/exams/:id/attempt" element={<ExamAttemptPage />} />
-        <Route path="/exams/result" element={<ExamResultPage />} />
+        <Route path="/exams/:id/attempt" element={<ProtectedRoute><ExamAttemptPage /></ProtectedRoute>} />
+        <Route path="/exams/result" element={<ProtectedRoute><ExamResultPage /></ProtectedRoute>} />
         {/* <Route path="/teacher/grading" element={<TeacherGradingPage />} /> */}
         <Route
           path="/teacher/grading"
@@ -123,11 +123,11 @@ function App() {
         <Route path="/exams/review/:attemptId" element={<ExamReviewPage />} />
 
         {/* --- COURSE ROUTES --- */}
-        <Route path="course/courses" element={<CoursePage />} />
-        <Route path="/courses/:courseId/lessons" element={<LessonPage />} />
-        <Route path="/course-detail/:courseId" element={<CourseDetailPage />} />
-        <Route path="/all-courses" element={<AllCoursesPage />} />
-        <Route path="/my-courses" element={<MyCoursesPage />} />
+        <Route path="course/courses" element={<ProtectedRoute><CoursePage /></ProtectedRoute>} />
+        <Route path="/courses/:courseId/lessons" element={<ProtectedRoute><LessonPage /></ProtectedRoute>} />
+        <Route path="/course-detail/:courseId" element={<ProtectedRoute><CourseDetailPage /></ProtectedRoute>} />
+        <Route path="/all-courses" element={<ProtectedRoute><AllCoursesPage /></ProtectedRoute>} />
+        <Route path="/my-courses" element={<ProtectedRoute><MyCoursesPage /></ProtectedRoute>} />
         <Route path="/learning/:courseId" element={<StudentLearningPage />} />
 
         {/* --- AI ROUTES --- */}
@@ -135,11 +135,11 @@ function App() {
         <Route path="/ai/results/:attemptId" element={<AIResultPage />} />
 
         {/* --- Comunication ROUTES --- */}
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+        <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
 
         {/* --- PAYMENT ROUTES --- */}
-        <Route path="/payment/vnpay-return" element={<VNPayReturnPage />} />
+        <Route path="/payment/vnpay-return" element={<ProtectedRoute><VNPayReturnPage /></ProtectedRoute>} />
 
         <Route
           path="/ai/dashboard/student"
