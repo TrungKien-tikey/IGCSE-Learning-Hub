@@ -8,6 +8,7 @@ const userClient = axios.create({
   baseURL: import.meta.env.VITE_USER_SERVICE_URL, // User-service không có /v1 trong path
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': '69420',
   },
 });
 

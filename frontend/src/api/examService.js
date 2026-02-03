@@ -27,6 +27,7 @@ async function fetchApi(endpoint, options = {}) {
     const response = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
+        "ngrok-skip-browser-warning": "69420",
         ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         ...options.headers,
       },

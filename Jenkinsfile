@@ -12,6 +12,26 @@ pipeline {
             }
         }
 
+        stage('Setup Environment') {
+            steps {
+                script {
+                    // Cách 1: Tạo file .env từ Jenkins Credentials (Khuyên dùng cho bảo mật)
+                    // Bạn cần tạo một "Secret File" trong Jenkins Credentials với ID là 'igcse-env-file'
+                    /*
+                    withCredentials([file(credentialsId: 'igcse-env-file', variable: 'ENV_FILE')]) {
+                        sh "cp \$ENV_FILE .env"
+                        sh "cp \$ENV_FILE frontend/.env"
+                    }
+                    */
+                    
+                    // Cách 2: Tạo file .env thủ công (Dễ nhất cho người mới)
+                    // Nếu bạn đã tự tạo file .env trên server Jenkins rồi thì không cần làm gì thêm.
+                    echo "Đang kiểm tra file .env..."
+                    sh 'ls -la .env || echo "Cảnh báo: Không tìm thấy file .env"'
+                }
+            }
+        }
+
         stage('Build Artifacts') {
             parallel {
                 stage('AI Service') {

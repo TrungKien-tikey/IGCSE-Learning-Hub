@@ -17,22 +17,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
-            .csrf(csrf -> csrf.disable()) // Tắt CSRF để gọi API từ Frontend dễ hơn
-            .authorizeHttpRequests(auth -> auth
-                .anyRequest().permitAll() // Tạm thời cho phép tất cả để test giao diện
-            );
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Kích hoạt CORS
+                .csrf(csrf -> csrf.disable()) // Tắt CSRF để gọi API từ Frontend dễ hơn
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll() // Tạm thời cho phép tất cả để test giao diện
+                );
         return http.build();
     }
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173")); // Cho phép Frontend
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*")); // Cho phép tất cả Header
+        configuration.setAllowedOriginPatterns(Arrays.asList("*")); // Cho phép mọi nguồn (bao gồm Vercel)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;

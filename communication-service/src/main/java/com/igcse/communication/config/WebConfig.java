@@ -14,8 +14,8 @@ public class WebConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**") // Cho phép tất cả các API
-                        .allowedOrigins("http://localhost:5173") // Domain của React/Vite
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedOriginPatterns("*") // Mở cho Vercel/Ngrok
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }
