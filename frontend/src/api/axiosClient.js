@@ -28,6 +28,14 @@ if (!baseURL) {
     console.error("❌ CRITICAL: VITE_MAIN_API_URL is not set and cannot be derived! All API calls will fail on Vercel.");
   }
 } else {
+  // 🛡️ BẢO VỆ CHỐNG LẶP URL: Xóa đuôi /api/v1 nếu người dùng lỡ set trong env
+  if (baseURL.endsWith('/api/v1')) {
+    console.log("⚠️ AxiosClient: Detected '/api/v1' in VITE_MAIN_API_URL. Removing it to prevent duplication.");
+    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
+  } else if (baseURL.endsWith('/api/v1/')) { // Trường hợp có dấu / ở cuối
+    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
+  }
+  
   console.log("🚀 AxiosClient initialized with baseURL:", baseURL);
 }
 
