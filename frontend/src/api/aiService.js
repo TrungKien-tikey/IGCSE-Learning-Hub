@@ -77,13 +77,20 @@ async function fetchApi(endpoint, options = {}) {
  * @throws {ApiError} If ID is invalid
  */
 function validateId(id, paramName = "ID") {
-  if (!id || id === "undefined" || id === "null" || String(id).trim() === "") {
+  // Convert to string for consistent checking
+  const idStr = String(id).trim();
+  
+  if (!id || id === "undefined" || id === "null" || idStr === "") {
     throw new ApiError(`${paramName} không được để trống`, 400);
   }
-  if (isNaN(id) || Number(id) <= 0) {
-    throw new ApiError(`${paramName} phải là số hợp lệ`, 400);
+  
+  // Parse to number and check if valid positive integer
+  const numId = parseInt(idStr, 10);
+  if (isNaN(numId) || numId <= 0) {
+    throw new ApiError(`${paramName} phải là số nguyên dương hợp lệ`, 400);
   }
 }
+
 
 /**
  * Lấy kết quả chấm điểm cơ bản

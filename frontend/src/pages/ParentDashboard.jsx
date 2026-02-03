@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import userClient from '../api/userClient';
 import axiosClient from '../api/axiosClient';
 import { toast } from 'react-toastify';
 import {
@@ -23,7 +24,7 @@ const ParentDashboard = () => {
     const [selectedChildId, setSelectedChildId] = useState(null);
     const [isSearching, setIsSearching] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
-    
+
     // State cho tiến độ khóa học
     const [coursesProgress, setCoursesProgress] = useState([]);
     const [isLoadingProgress, setIsLoadingProgress] = useState(false);
@@ -38,10 +39,8 @@ const ParentDashboard = () => {
     useEffect(() => {
         const fetchChildren = async () => {
             try {
-                const res = await axiosClient.get('/relationships/children-details', {
-                    baseURL: '/api/users'
-                });
-                
+                const res = await userClient.get('/relationships/children-details');
+
                 // API trả về [{ relationship:..., student:... }] -> lấy student
                 const students = res.data.map(item => item.student);
 
@@ -101,15 +100,14 @@ const ParentDashboard = () => {
 
         setIsSearching(true);
         try {
-            const res = await axiosClient.post('/relationships/connect-by-code',
-                { linkCode: studentEmail },
-                { baseURL: '/api/users' }
+            const res = await userClient.post('/relationships/connect-by-code',
+                { linkCode: studentEmail }
             );
 
             const relationship = res.data;
             if (relationship && relationship.status === 'ACCEPTED') {
                 const studentId = relationship.studentId;
-                const studentRes = await axiosClient.get(`/${studentId}`, { baseURL: '/api/users' });
+                const studentRes = await userClient.get(`/${studentId}`);
                 const newStudent = studentRes.data;
 
                 setChildren(prev => {
@@ -135,9 +133,8 @@ const ParentDashboard = () => {
     const confirmUnlink = async () => {
         setIsUnlinking(true);
         try {
-            await axiosClient.delete('/relationships/disconnect', {
-                data: { studentId: selectedChildId },
-                baseURL: '/api/users'
+            await userClient.delete('/relationships/disconnect', {
+                data: { studentId: selectedChildId }
             });
 
             const newChildren = children.filter(c => c.userId !== selectedChildId);
