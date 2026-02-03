@@ -14,12 +14,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/v1/courses")
+@RequestMapping("/api/courses")
 @CrossOrigin(origins = "*")
 public class CourseController {
 
     @Autowired
     private CourseService courseService;
+
+    @GetMapping("/health")
+    public java.util.Map<String, String> health() {
+        return java.util.Map.of("status", "UP");
+    }
+
     @Autowired
     private JwtUtils jwtUtils;
     @Autowired
@@ -54,7 +60,7 @@ public class CourseController {
 
     @GetMapping("/test-connection")
     public ResponseEntity<String> testConnection() {
-        return ResponseEntity.ok("Course Service is reachable at /api/v1/courses/test-connection");
+        return ResponseEntity.ok("Course Service is reachable at /api/courses/test-connection");
     }
 
     @GetMapping("/debug/claim-all")

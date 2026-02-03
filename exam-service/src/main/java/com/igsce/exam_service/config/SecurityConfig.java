@@ -29,6 +29,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable()) // Tắt CSRF cho API
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Cấu hình CORS
                 .authorizeHttpRequests(auth -> auth
+                        // Cho phép health check không cần token
+                        .requestMatchers("/api/exams/health").permitAll()
                         // Cho phép truy cập Swagger (nếu có)
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                         // Các API khác bắt buộc phải có Token

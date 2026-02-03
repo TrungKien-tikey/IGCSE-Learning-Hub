@@ -16,6 +16,11 @@ public class UserProfileController {
     @Autowired
     private UserService userService;
 
+    @GetMapping("/health")
+    public java.util.Map<String, String> health() {
+        return java.util.Map.of("status", "UP");
+    }
+
     // API: Lấy danh sách users (Admin dùng để xem, duyệt GV, v.v)
     @GetMapping
     public org.springframework.data.domain.Page<User> getAllUsers(

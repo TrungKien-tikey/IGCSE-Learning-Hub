@@ -23,7 +23,6 @@ import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/ai")
-@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT', 'PARENT')")
 public class AIController {
     private static final Logger logger = LoggerFactory.getLogger(AIController.class);
 

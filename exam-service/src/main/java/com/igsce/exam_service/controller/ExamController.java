@@ -21,6 +21,11 @@ public class ExamController {
 
     private final ExamService examService;
 
+    @GetMapping("/health")
+    public Map<String, String> health() {
+        return Map.of("status", "UP");
+    }
+
     @GetMapping
     public ResponseEntity<List<Exam>> getExams() {
         return ResponseEntity.ok(examService.getAllExams());
@@ -96,10 +101,11 @@ public class ExamController {
 
     @GetMapping("/grading/pending")
     public ResponseEntity<List<ExamAttempt>> getPendingGradingAttempts() {
-        // (Optional) Kiểm tra quyền Teacher: 
+        // (Optional) Kiểm tra quyền Teacher:
         // if (!SecurityUtils.getCurrentUserRole().equals("TEACHER")) throw ...
-        
-        // Bạn cần implement hàm này trong Service: tìm các attempt có gradingStatus = AI_GRADED
+
+        // Bạn cần implement hàm này trong Service: tìm các attempt có gradingStatus =
+        // AI_GRADED
         return ResponseEntity.ok(examService.getAttemptsByStatus(GradingStatus.AI_GRADED));
     }
 
@@ -111,13 +117,12 @@ public class ExamController {
     public ResponseEntity<?> updateManualGrade(@RequestBody ManualGradingRequest request) {
         try {
             // (Optional) Kiểm tra quyền Teacher
-            
+
             examService.updateManualGrade(
-                request.getAttemptId(), 
-                request.getAnswerId(), 
-                request.getScore(), 
-                request.getFeedback()
-            );
+                    request.getAttemptId(),
+                    request.getAnswerId(),
+                    request.getScore(),
+                    request.getFeedback());
             return ResponseEntity.ok(Map.of("message", "Đã cập nhật điểm thành công"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));

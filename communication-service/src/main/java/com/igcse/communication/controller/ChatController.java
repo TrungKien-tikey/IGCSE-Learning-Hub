@@ -1,5 +1,7 @@
 package com.igcse.communication.controller;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.igcse.communication.entity.ChatMessage;
 import com.igcse.communication.service.ChatService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,11 +14,13 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/chat")
+@RequestMapping("/api/chat")
+@Slf4j
 public class ChatController {
-    @Autowired private ChatService service;
     @Autowired
-private SimpMessagingTemplate messagingTemplate;
+    private ChatService service;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @PostMapping("/send")
     public ChatMessage sendMessage(@RequestBody ChatMessage message) {
@@ -27,15 +31,16 @@ private SimpMessagingTemplate messagingTemplate;
     public List<ChatMessage> getChatHistory(@PathVariable String roomId) {
         return service.getChatHistory(roomId);
     }
+
     @SubscribeMapping("/history/{roomId}")
-public List<ChatMessage> sendHistoryOnSubscribe(@DestinationVariable String roomId) {
-    // Dòng này có hiện ra trong Log khi bạn F5 trình duyệt không?
-    System.out.println("DEBUG: User vừa subscribe vào phòng: " + roomId);
-    
-    List<ChatMessage> list = service.getChatHistory(roomId);
-    System.out.println("DEBUG: Tìm thấy " + list.size() + " tin nhắn.");
-    return list;
-}
+    public List<ChatMessage> sendHistoryOnSubscribe(@DestinationVariable String roomId) {
+        log.debug("User subscribed to room: {}", roomId);
+
+        List<ChatMessage> list = service.getChatHistory(roomId);
+        log.debug("Found {} messages for room {}", list.size(), roomId);
+        return list;
+    }
+
     @MessageMapping("/private-message")
     public ChatMessage receivePrivateMessage(@Payload ChatMessage message) {
         // Lưu tin nhắn vào DB
@@ -44,7 +49,7 @@ public List<ChatMessage> sendHistoryOnSubscribe(@DestinationVariable String room
         // Gửi tin nhắn đến người nhận cụ thể.
         // Client của receiverId cần subscribe vào: /queue/messages/{receiverId}
         messagingTemplate.convertAndSend("/queue/messages/" + message.getReceiverId(), savedMsg);
-        
+
         // (Tùy chọn) Gửi lại cho người gửi để hiện lên giao diện của họ ngay lập tức
         messagingTemplate.convertAndSend("/queue/messages/" + message.getSenderId(), savedMsg);
 
