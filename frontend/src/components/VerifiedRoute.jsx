@@ -27,7 +27,7 @@ const VerifiedRoute = ({ children }) => {
             // Ở đây ta sẽ import axiosClient từ api.
             const { default: axiosClient } = await import('../api/axiosClient');
 
-            const response = await axiosClient.get('/users/me');
+            const response = await axiosClient.get('/api/users/me');
             const userData = response.data;
 
             localStorage.setItem("user", JSON.stringify(userData));
