@@ -26,16 +26,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // Tắt CSRF cho API
-            .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Cấu hình CORS
-            .authorizeHttpRequests(auth -> auth
-                // Cho phép truy cập Swagger (nếu có)
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-                // Các API khác bắt buộc phải có Token
-                .anyRequest().authenticated()
-            )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không dùng Session Cookie
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm bộ lọc JWT
+                .csrf(csrf -> csrf.disable()) // Tắt CSRF cho API
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Cấu hình CORS
+                .authorizeHttpRequests(auth -> auth
+                        // Cho phép truy cập Swagger (nếu có)
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        // Các API khác bắt buộc phải có Token
+                        .anyRequest().authenticated())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không
+                                                                                                              // dùng
+                                                                                                              // Session
+                                                                                                              // Cookie
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class); // Thêm bộ lọc
+                                                                                                       // JWT
 
         return http.build();
     }
@@ -44,9 +47,9 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174")); 
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        configuration.setAllowedOriginPatterns(List.of("*")); // Mở cho Vercel/Ngrok
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -5,6 +5,7 @@ const paymentClient = axios.create({
     baseURL: import.meta.env.VITE_PAYMENT_SERVICE_URL,
     headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': '69420',
     },
 });
 
@@ -13,6 +14,7 @@ const statisticsClient = axios.create({
     baseURL: import.meta.env.VITE_ADMIN_API_URL,
     headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': '69420',
     },
 });
 
