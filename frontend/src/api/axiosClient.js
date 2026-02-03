@@ -3,7 +3,7 @@ import axios from 'axios';
 // 1. Tạo instance với path tương đối - sẽ đi qua Vite proxy -> Kong Gateway
 // Không dùng port cố định để tận dụng proxy configuration
 const axiosClient = axios.create({
-  baseURL: 'https://nevaeh-putaminous-obsequiously.ngrok-free.dev/api/v1', // Sử dụng path tương đối, Vite sẽ proxy đến Kong (port 8000)
+  baseURL: 'https://aniya-scrumptious-lina.ngrok-free.dev/api/v1', // Sử dụng path tương đối, Vite sẽ proxy đến Kong (port 8000)
   headers: {
     'Content-Type': 'application/json',
     "ngrok-skip-browser-warning": "69420",
