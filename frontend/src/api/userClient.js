@@ -5,7 +5,7 @@ import axios from 'axios';
  * Dùng cho các API của user-service (/api/users/*)
  */
 const userClient = axios.create({
-  baseURL: 'https://aniya-scrumptious-lina.ngrok-free.dev/api/users', // User-service không có /v1 trong path
+  baseURL: import.meta.env.VITE_USER_SERVICE_URL, // User-service không có /v1 trong path
   headers: {
     'Content-Type': 'application/json',
   },

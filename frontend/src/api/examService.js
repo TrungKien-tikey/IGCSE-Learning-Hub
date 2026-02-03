@@ -2,7 +2,7 @@
  * Exam Service API Client
  */
 
-const EXAM_SERVICE_BASE_URL = "https://aniya-scrumptious-lina.ngrok-free.dev/api/exams";
+const EXAM_SERVICE_BASE_URL = import.meta.env.VITE_EXAM_SERVICE_URL;
 
 /**
  * Custom error class for API errors

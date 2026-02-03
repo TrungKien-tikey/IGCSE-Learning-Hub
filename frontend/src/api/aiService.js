@@ -3,7 +3,7 @@
  * Centralized API calls for AI module
  */
 
-const AI_SERVICE_BASE_URL = "https://aniya-scrumptious-lina.ngrok-free.dev/api/ai";
+const AI_SERVICE_BASE_URL = import.meta.env.VITE_AI_SERVICE_URL;
 
 /**
  * Custom error class for API errors

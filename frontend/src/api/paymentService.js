@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Payment Service API client
 const paymentClient = axios.create({
-    baseURL: 'https://aniya-scrumptious-lina.ngrok-free.dev/api/payment', // Sẽ được proxy đến payment-service:8084
+    baseURL: import.meta.env.VITE_PAYMENT_SERVICE_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -10,7 +10,7 @@ const paymentClient = axios.create({
 
 // Admin Statistics API client
 const statisticsClient = axios.create({
-    baseURL: '/api/admin/statistics', // Sẽ được proxy đến payment-service:8084
+    baseURL: import.meta.env.VITE_ADMIN_API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
