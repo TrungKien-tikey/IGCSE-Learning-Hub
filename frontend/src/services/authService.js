@@ -42,7 +42,12 @@ const authService = {
     return axiosClient.post(`/api/auth/reset-password?token=${token}&newPassword=${newPassword}`);
   },
 
-  // 6. Đăng xuất
+  // 6. Đổi mật khẩu (ĐÃ THÊM MỚI)
+  changePassword: (data) => {
+    return axiosClient.post('/api/auth/change-password', data);
+  },
+
+  // 7. Đăng xuất
   logout: () => {
     const token = localStorage.getItem('accessToken');
     if (token) {
