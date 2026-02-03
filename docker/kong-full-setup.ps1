@@ -32,14 +32,14 @@ $services = @(
         name   = "auth-service"
         url    = "http://auth-service:8080"
         routes = @(
-            @{ name = "auth-route"; paths = @("/api/auth", "/api/v1/auth") }
+            @{ name = "auth-route"; paths = @("/api/auth") }
         )
     },
     @{
         name   = "user-service"
         url    = "http://user-service:8083"
         routes = @(
-            @{ name = "user-route"; paths = @("/api/users", "/api/v1/users") },
+            @{ name = "user-route"; paths = @("/api/users") },
             @{ name = "admin-users-route"; paths = @("/api/admin/users") }
         )
     },
@@ -68,7 +68,7 @@ $services = @(
         name   = "communication-service"
         url    = "http://communication-service:8089"
         routes = @(
-            @{ name = "communication-route"; paths = @("/api/notifications", "/api/communication") }
+            @{ name = "communication-route"; paths = @("/api/notifications", "/api/communication", "/api/chat", "/api/comments") }
         )
     },
     @{

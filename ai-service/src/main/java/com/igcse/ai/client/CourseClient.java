@@ -27,7 +27,7 @@ public class CourseClient {
 
     public List<CourseDTO> getAllCourses() {
         try {
-            String url = courseServiceUrl + "/api/v1/courses";
+            String url = courseServiceUrl + "/api/courses";
             logger.info("Fetching all courses from: {}", url);
 
             ResponseEntity<List<CourseDTO>> response = restTemplate.exchange(
@@ -46,7 +46,7 @@ public class CourseClient {
 
     public CourseDTO getCourseById(Long courseId) {
         try {
-            String url = courseServiceUrl + "/api/v1/courses/" + courseId;
+            String url = courseServiceUrl + "/api/courses/" + courseId;
             logger.debug("Fetching course details from: {}", url);
 
             ResponseEntity<CourseDTO> response = restTemplate.exchange(

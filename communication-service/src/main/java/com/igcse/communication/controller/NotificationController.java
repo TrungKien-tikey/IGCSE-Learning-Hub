@@ -1,4 +1,7 @@
 package com.igcse.communication.controller;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.igcse.communication.entity.Notification;
 import com.igcse.communication.repository.NotificationRepository;
 import io.jsonwebtoken.Claims;
@@ -17,83 +20,79 @@ import java.util.Map;
 import java.util.Collections;
 
 @RestController
-@RequestMapping("/api/v1/notifications")
+@RequestMapping("/api/notifications")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowCredentials = "false") // Cho phép gọi từ mọi nơi để test
+@CrossOrigin(origins = "*", allowCredentials = "false")
+@Slf4j
 public class NotificationController {
 
     private final FirebaseMessaging firebaseMessaging;
     private final NotificationRepository notificationRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+
+    @GetMapping("/health")
+    public java.util.Map<String, String> health() {
+        return java.util.Map.of("status", "UP");
+    }
 
     @PostMapping("/subscribe")
     public String subscribeToTopic(@RequestBody Map<String, String> body) {
-        String token = body.get("token").trim();
-        
-        // 1. Kiểm tra xem token có nhận được không
+        String token = body.get("token") != null ? body.get("token").trim() : null;
+
         if (token == null || token.isEmpty()) {
-            System.err.println(" LỖI: Token gửi lên bị RỖNG!");
+            log.warn("Token gửi lên bị RỖNG!");
             return "Token is missing";
         }
-        
-        System.out.println(">>> Đang đăng ký Token: " + token.substring(0, 10) + "..."); 
+
+        log.info(">>> Đang đăng ký Token: {}...", token.substring(0, Math.min(token.length(), 10)));
 
         try {
             TopicManagementResponse response = firebaseMessaging.subscribeToTopic(
-                Collections.singletonList(token), 
-                "students"
-            );
-            
-            // 2. IN CHI TIẾT LỖI NẾU CÓ
+                    Collections.singletonList(token),
+                    "students");
+
             if (response.getFailureCount() > 0) {
-                System.err.println(" Đăng ký thất bại!");
+                log.error("Đăng ký thất bại!");
                 response.getErrors().forEach(error -> {
-                    System.err.println("   Lý do: " + error.getReason()); // Vd: INVALID_ARGUMENT
+                    log.error("   Lý do: {}", error.getReason());
                 });
             } else {
-                System.out.println(" Đăng ký thành công! (Success: " + response.getSuccessCount() + ")");
+                log.info("Đăng ký thành công! (Success: {})", response.getSuccessCount());
             }
-            
-            return "Kết quả: " + response.getSuccessCount() + " thành công, " + response.getFailureCount() + " thất bại.";
+
+            return "Kết quả: " + response.getSuccessCount() + " thành công, " + response.getFailureCount()
+                    + " thất bại.";
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Lỗi Exception khi subscribe:", e);
             return "Lỗi Exception: " + e.getMessage();
         }
     }
-private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
 
-    // 1. API LẤY DANH SÁCH (Tự giải mã Token lấy ID)
- @GetMapping
+    // TODO: Move this to application.properties
+    private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
+
+    @GetMapping
     public ResponseEntity<?> getMyNotifications(HttpServletRequest request) {
-        System.out.println(">>> 1. Đã nhận Request lấy thông báo!"); // Log 1
-
         String authHeader = request.getHeader("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            System.err.println(">>> LỖI: Không thấy Token gửi lên!");
+            log.warn("Lỗi: Không thấy Token gửi lên!");
             return ResponseEntity.status(401).body("Thiếu Token!");
         }
         String token = authHeader.substring(7);
 
         try {
-            // Thử giải mã
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(getSigningKey())
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
 
-            System.out.println(">>> 2. Giải mã Token thành công!"); // Log 2
-
-            // Lấy ID
             Object userIdObj = claims.get("userId");
-            System.out.println(">>> 3. Giá trị userId trong Token là: " + userIdObj); // Log 3
 
             if (userIdObj == null) {
-                System.err.println(">>> LỖI: Token này không chứa userId (Token cũ rồi!)");
+                log.warn("Lỗi: Token không chứa userId");
                 return ResponseEntity.status(403).body("Token cũ không có ID");
             }
 
-            // Ép kiểu an toàn
             Long userId;
             if (userIdObj instanceof Integer) {
                 userId = ((Integer) userIdObj).longValue();
@@ -101,34 +100,26 @@ private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap
                 userId = ((Number) userIdObj).longValue();
             }
 
-            System.out.println("✅ 4. Lấy ID thành công: " + userId + ". Đang gọi Database..."); 
-            
-            // Gọi Database
             List<Notification> list = notificationRepository.findMyNotifications(userId);
-            System.out.println(">>> 5. Kết quả Database trả về: " + list.size() + " thông báo.");
-
             return ResponseEntity.ok(list);
 
         } catch (io.jsonwebtoken.security.SignatureException e) {
-            System.err.println(">>> LỖI SAI KEY: Secret Key bên này khác bên Auth Service!");
+            log.error("Lỗi sai Key bảo mật", e);
             return ResponseEntity.status(403).body("Sai Key bảo mật");
         } catch (io.jsonwebtoken.ExpiredJwtException e) {
-            System.err.println(">>> LỖI: Token đã hết hạn!");
+            log.warn("Token đã hết hạn");
             return ResponseEntity.status(403).body("Token hết hạn");
         } catch (Exception e) {
-            System.err.println(">>> LỖI KHÁC: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Lỗi xác thực Token", e);
             return ResponseEntity.status(403).body("Lỗi Token: " + e.getMessage());
         }
     }
 
-    // 2. API ĐÁNH DẤU ĐÃ ĐỌC (Mark as read)
-   // API đánh dấu đã đọc
     @PutMapping("/{id}/read")
     public ResponseEntity<?> markAsRead(@PathVariable Long id) {
         return notificationRepository.findById(id)
                 .map(notification -> {
-                    notification.setRead(true); // Đổi thành true
+                    notification.setRead(true);
                     notificationRepository.save(notification);
                     return ResponseEntity.ok("Đã đánh dấu đã đọc");
                 })
@@ -139,5 +130,3 @@ private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap
         return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 }
-    
- 

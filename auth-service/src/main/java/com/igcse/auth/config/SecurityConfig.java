@@ -42,13 +42,13 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // ✅ NHÓM CÔNG KHAI (Không cần Token)
                         .requestMatchers(
-                                "/api/v1/auth/register",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/verify-token", // Service khác gọi
-                                "/api/v1/auth/health", // Gateway check
-                                "/api/v1/auth/forgot-password",
-                                "/api/v1/auth/reset-password",
-                                "/api/v1/auth/check-email",
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/verify-token", // Service khác gọi
+                                "/api/auth/health", // Gateway check
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password",
+                                "/api/auth/check-email",
                                 "/v3/api-docs/**", // Swagger
                                 "/swagger-ui/**", // Swagger
                                 "/swagger-ui.html",

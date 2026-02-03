@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map; // Import Map để lấy email từ request body
 
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
     private final AuthService authService;
@@ -25,8 +25,8 @@ public class AuthController {
 
     // 1. API Health Check (Để test kết nối)
     @GetMapping("/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("Auth Service is connecting to Gateway successfully!");
+    public Map<String, String> healthCheck() {
+        return Map.of("status", "UP", "message", "Auth Service is connecting to Gateway successfully!");
     }
 
     // 2. API Đăng ký
@@ -48,7 +48,7 @@ public class AuthController {
     @PostMapping("/check-email")
     public ResponseEntity<Boolean> checkEmailExist(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        boolean exists = authService.checkEmailExist(email); 
+        boolean exists = authService.checkEmailExist(email);
         return ResponseEntity.ok(exists);
     }
 
