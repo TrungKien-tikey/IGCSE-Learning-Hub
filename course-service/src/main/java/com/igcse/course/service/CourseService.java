@@ -161,11 +161,12 @@ public class CourseService {
     }
 
     public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl,
-            String resourceUrl, String resourceName) { // Thêm tham số resourceName ở đây
+            String resourceUrl, String resourceName, String meetingUrl, LocalDateTime startTime) { // <--- Thêm 2 tham
+                                                                                                   // số
         Lesson lesson = getLessonById(lessonId);
         if (lesson != null) {
-            // Cập nhật đầy đủ các tham số theo cấu hình mới của Entity Lesson
-            lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName);
+            // GỌI HÀM VỚI 8 THAM SỐ
+            lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName, meetingUrl, startTime);
             return lessonRepository.save(lesson);
         }
         return null;
