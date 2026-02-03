@@ -3,40 +3,10 @@ import axios from 'axios';
 // 1. Tạo instance với path tương đối - sẽ đi qua Vite proxy -> Kong Gateway
 // Không dùng port cố định để tận dụng proxy configuration
 // 1. Lấy Base URL từ env. Nếu không có VITE_MAIN_API_URL, thử suy diễn từ các biến khác
-let baseURL = import.meta.env.VITE_MAIN_API_URL;
+const baseURL = import.meta.env.VITE_MAIN_API_URL;
 
 if (!baseURL) {
-  // Diagnostics
-  console.log("🔍 AxiosClient: VITE_MAIN_API_URL is missing, attempting fallback...");
-  console.log("   Candidates:", {
-    VITE_AI_SERVICE_URL: import.meta.env.VITE_AI_SERVICE_URL,
-    VITE_USER_SERVICE_URL: import.meta.env.VITE_USER_SERVICE_URL,
-    VITE_ADMIN_API_URL: import.meta.env.VITE_ADMIN_API_URL,
-    VITE_PAYMENT_SERVICE_URL: import.meta.env.VITE_PAYMENT_SERVICE_URL
-  });
-
-  // Thử lấy từ các biến khác có thể đã được set trên Vercel
-  const otherUrl = import.meta.env.VITE_AI_SERVICE_URL || 
-                   import.meta.env.VITE_USER_SERVICE_URL ||
-                   import.meta.env.VITE_ADMIN_API_URL ||
-                   import.meta.env.VITE_PAYMENT_SERVICE_URL;
-  
-  if (otherUrl && otherUrl.includes('/api')) {
-    baseURL = otherUrl.split('/api')[0];
-    console.log("✅ Derived VITE_MAIN_API_URL from other services:", baseURL);
-  } else {
-    console.error("❌ CRITICAL: VITE_MAIN_API_URL is not set and cannot be derived! All API calls will fail on Vercel.");
-  }
-} else {
-  // 🛡️ BẢO VỆ CHỐNG LẶP URL: Xóa đuôi /api/v1 nếu người dùng lỡ set trong env
-  if (baseURL.endsWith('/api/v1')) {
-    console.log("⚠️ AxiosClient: Detected '/api/v1' in VITE_MAIN_API_URL. Removing it to prevent duplication.");
-    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-  } else if (baseURL.endsWith('/api/v1/')) { // Trường hợp có dấu / ở cuối
-    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-  }
-  
-  console.log("🚀 AxiosClient initialized with baseURL:", baseURL);
+  console.error("❌ CRITICAL: VITE_MAIN_API_URL is not set! API calls may fail.");
 }
 
 const axiosClient = axios.create({
@@ -81,7 +51,7 @@ axiosClient.interceptors.response.use(
 
         // Gọi API Refresh Token qua Kong Gateway
         // ⚠️ Lưu ý: Dùng 'axios' gốc để gọi tránh lặp vô tận
-        const result = await axios.post(`${baseURL}/api/v1/auth/refresh-token`, {
+        const result = await axios.post(`${baseURL}/api/auth/refresh-token`, {
           refreshToken: refreshToken
         });
 

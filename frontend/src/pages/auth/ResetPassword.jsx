@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './Login.css'; // 👈 Dùng chung CSS
+import authService from '../../services/authService';
+import './Login.css';
 
 // Import Icon
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -72,11 +72,11 @@ const ResetPassword = () => {
     setIsLoading(true);
 
     try {
-      await axios.post(`http://localhost:8000/api/v1/auth/reset-password?token=${token}&newPassword=${formData.newPassword}`);
-      
+      await authService.resetPassword(token, formData.newPassword);
+
       setMessage('Đổi mật khẩu thành công! Đang chuyển hướng...');
       setTimeout(() => navigate('/login'), 2000);
-      
+
     } catch (err) {
       const errorMsg = err.response?.data || 'Link hết hạn hoặc không hợp lệ.';
       setApiError(errorMsg);
@@ -92,7 +92,7 @@ const ResetPassword = () => {
         <div className="login-box">
           <h3 style={{ color: '#dc3545' }}>Lỗi Đường Dẫn!</h3>
           <p>Link reset mật khẩu không hợp lệ hoặc thiếu Token.</p>
-          <button onClick={() => navigate('/login')} className="btn-submit" style={{marginTop: '20px'}}>
+          <button onClick={() => navigate('/login')} className="btn-submit" style={{ marginTop: '20px' }}>
             Quay về đăng nhập
           </button>
         </div>
@@ -104,9 +104,9 @@ const ResetPassword = () => {
     <div className="login-container">
       <div className="login-box">
         <h2>Đặt Lại Mật Khẩu</h2>
-        
+
         <form onSubmit={handleSubmit} noValidate>
-          
+
           {/* Mật khẩu mới */}
           <div className="input-group">
             <label>Mật khẩu mới</label>
@@ -145,8 +145,8 @@ const ResetPassword = () => {
             {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             className="btn-submit"
             disabled={isLoading}
             style={{ backgroundColor: isLoading ? '#ccc' : '#28a745' }} // Nút màu xanh lá

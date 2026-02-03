@@ -119,7 +119,7 @@ const StudentDashboardGeneral = () => {
     useEffect(() => {
         const fetchProgress = async () => {
             try {
-                const res = await axiosClient.get('/courses/my-summary');
+                const res = await axiosClient.get('/api/courses/my-summary');
                 // Chỉ lấy 3 khóa học đầu tiên để hiển thị trên Dashboard cho gọn
                 setMyCourses(res.data.slice(0, 3));
             } catch (error) {
@@ -174,7 +174,7 @@ const StudentDashboardGeneral = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
 
-    const API_URL = '/courses';
+    const API_URL = '/api/courses';
 
     useEffect(() => {
         const fetchData = async () => {

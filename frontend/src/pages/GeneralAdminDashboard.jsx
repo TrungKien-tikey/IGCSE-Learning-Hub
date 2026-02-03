@@ -22,7 +22,7 @@ import {
 import { toast } from 'react-toastify';
 
 // Monitor client with Ngrok URL for health checks
-const NGROK_BASE_URL = import.meta.env.VITE_MAIN_API_URL?.replace('/api/v1', '') || '';
+const NGROK_BASE_URL = import.meta.env.VITE_MAIN_API_URL?.replace('/api', '') || '';
 const monitorClient = axios.create({
     baseURL: NGROK_BASE_URL,
     headers: {
@@ -100,12 +100,12 @@ export default function GeneralAdminDashboard() {
 
     // States cho Health Check
     const [serviceHealth, setServiceHealth] = useState([
-        { id: 'auth', name: "Auth Service", path: "/api/v1/auth/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'auth', name: "Auth Service", path: "/api/auth/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
         { id: 'user', name: "User Service", path: "/api/users/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
         { id: 'ai', name: "AI Service", path: "/api/ai/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
         { id: 'exam', name: "Exam Service", path: "/api/exams/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
         { id: 'course', name: "Course Service", path: "/api/courses/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
-        { id: 'communication', name: "Communication Service", path: "/api/communication/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
+        { id: 'communication', name: "Communication Service", path: "/api/notifications/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
         { id: 'payment', name: "Payment Service", path: "/api/payment/health", status: "Checking...", color: "text-gray-500", bg: "bg-gray-500" },
     ]);
     const [isRefreshing, setIsRefreshing] = useState(false);

@@ -5,7 +5,7 @@ import axios from 'axios';
  * Dùng cho các API của user-service (/api/users/*)
  */
 const userClient = axios.create({
-  baseURL: import.meta.env.VITE_USER_SERVICE_URL, // User-service không có /v1 trong path
+  baseURL: import.meta.env.VITE_USER_SERVICE_URL,
   headers: {
     'Content-Type': 'application/json',
     'ngrok-skip-browser-warning': '69420',
@@ -46,7 +46,7 @@ userClient.interceptors.response.use(
         }
 
         // Gọi API Refresh Token
-        const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/v1/auth/refresh-token`, {
+        const result = await axios.post(`${import.meta.env.VITE_MAIN_API_URL}/api/auth/refresh-token`, {
           refreshToken: refreshToken
         });
 
