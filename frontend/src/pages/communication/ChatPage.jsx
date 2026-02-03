@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
-import { jwtDecode } from 'jwt-decode'; 
+import { jwtDecode } from 'jwt-decode';
 import { Send, ArrowLeft, MoreVertical, Phone, Video, Info } from 'lucide-react'; // Thêm icon cho đẹp
 import './ChatPage.css';
 
@@ -29,13 +29,13 @@ const removeVietnameseTones = (str) => {
     str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     // 3. Xóa hết khoảng trắng để so sánh liền mạch
-    return str.replace(/\s+/g, ''); 
+    return str.replace(/\s+/g, '');
 };
 
 const isFuzzyMatch = (text, search) => {
     const normalizedText = removeVietnameseTones(text);
     const normalizedSearch = removeVietnameseTones(search);
-    
+
     if (!normalizedSearch) return true;
 
     // 1. Tìm chuỗi liền kề (Substring) -> Giúp tìm "au" ra "Hậu"
@@ -53,23 +53,23 @@ const isFuzzyMatch = (text, search) => {
             return true;
         }
     }
-    
+
     return false;
 };
 
 export default function ChatPage() {
     const location = useLocation();
     const navigate = useNavigate();
-    
+
     const { courseId, courseTitle } = location.state || {};
 
     const [currentUserId, setCurrentUserId] = useState(null);
-    const [participants, setParticipants] = useState([]); 
-    const [selectedUser, setSelectedUser] = useState(null); 
-    const [messages, setMessages] = useState([]); 
+    const [participants, setParticipants] = useState([]);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [messages, setMessages] = useState([]);
     const [inputMsg, setInputMsg] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    
+
     const stompClientRef = useRef(null);
     const messagesEndRef = useRef(null);
 
@@ -79,7 +79,7 @@ export default function ChatPage() {
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                setCurrentUserId(decoded.userId || decoded.id || decoded.sub); 
+                setCurrentUserId(decoded.userId || decoded.id || decoded.sub);
             } catch (error) {
                 console.error("Lỗi giải mã token:", error);
                 navigate('/login');
@@ -97,13 +97,13 @@ export default function ChatPage() {
         const fetchParticipants = async () => {
             try {
                 // Sử dụng axiosClient để tận dụng baseURL và interceptor
-                const resIds = await axiosClient.get(`/courses/${courseId}/participants`);
+                const resIds = await axiosClient.get(`/api/courses/${courseId}/participants`);
                 const userIds = resIds.data;
 
                 const userPromises = userIds.map(async (id) => {
                     if (String(id) === String(currentUserId)) return null;
                     try {
-                        const userRes = await axiosClient.get(`/auth/users/${id}`); 
+                        const userRes = await axiosClient.get(`/api/users/${id}`);
                         return {
                             userId: id,
                             name: userRes.data.fullName || userRes.data.username || `User ${id}`,
@@ -131,67 +131,71 @@ export default function ChatPage() {
     }, [courseId, currentUserId]);
 
     // 3. Kết nối WebSocket
-useEffect(() => {
-    if (!currentUserId) return;
+    useEffect(() => {
+        if (!currentUserId) return;
 
 
-    const socket = new SockJS('http://localhost:8089/ws'); 
-    const client = Stomp.over(socket);
-    client.debug = null;    
+        // Use Gateway URL for WebSocket/SockJS
+        const socketUrl = import.meta.env.VITE_MAIN_API_URL
+            ? `${import.meta.env.VITE_MAIN_API_URL}/ws`
+            : 'http://localhost:8089/ws';
+        const socket = new SockJS(socketUrl);
+        const client = Stomp.over(socket);
+        client.debug = null;
 
-    client.connect({}, () => {
-        console.log("Đã kết nối WebSocket");
+        client.connect({}, () => {
+            console.log("Đã kết nối WebSocket");
 
-        client.subscribe(`/queue/messages/${currentUserId}`, (payload) => {
-            const receivedMsg = JSON.parse(payload.body);
+            client.subscribe(`/queue/messages/${currentUserId}`, (payload) => {
+                const receivedMsg = JSON.parse(payload.body);
 
-            // Cập nhật State
-            setSelectedUser(prevSelected => {
-                // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện đang mở không
-                // (Là tin người kia gửi đến HOẶC tin mình gửi đi từ thiết bị khác)
-                const isRelevantMessage = prevSelected && (
-                    String(receivedMsg.senderId) === String(prevSelected.userId) || 
-                    String(receivedMsg.receiverId) === String(prevSelected.userId)
-                );
+                // Cập nhật State
+                setSelectedUser(prevSelected => {
+                    // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện đang mở không
+                    // (Là tin người kia gửi đến HOẶC tin mình gửi đi từ thiết bị khác)
+                    const isRelevantMessage = prevSelected && (
+                        String(receivedMsg.senderId) === String(prevSelected.userId) ||
+                        String(receivedMsg.receiverId) === String(prevSelected.userId)
+                    );
 
-                if (isRelevantMessage) {
-                    setMessages(prevMsgs => {
-                        // --- ĐOẠN SỬA QUAN TRỌNG NHẤT ---
-                        // Kiểm tra xem tin nhắn này đã tồn tại trong list chưa (dựa vào ID)
-                        // Nếu 'receivedMsg' chưa có ID từ DB, bạn có thể so sánh timestamp
-                        const isExist = prevMsgs.some(msg => msg.id === receivedMsg.id);
+                    if (isRelevantMessage) {
+                        setMessages(prevMsgs => {
+                            // --- ĐOẠN SỬA QUAN TRỌNG NHẤT ---
+                            // Kiểm tra xem tin nhắn này đã tồn tại trong list chưa (dựa vào ID)
+                            // Nếu 'receivedMsg' chưa có ID từ DB, bạn có thể so sánh timestamp
+                            const isExist = prevMsgs.some(msg => msg.id === receivedMsg.id);
 
-                        if (isExist) {
-                            return prevMsgs; // Nếu trùng thì bỏ qua, không thêm
-                        }
-                        return [...prevMsgs, receivedMsg]; // Chưa có thì mới thêm
-                    });
-                }
-                return prevSelected;
+                            if (isExist) {
+                                return prevMsgs; // Nếu trùng thì bỏ qua, không thêm
+                            }
+                            return [...prevMsgs, receivedMsg]; // Chưa có thì mới thêm
+                        });
+                    }
+                    return prevSelected;
+                });
             });
+
+        }, (err) => {
+            console.error("Lỗi kết nối Socket:", err);
         });
 
-    }, (err) => {
-        console.error("Lỗi kết nối Socket:", err);
-    });
+        stompClientRef.current = client;
 
-    stompClientRef.current = client;
-
-    // Cleanup function: Ngắt kết nối khi component unmount hoặc userId đổi
-    return () => {
-        if (client && client.connected) {
-            client.disconnect();
-        }
-    };
-}, [currentUserId]);
+        // Cleanup function: Ngắt kết nối khi component unmount hoặc userId đổi
+        return () => {
+            if (client && client.connected) {
+                client.disconnect();
+            }
+        };
+    }, [currentUserId]);
     // 4. Load lịch sử chat
     useEffect(() => {
         if (!selectedUser || !currentUserId) return;
         const roomId = getRoomId(currentUserId, selectedUser.userId);
-        
+
         const fetchHistory = async () => {
             try {
-                const res = await axiosClient.get(`/chat/history/${roomId}`);
+                const res = await axiosClient.get(`/api/chat/history/${roomId}`);
                 setMessages(res.data);
                 scrollToBottom();
             } catch (err) {
@@ -211,25 +215,25 @@ useEffect(() => {
         return uid1 < uid2 ? `${uid1}_${uid2}` : `${uid2}_${uid1}`;
     };
 
-   const handleSendMessage = () => {
-    if (!inputMsg.trim() || !selectedUser || !stompClientRef.current) return;
-    
-    const chatMessage = {
-        senderId: currentUserId,
-        receiverId: selectedUser.userId,
-        content: inputMsg,
-        roomId: getRoomId(currentUserId, selectedUser.userId),
-        timestamp: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString()
+    const handleSendMessage = () => {
+        if (!inputMsg.trim() || !selectedUser || !stompClientRef.current) return;
+
+        const chatMessage = {
+            senderId: currentUserId,
+            receiverId: selectedUser.userId,
+            content: inputMsg,
+            roomId: getRoomId(currentUserId, selectedUser.userId),
+            timestamp: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString()
+        };
+
+        // 1. Chỉ gửi lên Server
+        stompClientRef.current.send("/app/private-message", {}, JSON.stringify(chatMessage));
+
+        setInputMsg('');
     };
-
-    // 1. Chỉ gửi lên Server
-    stompClientRef.current.send("/app/private-message", {}, JSON.stringify(chatMessage));
-
-    setInputMsg('');
-};
     // Helper xử lý ảnh lỗi
     const handleImgError = (e) => {
-        e.target.onerror = null; 
+        e.target.onerror = null;
         e.target.src = DEFAULT_AVATAR;
     };
 
@@ -251,12 +255,12 @@ useEffect(() => {
                             <span className="online-status">Trực tuyến</span>
                         </div>
                     </div>
-                    
+
                     {/* Ô TÌM KIẾM */}
                     <div className="sidebar-search">
-                        <input 
-                            type="text" 
-                            placeholder="Tìm kiếm thành viên..." 
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm thành viên..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -270,16 +274,16 @@ useEffect(() => {
                             </div>
                         ) : (
                             filteredParticipants.map(user => (
-                                <div 
-                                    key={user.userId} 
+                                <div
+                                    key={user.userId}
                                     className={`user-item ${selectedUser?.userId === user.userId ? 'active' : ''}`}
                                     onClick={() => setSelectedUser(user)}
                                 >
                                     <div className="avatar-wrapper">
-                                        <img 
-                                            src={user.avatar} 
-                                            alt="avt" 
-                                            className="u-avatar" 
+                                        <img
+                                            src={user.avatar}
+                                            alt="avt"
+                                            className="u-avatar"
                                             onError={handleImgError}
                                         />
                                         <span className="status-dot"></span>
@@ -300,14 +304,14 @@ useEffect(() => {
                         <>
                             <div className="cw-header">
                                 <div className="header-user-info">
-                                    <img 
-                                        src={selectedUser.avatar} 
-                                        alt="" 
+                                    <img
+                                        src={selectedUser.avatar}
+                                        alt=""
                                         className="header-avt"
                                         onError={handleImgError}
                                     />
                                     <div>
-                                        <b className="header-username">{selectedUser.name}</b> 
+                                        <b className="header-username">{selectedUser.name}</b>
                                         <span className="header-user-role">{selectedUser.role}</span>
                                     </div>
                                 </div>
@@ -315,16 +319,16 @@ useEffect(() => {
                                     <button className="btn-action"><Info size={18} /></button>
                                 </div>
                             </div>
-                            
+
                             <div className="cw-messages">
                                 {messages.map((msg, idx) => {
                                     const isMe = String(msg.senderId) === String(currentUserId);
                                     return (
                                         <div key={idx} className={`msg-row ${isMe ? 'my-msg' : 'their-msg'}`}>
                                             {!isMe && (
-                                                <img 
-                                                    src={selectedUser.avatar} 
-                                                    className="msg-avt" 
+                                                <img
+                                                    src={selectedUser.avatar}
+                                                    className="msg-avt"
                                                     alt=""
                                                     onError={handleImgError}
                                                 />
@@ -350,15 +354,15 @@ useEffect(() => {
 
                             <div className="cw-input-area">
                                 <div className="input-wrapper">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Nhập tin nhắn..." 
+                                    <input
+                                        type="text"
+                                        placeholder="Nhập tin nhắn..."
                                         value={inputMsg}
                                         onChange={e => setInputMsg(e.target.value)}
                                         onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
                                     />
-                                    <button 
-                                        onClick={handleSendMessage} 
+                                    <button
+                                        onClick={handleSendMessage}
                                         disabled={!inputMsg.trim()}
                                         className="btn-send"
                                     >
