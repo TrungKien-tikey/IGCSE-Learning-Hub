@@ -3,12 +3,12 @@ import axiosClient from '../api/axiosClient';
 const authService = {
   // 1. Đăng ký
   register: (data) => {
-    return axiosClient.post('/auth/register', data);
+    return axiosClient.post('/api/v1/auth/register', data);
   },
 
   // 2. Đăng nhập
   login: async (data) => {
-    const response = await axiosClient.post('/auth/login', data);
+    const response = await axiosClient.post('/api/v1/auth/login', data);
     
     // Lưu Token
     if (response.data.token) {
@@ -30,14 +30,14 @@ const authService = {
   checkEmail: (email) => {
     // URL thực tế: /api/v1/auth/check-email
     // Gửi body dạng JSON: { "email": "..." }
-    return axiosClient.post('/auth/check-email', { email });
+    return axiosClient.post('/api/v1/auth/check-email', { email });
   },
 
   // 4. Đăng xuất
   logout: () => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-        axiosClient.post('/auth/logout', { token }).catch(() => {});
+        axiosClient.post('/api/v1/auth/logout', { token }).catch(() => {});
     }
     localStorage.clear();
   }

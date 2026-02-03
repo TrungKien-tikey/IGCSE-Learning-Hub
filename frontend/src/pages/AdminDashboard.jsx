@@ -24,8 +24,7 @@ export default function AdminDashboard() {
                 role: filterRole === 'ALL' ? '' : filterRole
             };
 
-            const res = await axiosClient.get('/admin/users', {
-                baseURL: '/api',
+            const res = await axiosClient.get('/api/admin/users', {
                 params: params
             });
 
@@ -59,9 +58,7 @@ export default function AdminDashboard() {
         if (!confirm('Bạn có chắc chắn muốn xóa người dùng này?')) return;
 
         try {
-            await axiosClient.delete(`/admin/users/${userId}`, {
-                baseURL: '/api'
-            });
+            await axiosClient.delete(`/api/admin/users/${userId}`);
             toast.success('Xóa người dùng thành công!');
             fetchUsers();
         } catch (error) {
@@ -72,9 +69,7 @@ export default function AdminDashboard() {
 
     const handleDeactivate = async (userId) => {
         try {
-            await axiosClient.patch(`/admin/users/${userId}/deactivate`, {}, {
-                baseURL: '/api'
-            });
+            await axiosClient.patch(`/api/admin/users/${userId}/deactivate`, {});
             toast.warning('Đã vô hiệu hóa người dùng!');
             fetchUsers();
         } catch (error) {
@@ -85,9 +80,7 @@ export default function AdminDashboard() {
 
     const handleActivate = async (userId) => {
         try {
-            await axiosClient.patch(`/admin/users/${userId}/activate`, {}, {
-                baseURL: '/api'
-            });
+            await axiosClient.patch(`/api/admin/users/${userId}/activate`, {});
             toast.success('Đã kích hoạt người dùng!');
             fetchUsers();
         } catch (error) {
@@ -98,9 +91,7 @@ export default function AdminDashboard() {
 
     const handleUpdateRole = async (userId, newRole) => {
         try {
-            await axiosClient.patch(`/admin/users/${userId}/role`, { role: newRole }, {
-                baseURL: '/api'
-            });
+            await axiosClient.patch(`/api/admin/users/${userId}/role`, { role: newRole });
             toast.info(`Đã cập nhật vai trò thành ${newRole}`);
             fetchUsers();
         } catch (error) {

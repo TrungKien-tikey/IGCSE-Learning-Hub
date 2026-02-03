@@ -39,7 +39,6 @@ const menuItems = {
     { title: "Quản lý người dùng", icon: Users, url: "/admin/dashboard" },
     { title: "Xét duyệt Giáo viên", icon: ShieldCheck, url: "/admin/verify" },
     { title: "Duyệt khóa học", icon: BookOpen, url: "/course-approval" },
-    { title: "Phân tích AI Admin", icon: Brain, url: "/ai/dashboard/admin" }, // New Link
     { title: "Gói suất học", icon: ShoppingCart, url: "/admin/slot-packages" },
   ],
   parent: [
