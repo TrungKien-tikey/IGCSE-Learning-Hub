@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import { MessageCircle, X, Eye, ChevronUp, ChevronDown, BrainCircuit } from "lucide-react";
 import MainLayout from '../../layouts/MainLayout';
 import CommentRoom from "../../components/CommentRoom";
+import examClient from "../../api/examClient";
 import axiosClient from "../../api/axiosClient";
 
 
@@ -31,7 +32,7 @@ export default function ManageExamsPage() {
         const fetchExams = async () => {
             try {
                 // Ghi đè baseURL để gọi đúng /api/exams
-                const res = await axiosClient.get("/api/exams", { baseURL: '' });
+                const res = await examClient.get("");
                 const data = res.data;
                 setExams(Array.isArray(data) ? data : []);
             } catch (err) {
@@ -53,7 +54,7 @@ export default function ManageExamsPage() {
         const confirmDelete = window.confirm("Bạn muốn ẩn bài thi này? Học sinh sẽ không nhìn thấy bài thi nữa, nhưng dữ liệu điểm số vẫn được giữ lại.");
         if (!confirmDelete) return;
         try {
-            await axiosClient.delete(`/api/exams/${examId}`, { baseURL: '' });
+            await examClient.delete(`/${examId}`);
 
             // Cập nhật state UI
             setExams((prevExams) =>
@@ -83,7 +84,7 @@ export default function ManageExamsPage() {
         setAttempts([]);
 
         try {
-            const res = await axiosClient.get(`/api/exams/attempts/${examId}`, { baseURL: '' });
+            const res = await examClient.get(`/attempts/${examId}`);
             const attemptData = res.data;
 
             const dataWithNames = await Promise.all(attemptData.map(async (attempt) => {

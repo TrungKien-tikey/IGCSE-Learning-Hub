@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import MainLayout from '../../layouts/MainLayout';
-import axiosClient from "../../api/axiosClient";
+import examClient from "../../api/examClient";
 
 export default function CreateExamPage() {
   const navigate = useNavigate();
@@ -218,7 +218,7 @@ export default function CreateExamPage() {
     };
 
     try {
-      await axiosClient.post("/api/exams", payload, { baseURL: '' });
+      await examClient.post("", payload);
 
       toast.success("Tạo bài thi thành công!");
       navigate("/exams/manage");
