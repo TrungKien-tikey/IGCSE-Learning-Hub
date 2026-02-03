@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { toast } from 'react-toastify';
 import MainLayout from '../layouts/MainLayout';
-import { 
-  Eye, CheckCircle, ShieldCheck, Clock, 
-  Archive, BookOpen, AlertCircle 
+import {
+  Eye, CheckCircle, ShieldCheck, Clock,
+  Archive, BookOpen, AlertCircle
 } from 'lucide-react';
 
 export default function AdminCourseApprovalPage() {
@@ -17,7 +17,7 @@ export default function AdminCourseApprovalPage() {
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const res = await axiosClient.get('/courses/admin/all');
+      const res = await axiosClient.get('/api/courses/admin/all');
       setCourses(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       toast.error("Không thể kết nối dữ liệu Server");
@@ -35,7 +35,7 @@ export default function AdminCourseApprovalPage() {
   const handleApprove = async (id) => {
     if (!window.confirm("Xác nhận xuất bản khóa học này?")) return;
     try {
-      await axiosClient.put(`/courses/${id}/activate`);
+      await axiosClient.put(`/api/courses/${id}/activate`);
       toast.success("Đã phê duyệt thành công!");
       fetchCourses();
     } catch (err) { toast.error("Lỗi khi phê duyệt"); }
@@ -45,7 +45,7 @@ export default function AdminCourseApprovalPage() {
   const handleDeactivate = async (id) => {
     if (!window.confirm("Bạn có chắc muốn ẩn khóa học này? Học sinh sẽ không thấy nó nữa.")) return;
     try {
-      await axiosClient.delete(`/courses/${id}/deactivate`);
+      await axiosClient.delete(`/api/courses/${id}/deactivate`);
       toast.warning("Đã ẩn khóa học!");
       fetchCourses();
     } catch (err) { toast.error("Lỗi khi ẩn khóa học"); }
@@ -65,13 +65,13 @@ export default function AdminCourseApprovalPage() {
 
         {/* Hệ thống Tabs */}
         <div className="flex gap-8 border-b border-slate-200 mb-8">
-          <button 
+          <button
             onClick={() => setActiveTab('pending')}
             className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'pending' ? 'border-b-4 border-indigo-600 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
           >
             <Clock size={18} /> Chờ xét duyệt ({pendingCourses.length})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('published')}
             className={`pb-4 px-2 flex items-center gap-2 font-bold transition-all ${activeTab === 'published' ? 'border-b-4 border-indigo-600 text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
           >
@@ -96,22 +96,22 @@ export default function AdminCourseApprovalPage() {
               </div>
 
               <div className="p-4 bg-slate-50 border-t flex gap-2">
-                <button 
+                <button
                   onClick={() => navigate(`/learning/${course.courseId}`)}
                   className="flex-1 flex items-center justify-center gap-1 bg-white border border-slate-200 text-slate-700 py-2 rounded-xl text-sm font-semibold hover:bg-slate-100 transition-all"
                 >
                   <Eye size={16} /> Xem
                 </button>
-                
+
                 {activeTab === 'pending' ? (
-                  <button 
+                  <button
                     onClick={() => handleApprove(course.courseId)}
                     className="flex-1 bg-indigo-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-md transition-all"
                   >
                     Duyệt
                   </button>
                 ) : (
-                  <button 
+                  <button
                     onClick={() => handleDeactivate(course.courseId)}
                     className="flex-1 bg-white border border-rose-200 text-rose-600 py-2 rounded-xl text-sm font-semibold hover:bg-rose-50 transition-all"
                   >
