@@ -110,21 +110,27 @@ const MainLayout = ({ children }) => {
   // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
 
   if (role === 'parent') {
+    // Try linkedStudent first, then fallback to lastSelectedChildId
     const linkedStudent = JSON.parse(localStorage.getItem("linkedStudent") || "null");
-    if (linkedStudent && linkedStudent.userId) {
+    const lastSelectedChildId = localStorage.getItem("lastSelectedChildId");
+
+    // Get studentId from linkedStudent object or lastSelectedChildId
+    const studentId = linkedStudent?.userId || lastSelectedChildId;
+
+    if (studentId) {
       items = items.map(item => {
-        // Cũ: /progress -> /ai/dashboard/student
-        // Mới: /ai/dashboard/parent/placeholder -> /ai/dashboard/parent/{studentId}
+        // Replace /placeholder with actual student ID
         if (item.url.includes('/placeholder')) {
-          return { ...item, url: `/ai/dashboard/parent/${linkedStudent.userId}` };
+          return { ...item, url: `/ai/dashboard/parent/${studentId}` };
         }
         return item;
       });
     } else {
-      // Fallback demo ONLY for testing if no student linked yet (User ID + 1 assumed or keep placeholder)
-      // In prod: Hide item or show "Link Student"
+      // If no student linked, hide the AI dashboard link or redirect to main parent dashboard
+      items = items.filter(item => !item.url.includes('/placeholder'));
     }
   }
+
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
