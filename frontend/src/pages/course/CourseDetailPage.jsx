@@ -188,8 +188,8 @@ export default function CourseDetailPage() {
                         <p className="desc">{course.description || "Khóa học chất lượng cao dành cho học sinh IGCSE, bám sát chương trình chuẩn Cambridge."}</p>
                         <div className="meta-info">
                             <span>⭐ 4.8 (120 đánh giá)</span>
-                            <span>👨‍🏫 Giáo viên: Nguyễn Văn A</span>
-                            <span>📅 Cập nhật: 2024</span>
+                            <span>Giáo viên: Hồng Trung Kiên</span>
+                            <span>Cập nhật: 2026</span>
                         </div>
                     </div>
                 </div>
@@ -213,8 +213,8 @@ export default function CourseDetailPage() {
                     <div className="section">
                         <h3>Nội dung khóa học</h3>
                         <div className="course-stats-bar">
-                            <span>📚 {lessons.length} bài giảng</span>
-                            <span>⏳ Thời lượng: {course.duration}</span>
+                            <span> {lessons.length} bài giảng</span>
+                            <span> Thời lượng: {course.duration}</span>
                         </div>
 
                         <div className="syllabus-list">
@@ -262,10 +262,10 @@ export default function CourseDetailPage() {
                             <div className="features-list">
                                 <p><strong>Khóa học bao gồm:</strong></p>
                                 <ul>
-                                    <li>📺 Video bài giảng Full HD</li>
-                                    <li>📝 Bài tập thực hành mỗi chương</li>
-                                    <li>📱 Truy cập trên Mobile và Web</li>
-                                    <li>🏆 Chứng chỉ hoàn thành</li>
+                                    <li> Video bài giảng Full HD</li>
+                                    <li> Bài tập thực hành mỗi chương</li>
+                                    <li> Truy cập trên Mobile và Web</li>
+                                    <li> Chứng chỉ hoàn thành</li>
                                 </ul>
                             </div>
                         </div>
