@@ -13,7 +13,7 @@ public class JwtUtils {
     private static final String SECRET_KEY = "daylakeybimatcuatoiphaidudaivaphucktap123456789";
 
     // Thời gian hết hạn Access Token: 1 ngày
-    private static final long EXPIRATION_TIME = 60000L;
+    private static final long EXPIRATION_TIME = 86400000L;
 
     // [MỚI] Thời gian hết hạn Refresh Token: 7 ngày (604800000 ms)
     private static final long REFRESH_EXPIRATION_TIME = 604800000L;
