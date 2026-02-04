@@ -13,6 +13,8 @@ import userClient from '../api/userClient';
 import {
     getRevenueOverview,
     getMonthlyRevenue,
+    getDailyRevenue,
+    getRevenueByDateRange,
     getTransactionHistory,
     getTopTeachers,
     getSlotStatistics,
@@ -40,8 +42,26 @@ const formatCurrency = (value) => {
 };
 
 // Component hiển thị biểu đồ cột đơn giản
-const SimpleBarChart = ({ data, maxValue }) => {
+const SimpleBarChart = ({ data, maxValue, timeFilter }) => {
     if (!data || data.length === 0) return null;
+
+    const getLabel = (item, index) => {
+        if (timeFilter === 'year' && item.month) {
+            return item.month.toString().padStart(2, '0');
+        } else if (timeFilter === 'month' && item.day) {
+            return 'D' + item.day.toString().padStart(2, '0');
+        } else if (timeFilter === 'custom' && item.date) {
+            const date = new Date(item.date);
+            return `${date.getDate()}/${date.getMonth() + 1}`;
+        }
+        return item.monthName || `${index + 1}`;
+    };
+
+    const getTitle = (item) => {
+        if (item.monthName) return `${item.monthName}: ${formatCurrency(item.totalRevenue)}`;
+        if (item.dayName) return `${item.dayName}: ${formatCurrency(item.totalRevenue)}`;
+        return formatCurrency(item.totalRevenue);
+    };
 
     return (
         <div className="flex items-end gap-1 h-32">
@@ -52,9 +72,9 @@ const SimpleBarChart = ({ data, maxValue }) => {
                         <div
                             className="w-full bg-gradient-to-t from-indigo-500 to-indigo-400 rounded-t-sm transition-all duration-500 hover:from-indigo-600 hover:to-indigo-500"
                             style={{ height: `${Math.max(height, 4)}%` }}
-                            title={`${item.monthName}: ${formatCurrency(item.totalRevenue)}`}
+                            title={getTitle(item)}
                         />
-                        <span className="text-[10px] text-slate-400 mt-1">{item.month}</span>
+                        <span className="text-[10px] text-slate-400 mt-1">{getLabel(item, index)}</span>
                     </div>
                 );
             })}
@@ -121,6 +141,11 @@ export default function GeneralAdminDashboard() {
     const [activeTab, setActiveTab] = useState('overview'); // overview, transactions, teachers
     const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, COMPLETED, PENDING, FAILED, REFUNDED
     const [itemsPerPage] = useState(10);
+    const [timeFilter, setTimeFilter] = useState('year'); // year, month, custom
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [dateRangeStart, setDateRangeStart] = useState('');
+    const [dateRangeEnd, setDateRangeEnd] = useState('');
 
     // Hàm check health cho 1 service
     const checkSingleService = async (svc, retries = 1) => {
@@ -173,9 +198,21 @@ export default function GeneralAdminDashboard() {
     const fetchPaymentData = async () => {
         setIsLoadingPayment(true);
         try {
+            let monthlyPromise;
+            
+            if (timeFilter === 'year') {
+                monthlyPromise = getMonthlyRevenue(selectedYear);
+            } else if (timeFilter === 'month') {
+                monthlyPromise = getDailyRevenue(selectedYear, selectedMonth);
+            } else if (timeFilter === 'custom' && dateRangeStart && dateRangeEnd) {
+                monthlyPromise = getRevenueByDateRange(dateRangeStart, dateRangeEnd);
+            } else {
+                monthlyPromise = getMonthlyRevenue(selectedYear);
+            }
+
             const [overview, monthly, trans, teachers, slots] = await Promise.allSettled([
                 getRevenueOverview(),
-                getMonthlyRevenue(),
+                monthlyPromise,
                 getTransactionHistory({ page: 0, size: 10 }),
                 getTopTeachers(5),
                 getSlotStatistics()
@@ -222,7 +259,7 @@ export default function GeneralAdminDashboard() {
         checkHealth();
         fetchTotalUsers();
         fetchPaymentData();
-    }, []);
+    }, [timeFilter, selectedYear, selectedMonth, dateRangeStart, dateRangeEnd]);
 
     // Stats cards data
     const stats = [
@@ -388,11 +425,82 @@ export default function GeneralAdminDashboard() {
                         {/* Overview Tab - Monthly Revenue Chart */}
                         {activeTab === 'overview' && (
                             <div className="space-y-4">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-semibold text-slate-700">Doanh thu theo tháng ({new Date().getFullYear()})</h3>
+                                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
+                                    <h3 className="font-semibold text-slate-700">Doanh thu theo thời gian</h3>
+                                    
+                                    {/* Time Filter Controls */}
+                                    <div className="flex flex-wrap gap-3 items-center">
+                                        {/* Filter Type Buttons */}
+                                        <div className="flex gap-2">
+                                            {[
+                                                { id: 'year', label: 'Năm' },
+                                                { id: 'month', label: 'Tháng' },
+                                                { id: 'custom', label: 'Tùy chọn' }
+                                            ].map(filter => (
+                                                <button
+                                                    key={filter.id}
+                                                    onClick={() => setTimeFilter(filter.id)}
+                                                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
+                                                        timeFilter === filter.id
+                                                            ? 'bg-indigo-600 text-white'
+                                                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                                    }`}
+                                                >
+                                                    {filter.label}
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        {/* Year Selector */}
+                                        {(timeFilter === 'year' || timeFilter === 'month') && (
+                                            <select
+                                                value={selectedYear}
+                                                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                                className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-700 font-medium hover:border-slate-400"
+                                            >
+                                                {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                                    <option key={year} value={year}>{year}</option>
+                                                ))}
+                                            </select>
+                                        )}
+
+                                        {/* Month Selector */}
+                                        {timeFilter === 'month' && (
+                                            <select
+                                                value={selectedMonth}
+                                                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                                className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-700 font-medium hover:border-slate-400"
+                                            >
+                                                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                                    <option key={month} value={month}>
+                                                        Tháng {month.toString().padStart(2, '0')}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        )}
+
+                                        {/* Date Range Inputs */}
+                                        {timeFilter === 'custom' && (
+                                            <>
+                                                <input
+                                                    type="date"
+                                                    value={dateRangeStart}
+                                                    onChange={(e) => setDateRangeStart(e.target.value)}
+                                                    className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-700 font-medium"
+                                                />
+                                                <span className="text-slate-400">đến</span>
+                                                <input
+                                                    type="date"
+                                                    value={dateRangeEnd}
+                                                    onChange={(e) => setDateRangeEnd(e.target.value)}
+                                                    className="px-3 py-1.5 text-xs border border-slate-300 rounded bg-white text-slate-700 font-medium"
+                                                />
+                                            </>
+                                        )}
+                                    </div>
                                 </div>
                                 {monthlyRevenue.length > 0 ? (
-                                    <SimpleBarChart data={monthlyRevenue} maxValue={maxMonthlyRevenue} />
+                                    <SimpleBarChart data={monthlyRevenue} maxValue={maxMonthlyRevenue} timeFilter={timeFilter} />
                                 ) : (
                                     <div className="h-32 flex items-center justify-center text-slate-400">
                                         {isLoadingPayment ? "Đang tải dữ liệu..." : "Chưa có dữ liệu doanh thu"}
