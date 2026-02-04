@@ -139,7 +139,11 @@ export default function ChatPage() {
         const socketUrl = import.meta.env.VITE_MAIN_API_URL
             ? `${import.meta.env.VITE_MAIN_API_URL}/api/chat/ws`
             : 'http://localhost:8089/api/chat/ws';
-        const socket = new SockJS(socketUrl);
+        const socket = new SockJS(socketUrl, null, {
+    transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+    // Đảm bảo gửi credentials nếu backend yêu cầu xác thực qua cookie
+    withCredentials: true 
+});
         const client = Stomp.over(socket);
         client.debug = null;
 
