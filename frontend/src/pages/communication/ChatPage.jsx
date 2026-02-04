@@ -4,7 +4,7 @@ import axiosClient from '../../api/axiosClient';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { jwtDecode } from 'jwt-decode';
-import { Send, ArrowLeft, MoreVertical, Info, ChevronLeft } from 'lucide-react'; 
+import { Send, ArrowLeft, MoreVertical, Phone, Video, Info, ChevronLeft } from 'lucide-react'; 
 import './ChatPage.css';
 
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
@@ -39,6 +39,7 @@ const isFuzzyMatch = (text, search) => {
 export default function ChatPage() {
     const location = useLocation();
     const navigate = useNavigate();
+
     const { courseId, courseTitle } = location.state || {};
 
     const [currentUserId, setCurrentUserId] = useState(null);
@@ -47,8 +48,6 @@ export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [inputMsg, setInputMsg] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    
-    // Quản lý hiển thị mobile
     const [isMobileChatActive, setIsMobileChatActive] = useState(false);
 
     const stompClientRef = useRef(null);
@@ -96,23 +95,30 @@ export default function ChatPage() {
         const socketUrl = import.meta.env.VITE_MAIN_API_URL
             ? `${import.meta.env.VITE_MAIN_API_URL}/api/chat/ws`
             : 'http://localhost:8089/api/chat/ws';
-        const socket = new SockJS(socketUrl, null, { transports: ['websocket', 'xhr-streaming', 'xhr-polling'], withCredentials: false });
+            
+        const socket = new SockJS(socketUrl, null, {
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+            withCredentials: false
+        });
         const client = Stomp.over(socket);
         client.debug = null;
         client.connect({}, () => {
             client.subscribe(`/queue/messages/${currentUserId}`, (payload) => {
                 const receivedMsg = JSON.parse(payload.body);
-                if (selectedUser && (String(receivedMsg.senderId) === String(selectedUser.userId) || String(receivedMsg.receiverId) === String(selectedUser.userId))) {
-                    setMessages(prev => {
-                        if (prev.some(m => m.id === receivedMsg.id)) return prev;
-                        return [...prev, receivedMsg];
-                    });
-                }
+                setSelectedUser(prevSelected => {
+                    if (prevSelected && (String(receivedMsg.senderId) === String(prevSelected.userId) || String(receivedMsg.receiverId) === String(prevSelected.userId))) {
+                        setMessages(prevMsgs => {
+                            if (prevMsgs.some(msg => msg.id === receivedMsg.id)) return prevMsgs;
+                            return [...prevMsgs, receivedMsg];
+                        });
+                    }
+                    return prevSelected;
+                });
             });
         });
         stompClientRef.current = client;
         return () => { if (client && client.connected) client.disconnect(); };
-    }, [currentUserId, selectedUser]);
+    }, [currentUserId]);
 
     useEffect(() => {
         if (!selectedUser || !currentUserId) return;
@@ -120,7 +126,9 @@ export default function ChatPage() {
         axiosClient.get(`/api/chat/history/${roomId}`).then(res => setMessages(res.data)).catch(() => {});
     }, [selectedUser, currentUserId]);
 
-    useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     const handleSendMessage = () => {
         if (!inputMsg.trim() || !selectedUser || !stompClientRef.current) return;
@@ -133,9 +141,9 @@ export default function ChatPage() {
         setInputMsg('');
     };
 
-    const selectUserOnMobile = (user) => {
-        setSelectedUser(user);
-        setIsMobileChatActive(true);
+    const handleImgError = (e) => {
+        e.target.onerror = null;
+        e.target.src = DEFAULT_AVATAR;
     };
 
     const filteredParticipants = useMemo(() => {
@@ -146,7 +154,6 @@ export default function ChatPage() {
         <div className="chat-dashboard-wrapper">
             <div className={`chat-container ${isMobileChatActive ? 'mobile-chat-view' : 'mobile-list-view'}`}>
                 
-                {/* --- SIDEBAR --- */}
                 <div className="user-list-sidebar">
                     <div className="sidebar-header">
                         <button onClick={() => navigate(-1)} className="btn-icon-back">
@@ -154,42 +161,53 @@ export default function ChatPage() {
                         </button>
                         <div className="header-info">
                             <span className="course-name">{courseTitle || "Lớp học"}</span>
-                            <span className="online-status">Trực tuyến</span>
+                            <div className="online-wrapper">
+                                <span className="status-dot-mini"></span>
+                                <span className="online-status">Trực tuyến</span>
+                            </div>
                         </div>
                     </div>
 
                     <div className="sidebar-search">
-                        <input type="text" placeholder="Tìm kiếm..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                        <input type="text" placeholder="Tìm kiếm thành viên..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                     </div>
 
                     <div className="ul-scroll">
-                        {filteredParticipants.map(user => (
-                            <div key={user.userId} className={`user-item ${selectedUser?.userId === user.userId ? 'active' : ''}`} onClick={() => selectUserOnMobile(user)}>
-                                <div className="avatar-wrapper">
-                                    <img src={user.avatar} alt="avt" className="u-avatar" onError={(e) => e.target.src = DEFAULT_AVATAR} />
-                                    <span className="status-dot"></span>
-                                </div>
-                                <div className="u-info">
-                                    <div className="u-name">{user.name}</div>
-                                    <div className="u-role">{user.role}</div>
-                                </div>
+                        {filteredParticipants.length === 0 ? (
+                            <div className="empty-state-sidebar">
+                                {searchTerm ? "Không tìm thấy ai" : "Chưa có thành viên nào"}
                             </div>
-                        ))}
+                        ) : (
+                            filteredParticipants.map(user => (
+                                <div
+                                    key={user.userId}
+                                    className={`user-item ${selectedUser?.userId === user.userId ? 'active' : ''}`}
+                                    onClick={() => { setSelectedUser(user); setIsMobileChatActive(true); }}
+                                >
+                                    <div className="avatar-wrapper">
+                                        <img src={user.avatar} alt="avt" className="u-avatar" onError={handleImgError} />
+                                        <span className="status-dot"></span>
+                                    </div>
+                                    <div className="u-info">
+                                        <div className="u-name">{user.name}</div>
+                                        <div className="u-role">{user.role}</div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                {/* --- CHAT WINDOW --- */}
                 <div className="chat-window">
                     {selectedUser ? (
                         <>
                             <div className="cw-header">
                                 <div className="header-user-info">
-                                    {/* Nút quay lại dành riêng cho Mobile */}
                                     <button className="mobile-back-btn" onClick={() => setIsMobileChatActive(false)}>
                                         <ChevronLeft size={24} />
                                     </button>
-                                    <img src={selectedUser.avatar} alt="" className="header-avt" onError={(e) => e.target.src = DEFAULT_AVATAR} />
-                                    <div>
+                                    <img src={selectedUser.avatar} alt="" className="header-avt" onError={handleImgError} />
+                                    <div className="header-text-container">
                                         <b className="header-username">{selectedUser.name}</b>
                                         <span className="header-user-role">{selectedUser.role}</span>
                                     </div>
@@ -204,7 +222,7 @@ export default function ChatPage() {
                                     const isMe = String(msg.senderId) === String(currentUserId);
                                     return (
                                         <div key={idx} className={`msg-row ${isMe ? 'my-msg' : 'their-msg'}`}>
-                                            {!isMe && <img src={selectedUser.avatar} className="msg-avt" alt="" onError={(e) => e.target.src = DEFAULT_AVATAR} />}
+                                            {!isMe && <img src={selectedUser.avatar} className="msg-avt" alt="" onError={handleImgError} />}
                                             <div className="msg-content-wrapper">
                                                 <div className="msg-bubble">{msg.content}</div>
                                                 <div className="msg-time">{new Date(msg.timestamp).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
@@ -227,7 +245,7 @@ export default function ChatPage() {
                             <div className="empty-chat-content">
                                 <img src="https://cdn-icons-png.flaticon.com/512/8943/8943377.png" alt="chat" />
                                 <h3>Bắt đầu cuộc trò chuyện</h3>
-                                <p>Chọn một thành viên để trao đổi.</p>
+                                <p>Chọn một thành viên từ danh sách bên trái để trao đổi.</p>
                             </div>
                         </div>
                     )}
