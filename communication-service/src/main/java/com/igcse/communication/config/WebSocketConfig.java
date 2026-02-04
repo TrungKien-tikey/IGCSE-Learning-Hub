@@ -13,7 +13,9 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
        
-        registry.addEndpoint("/api/chat/ws").setAllowedOriginPatterns("*").withSockJS();
+        registry.addEndpoint("/api/chat/ws")
+                .setAllowedOriginPatterns("https://igcse-learning-hub.vercel.app", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
+                .withSockJS();
     }
 
     @Override

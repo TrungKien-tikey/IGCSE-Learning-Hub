@@ -13,8 +13,8 @@ public class WebConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // Cho phép tất cả các API
-                        .allowedOriginPatterns("*") // Mở cho Vercel/Ngrok
+                registry.addMapping("/**")
+                        .allowedOriginPatterns("https://igcse-learning-hub.vercel.app", "http://localhost:5173", "http://localhost:5174", "http://localhost:3000")
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
                         .allowCredentials(true);
