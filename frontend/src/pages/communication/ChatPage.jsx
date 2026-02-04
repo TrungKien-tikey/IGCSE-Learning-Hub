@@ -155,6 +155,12 @@ export default function ChatPage() {
             <div className={`chat-container ${isMobileChatActive ? 'mobile-chat-view' : 'mobile-list-view'}`}>
                 
                 <div className="user-list-sidebar">
+                    {/* --- NGROK FIX HINT --- */}
+                    {!stompClientRef.current?.connected && (
+                        <div style={{ padding: '10px', background: '#fff3cd', color: '#856404', fontSize: '12px', textAlign: 'center' }}>
+                            <p>Lỗi kết nối? <a href={`${import.meta.env.VITE_MAIN_API_URL || 'http://localhost:8089'}/api/chat/ws/info`} target="_blank" rel="noreferrer">Click vào đây</a> để xác thực Ngrok, sau đó F5.</p>
+                        </div>
+                    )}
                     <div className="sidebar-header">
                         <button onClick={() => navigate(-1)} className="btn-icon-back">
                             <ArrowLeft size={20} />
