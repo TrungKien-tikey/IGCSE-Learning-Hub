@@ -11,25 +11,21 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     
     @Override
-public void registerStompEndpoints(StompEndpointRegistry registry) {
-    registry.addEndpoint("/api/chat/ws")
-            // Cấu hình đích danh các Origin được phép
-            .setAllowedOrigins(
-                "https://igcse-learning-hub.vercel.app", 
-                "https://aniya-scrumptious-lina.ngrok-free.dev", // Thêm domain ngrok của bạn
-                "http://localhost:5173", 
-                "http://localhost:5174", 
-                "http://localhost:3000"
-            )
-            .withSockJS();
-}
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        registry.addEndpoint("/api/chat/ws")
+                .setAllowedOrigins(
+                    "https://igcse-learning-hub.vercel.app", 
+                    "https://aniya-scrumptious-lina.ngrok-free.dev",
+                    "http://localhost:5173", 
+                    "http://localhost:5174", 
+                    "http://localhost:3000"
+                )
+                .withSockJS();
+    }
+
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        
         registry.setApplicationDestinationPrefixes("/app");
-        
-        
-      
         registry.enableSimpleBroker("/topic", "/queue");
     }
 }

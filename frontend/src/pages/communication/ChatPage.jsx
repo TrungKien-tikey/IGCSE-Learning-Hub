@@ -142,7 +142,7 @@ export default function ChatPage() {
         const socket = new SockJS(socketUrl, null, {
     transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
     // Đảm bảo gửi credentials nếu backend yêu cầu xác thực qua cookie
-    withCredentials: true 
+    withCredentials: false
 });
         const client = Stomp.over(socket);
         client.debug = null;
