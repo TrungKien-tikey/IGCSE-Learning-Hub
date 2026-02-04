@@ -220,12 +220,30 @@ export default function ChatPage() {
                             <div className="cw-messages">
                                 {messages.map((msg, idx) => {
                                     const isMe = String(msg.senderId) === String(currentUserId);
+                                    
+                                    // Tạo đối tượng Date từ timestamp và cộng thêm 7 giờ
+                                    const dateWithOffset = new Date(msg.timestamp);
+                                    dateWithOffset.setHours(dateWithOffset.getHours() + 7);
+
                                     return (
                                         <div key={idx} className={`msg-row ${isMe ? 'my-msg' : 'their-msg'}`}>
-                                            {!isMe && <img src={selectedUser.avatar} className="msg-avt" alt="" onError={handleImgError} />}
+                                            {!isMe && (
+                                                <img 
+                                                    src={selectedUser.avatar} 
+                                                    className="msg-avt" 
+                                                    alt="" 
+                                                    onError={(e) => e.target.src = DEFAULT_AVATAR} 
+                                                />
+                                            )}
                                             <div className="msg-content-wrapper">
                                                 <div className="msg-bubble">{msg.content}</div>
-                                                <div className="msg-time">{new Date(msg.timestamp).toLocaleTimeString("vi-VN", { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
+                                                <div className="msg-time">
+                                                    {dateWithOffset.toLocaleTimeString("vi-VN", { 
+                                                        hour: '2-digit', 
+                                                        minute: '2-digit', 
+                                                        hour12: false 
+                                                    })}
+                                                </div>
                                             </div>
                                         </div>
                                     );
