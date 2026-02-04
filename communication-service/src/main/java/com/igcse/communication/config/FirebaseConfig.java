@@ -6,14 +6,17 @@ import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.lang.Nullable;
 import org.springframework.core.io.ClassPathResource;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Configuration
 public class FirebaseConfig {
 
     @Bean
+    @Nullable
     public FirebaseApp firebaseApp() throws IOException {
         System.err.println("---------- BẮT ĐẦU KHỞI TẠO FIREBASE APP ----------");
 
@@ -26,7 +29,7 @@ public class FirebaseConfig {
 
         // Ưu tiên 1: Đọc từ file bên ngoài (dùng cho Docker volume mount)
         java.io.File externalFile = new java.io.File("/app/serviceAccountKey.json");
-        if (externalFile.exists()) {
+        if (externalFile.exists() && externalFile.isFile()) {
             System.err.println(" Đang dùng file từ Docker volume: " + externalFile.getAbsolutePath());
             serviceAccountStream = new java.io.FileInputStream(externalFile);
         } else {
@@ -36,9 +39,12 @@ public class FirebaseConfig {
                 System.err.println(" Đang dùng file từ classpath: " + resource.getURI());
                 serviceAccountStream = resource.getInputStream();
             } else {
-                System.err.println(" LỖI NGHIÊM TRỌNG: KHÔNG TÌM THẤY FILE 'serviceAccountKey.json'!");
-                System.err.println(" Hãy kiểm tra folder: communication-service/src/main/resources/");
-                throw new IOException("File serviceAccountKey.json not found");
+                System.err.println(" ⚠️  WARNING: KHÔNG TÌM THẤY FILE 'serviceAccountKey.json'!");
+                System.err.println(" Firebase notifications sẽ bị tắt. Để enable, hãy đặt file tại:");
+                System.err.println("   - Docker: /app/serviceAccountKey.json");
+                System.err.println("   - Local: communication-service/src/main/resources/serviceAccountKey.json");
+                System.err.println(" Service vẫn hoạt động bình thường (WebSocket, Chat sẽ OK)");
+                return null;
             }
         }
 
@@ -52,8 +58,13 @@ public class FirebaseConfig {
     }
 
     @Bean
-    public FirebaseMessaging firebaseMessaging(FirebaseApp firebaseApp) {
+    @Nullable
+    public FirebaseMessaging firebaseMessaging(@Nullable FirebaseApp firebaseApp) {
         System.err.println("---------- ĐANG TẠO BEAN FIREBASE MESSAGING ----------");
+        if (firebaseApp == null) {
+            System.err.println(" Firebase không được khởi tạo, FirebaseMessaging sẽ null");
+            return null;
+        }
         return FirebaseMessaging.getInstance(firebaseApp);
     }
 }
