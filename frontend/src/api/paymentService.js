@@ -177,7 +177,10 @@ export const getDailyRevenue = async (year, month) => {
  */
 export const getRevenueByDateRange = async (start, end) => {
     const response = await statisticsClient.get('/revenue/date-range', {
-        params: { start, end }
+        params: { 
+            start: start,
+            end: end
+        }
     });
     return response.data;
 };
