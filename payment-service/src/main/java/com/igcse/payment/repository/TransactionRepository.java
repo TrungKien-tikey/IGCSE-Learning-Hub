@@ -136,6 +136,17 @@ public interface TransactionRepository extends JpaRepository<Transaction, Long> 
                         "ORDER BY day")
         List<Object[]> getDailyRevenue(@Param("year") int year, @Param("month") int month);
 
+        /**
+         * Doanh thu theo ngày trong khoảng thời gian (để hiển thị biểu đồ)
+         */
+        @Query("SELECT DATE(t.transactionDate) as date, COALESCE(SUM(t.amount), 0) as revenue " +
+                        "FROM Transaction t " +
+                        "WHERE t.paymentStatus = 'COMPLETED' " +
+                        "AND t.transactionDate BETWEEN :start AND :end " +
+                        "GROUP BY DATE(t.transactionDate) " +
+                        "ORDER BY DATE(t.transactionDate)")
+        List<Object[]> getRevenueByDateRangeDaily(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
         // ==================== COUNT STATISTICS ====================
 
         /**

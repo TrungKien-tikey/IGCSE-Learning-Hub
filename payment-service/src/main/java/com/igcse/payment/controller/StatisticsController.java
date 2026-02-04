@@ -66,12 +66,14 @@ public class StatisticsController {
     // ==================== DATE RANGE REVENUE ====================
 
     @GetMapping("/revenue/date-range")
-    @Operation(summary = "Doanh thu theo khoảng thời gian", description = "Lấy doanh thu trong khoảng thời gian chỉ định")
-    public ResponseEntity<Map<String, BigDecimal>> getRevenueByDateRange(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end) {
+    @Operation(summary = "Doanh thu theo khoảng thời gian", description = "Lấy doanh thu trong khoảng thời gian chỉ định - trả về danh sách theo ngày")
+    public ResponseEntity<List<Map<String, Object>>> getRevenueByDateRange(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String end) {
         log.info("API: Get revenue from {} to {}", start, end);
-        Map<String, BigDecimal> revenue = statisticsService.getRevenueByDateRange(start, end);
+        LocalDateTime startDt = LocalDateTime.parse(start + "T00:00:00");
+        LocalDateTime endDt = LocalDateTime.parse(end + "T23:59:59");
+        List<Map<String, Object>> revenue = statisticsService.getRevenueByDateRange(startDt, endDt);
         return ResponseEntity.ok(revenue);
     }
 
