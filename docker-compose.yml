@@ -401,8 +401,11 @@ services:
       - GF_SECURITY_ALLOW_EMBEDDING=true
       - GF_SECURITY_CSRF_DISABLE=true
       - GF_SECURITY_COOKIE_SAMESITE=none
+      - GF_SECURITY_COOKIE_SECURE=true
     networks:
       - igcse-network
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
   jenkins:
     image: jenkins/jenkins:lts
     container_name: igcse_jenkins

@@ -129,8 +129,10 @@ public class StatisticsService {
 
         for (Object[] row : dailyData) {
             Map<String, Object> dayData = new HashMap<>();
-            dayData.put("day", ((Number) row[0]).intValue());
-            dayData.put("revenue", row[1]);
+            int day = ((Number) row[0]).intValue();
+            dayData.put("day", day);
+            dayData.put("totalRevenue", row[1]);
+            dayData.put("dayName", "Ngày " + day);
             result.add(dayData);
         }
 
@@ -140,22 +142,21 @@ public class StatisticsService {
     // ==================== DATE RANGE REVENUE ====================
 
     /**
-     * Lấy doanh thu theo khoảng thời gian
+     * Lấy doanh thu theo khoảng thời gian - trả về list theo ngày
      */
-    public Map<String, BigDecimal> getRevenueByDateRange(LocalDateTime start, LocalDateTime end) {
+    public List<Map<String, Object>> getRevenueByDateRange(LocalDateTime start, LocalDateTime end) {
         log.info("Getting revenue from {} to {}", start, end);
 
-        BigDecimal totalRevenue = transactionRepository.getRevenueByDateRange(start, end);
-        BigDecimal platformRevenue = transactionRepository.getPlatformRevenueByDateRange(start, end);
+        List<Object[]> dateRangeData = transactionRepository.getRevenueByDateRangeDaily(start, end);
+        List<Map<String, Object>> result = new ArrayList<>();
 
-        BigDecimal slotRevenue = slotTransactionRepository.getRevenueByDateRange(start, end);
-        BigDecimal courseRevenue = courseTransactionRepository.getRevenueByDateRange(start, end);
-
-        Map<String, BigDecimal> result = new HashMap<>();
-        result.put("totalRevenue", totalRevenue);
-        result.put("platformRevenue", platformRevenue);
-        result.put("slotPurchaseRevenue", slotRevenue);
-        result.put("courseEnrollmentRevenue", courseRevenue);
+        for (Object[] row : dateRangeData) {
+            Map<String, Object> dayData = new HashMap<>();
+            dayData.put("date", row[0]);
+            dayData.put("totalRevenue", row[1]);
+            dayData.put("dateName", row[0].toString());
+            result.add(dayData);
+        }
 
         return result;
     }
