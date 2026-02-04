@@ -4,19 +4,15 @@ import axiosClient from '../../api/axiosClient';
 import SockJS from 'sockjs-client';
 import Stomp from 'stompjs';
 import { jwtDecode } from 'jwt-decode';
-import { Send, ArrowLeft, MoreVertical, Phone, Video, Info } from 'lucide-react'; // Thêm icon cho đẹp
+import { Send, ArrowLeft, MoreVertical, Phone, Video, Info, ChevronLeft } from 'lucide-react'; 
 import './ChatPage.css';
 
-
-
-
 const DEFAULT_AVATAR = "https://cdn-icons-png.flaticon.com/512/149/149071.png";
-// --- HÀM 1: Xóa dấu Tiếng Việt (Phiên bản "Bất tử" chấp mọi bảng mã) ---
+
+// --- HÀM 1: Xóa dấu Tiếng Việt ---
 const removeVietnameseTones = (str) => {
     if (!str) return '';
     str = str.toLowerCase();
-
-    // 1. Thay thế thủ công các nguyên âm có dấu (Cách này chắc chắn xử lý được 'ậ')
     str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a");
     str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e");
     str = str.replace(/ì|í|ị|ỉ|ĩ/g, "i");
@@ -24,36 +20,22 @@ const removeVietnameseTones = (str) => {
     str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u");
     str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y");
     str = str.replace(/đ/g, "d");
-
-    // 2. Dùng Normalize NFD để xử lý các dấu tổ hợp lạ (nếu còn sót)
     str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-
-    // 3. Xóa hết khoảng trắng để so sánh liền mạch
     return str.replace(/\s+/g, '');
 };
 
 const isFuzzyMatch = (text, search) => {
     const normalizedText = removeVietnameseTones(text);
     const normalizedSearch = removeVietnameseTones(search);
-
     if (!normalizedSearch) return true;
-
-    // 1. Tìm chuỗi liền kề (Substring) -> Giúp tìm "au" ra "Hậu"
-    if (normalizedText.includes(normalizedSearch)) {
-        return true;
-    }
-
-    // 2. Tìm ký tự rời rạc (Subsequence) -> Giúp tìm "nvh" ra "Nguyễn Văn Hậu"
+    if (normalizedText.includes(normalizedSearch)) return true;
     let searchIndex = 0;
     for (let i = 0; i < normalizedText.length; i++) {
         if (normalizedText[i] === normalizedSearch[searchIndex]) {
             searchIndex++;
         }
-        if (searchIndex === normalizedSearch.length) {
-            return true;
-        }
+        if (searchIndex === normalizedSearch.length) return true;
     }
-
     return false;
 };
 
@@ -69,6 +51,9 @@ export default function ChatPage() {
     const [messages, setMessages] = useState([]);
     const [inputMsg, setInputMsg] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // State hỗ trợ Mobile
+    const [isMobileChatActive, setIsMobileChatActive] = useState(false);
 
     const stompClientRef = useRef(null);
     const messagesEndRef = useRef(null);
@@ -85,7 +70,6 @@ export default function ChatPage() {
                 navigate('/login');
             }
         } else {
-            console.log("Không tìm thấy accessToken!");
             navigate('/login');
         }
     }, [navigate]);
@@ -96,7 +80,6 @@ export default function ChatPage() {
 
         const fetchParticipants = async () => {
             try {
-                // Sử dụng axiosClient để tận dụng baseURL và interceptor
                 const resIds = await axiosClient.get(`/api/courses/${courseId}/participants`);
                 const userIds = resIds.data;
 
@@ -108,7 +91,7 @@ export default function ChatPage() {
                             userId: id,
                             name: userRes.data.fullName || userRes.data.username || `User ${id}`,
                             role: userRes.data.role || "Member",
-                            avatar: DEFAULT_AVATAR // Backend chưa có avatar thật, dùng default
+                            avatar: DEFAULT_AVATAR
                         };
                     } catch (err) {
                         return {
@@ -134,16 +117,14 @@ export default function ChatPage() {
     useEffect(() => {
         if (!currentUserId) return;
 
-
-        // Use Gateway URL for WebSocket/SockJS
         const socketUrl = import.meta.env.VITE_MAIN_API_URL
             ? `${import.meta.env.VITE_MAIN_API_URL}/api/chat/ws`
             : 'http://localhost:8089/api/chat/ws';
+            
         const socket = new SockJS(socketUrl, null, {
-    transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
-    // Đảm bảo gửi credentials nếu backend yêu cầu xác thực qua cookie
-    withCredentials: false
-});
+            transports: ['websocket', 'xhr-streaming', 'xhr-polling'],
+            withCredentials: false
+        });
         const client = Stomp.over(socket);
         client.debug = null;
 
@@ -153,10 +134,7 @@ export default function ChatPage() {
             client.subscribe(`/queue/messages/${currentUserId}`, (payload) => {
                 const receivedMsg = JSON.parse(payload.body);
 
-                // Cập nhật State
                 setSelectedUser(prevSelected => {
-                    // Kiểm tra xem tin nhắn có thuộc về cuộc trò chuyện đang mở không
-                    // (Là tin người kia gửi đến HOẶC tin mình gửi đi từ thiết bị khác)
                     const isRelevantMessage = prevSelected && (
                         String(receivedMsg.senderId) === String(prevSelected.userId) ||
                         String(receivedMsg.receiverId) === String(prevSelected.userId)
@@ -164,15 +142,9 @@ export default function ChatPage() {
 
                     if (isRelevantMessage) {
                         setMessages(prevMsgs => {
-                            // --- ĐOẠN SỬA QUAN TRỌNG NHẤT ---
-                            // Kiểm tra xem tin nhắn này đã tồn tại trong list chưa (dựa vào ID)
-                            // Nếu 'receivedMsg' chưa có ID từ DB, bạn có thể so sánh timestamp
                             const isExist = prevMsgs.some(msg => msg.id === receivedMsg.id);
-
-                            if (isExist) {
-                                return prevMsgs; // Nếu trùng thì bỏ qua, không thêm
-                            }
-                            return [...prevMsgs, receivedMsg]; // Chưa có thì mới thêm
+                            if (isExist) return prevMsgs;
+                            return [...prevMsgs, receivedMsg];
                         });
                     }
                     return prevSelected;
@@ -185,13 +157,13 @@ export default function ChatPage() {
 
         stompClientRef.current = client;
 
-        // Cleanup function: Ngắt kết nối khi component unmount hoặc userId đổi
         return () => {
             if (client && client.connected) {
                 client.disconnect();
             }
         };
     }, [currentUserId]);
+
     // 4. Load lịch sử chat
     useEffect(() => {
         if (!selectedUser || !currentUserId) return;
@@ -227,15 +199,24 @@ export default function ChatPage() {
             receiverId: selectedUser.userId,
             content: inputMsg,
             roomId: getRoomId(currentUserId, selectedUser.userId),
-            timestamp: new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString()
+            timestamp: new Date().toISOString()
         };
 
-        // 1. Chỉ gửi lên Server
         stompClientRef.current.send("/app/private-message", {}, JSON.stringify(chatMessage));
-
         setInputMsg('');
     };
-    // Helper xử lý ảnh lỗi
+
+    // Hàm chọn user (Dành cho Mobile)
+    const handleSelectUser = (user) => {
+        setSelectedUser(user);
+        setIsMobileChatActive(true);
+    };
+
+    // Hàm quay lại danh sách (Dành cho Mobile)
+    const handleBackToList = () => {
+        setIsMobileChatActive(false);
+    };
+
     const handleImgError = (e) => {
         e.target.onerror = null;
         e.target.src = DEFAULT_AVATAR;
@@ -247,7 +228,8 @@ export default function ChatPage() {
 
     return (
         <div className="chat-dashboard-wrapper">
-            <div className="chat-container">
+            <div className={`chat-container ${isMobileChatActive ? 'mobile-chat-view' : 'mobile-list-view'}`}>
+                
                 {/* --- SIDEBAR --- */}
                 <div className="user-list-sidebar">
                     <div className="sidebar-header">
@@ -260,7 +242,6 @@ export default function ChatPage() {
                         </div>
                     </div>
 
-                    {/* Ô TÌM KIẾM */}
                     <div className="sidebar-search">
                         <input
                             type="text"
@@ -271,7 +252,6 @@ export default function ChatPage() {
                     </div>
 
                     <div className="ul-scroll">
-                        {/* Kiểm tra danh sách sau khi lọc */}
                         {filteredParticipants.length === 0 ? (
                             <div className="empty-state-sidebar">
                                 {searchTerm ? "Không tìm thấy ai" : "Chưa có thành viên nào"}
@@ -281,7 +261,7 @@ export default function ChatPage() {
                                 <div
                                     key={user.userId}
                                     className={`user-item ${selectedUser?.userId === user.userId ? 'active' : ''}`}
-                                    onClick={() => setSelectedUser(user)}
+                                    onClick={() => handleSelectUser(user)}
                                 >
                                     <div className="avatar-wrapper">
                                         <img
@@ -308,13 +288,18 @@ export default function ChatPage() {
                         <>
                             <div className="cw-header">
                                 <div className="header-user-info">
+                                    {/* Nút Back chỉ hiện trên Mobile */}
+                                    <button className="mobile-back-btn" onClick={handleBackToList}>
+                                        <ChevronLeft size={24} />
+                                    </button>
+                                    
                                     <img
                                         src={selectedUser.avatar}
                                         alt=""
                                         className="header-avt"
                                         onError={handleImgError}
                                     />
-                                    <div>
+                                    <div className="header-text-info">
                                         <b className="header-username">{selectedUser.name}</b>
                                         <span className="header-user-role">{selectedUser.role}</span>
                                     </div>
@@ -343,7 +328,6 @@ export default function ChatPage() {
                                                 </div>
                                                 <div className="msg-time">
                                                     {new Date(msg.timestamp).toLocaleTimeString("vi-VN", {
-                                                        timeZone: "Asia/Ho_Chi_Minh",
                                                         hour: '2-digit',
                                                         minute: '2-digit',
                                                         hour12: false
