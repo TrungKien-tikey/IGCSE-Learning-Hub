@@ -199,7 +199,7 @@ export default function GeneralAdminDashboard() {
         setIsLoadingPayment(true);
         try {
             let monthlyPromise;
-            
+
             if (timeFilter === 'year') {
                 monthlyPromise = getMonthlyRevenue(selectedYear);
             } else if (timeFilter === 'month') {
@@ -218,11 +218,28 @@ export default function GeneralAdminDashboard() {
                 getSlotStatistics()
             ]);
 
-            if (overview.status === 'fulfilled') setRevenueOverview(overview.value);
-            if (monthly.status === 'fulfilled') setMonthlyRevenue(monthly.value);
-            if (trans.status === 'fulfilled') setTransactions(trans.value?.content || []);
-            if (teachers.status === 'fulfilled') setTopTeachers(teachers.value);
-            if (slots.status === 'fulfilled') setSlotStats(slots.value);
+            if (overview.status === 'fulfilled') {
+                setRevenueOverview(overview.value?.data || overview.value);
+            }
+
+            if (monthly.status === 'fulfilled') {
+                const rawData = monthly.value?.data || monthly.value;
+                setMonthlyRevenue(Array.isArray(rawData) ? rawData : []);
+            }
+
+            if (trans.status === 'fulfilled') {
+                const rawData = trans.value?.data?.content || trans.value?.content || trans.value?.data || trans.value;
+                setTransactions(Array.isArray(rawData) ? rawData : []);
+            }
+
+            if (teachers.status === 'fulfilled') {
+                const rawData = teachers.value?.data || teachers.value;
+                setTopTeachers(Array.isArray(rawData) ? rawData : []);
+            }
+
+            if (slots.status === 'fulfilled') {
+                setSlotStats(slots.value?.data || slots.value);
+            }
         } catch (error) {
             console.error('Error fetching payment data:', error);
         } finally {
@@ -327,7 +344,8 @@ export default function GeneralAdminDashboard() {
         },
     ] : [];
 
-    const maxMonthlyRevenue = Math.max(...monthlyRevenue.map(m => m.totalRevenue || 0), 1);
+    const safeMonthlyRevenue = Array.isArray(monthlyRevenue) ? monthlyRevenue : [];
+    const maxMonthlyRevenue = Math.max(...safeMonthlyRevenue.map(m => m.totalRevenue || 0), 1);
 
     return (
         <MainLayout>
@@ -427,7 +445,7 @@ export default function GeneralAdminDashboard() {
                             <div className="space-y-4">
                                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-4">
                                     <h3 className="font-semibold text-slate-700">Doanh thu theo thời gian</h3>
-                                    
+
                                     {/* Time Filter Controls */}
                                     <div className="flex flex-wrap gap-3 items-center">
                                         {/* Filter Type Buttons */}
@@ -440,11 +458,10 @@ export default function GeneralAdminDashboard() {
                                                 <button
                                                     key={filter.id}
                                                     onClick={() => setTimeFilter(filter.id)}
-                                                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${
-                                                        timeFilter === filter.id
+                                                    className={`px-3 py-1.5 text-xs font-medium rounded transition-colors ${timeFilter === filter.id
                                                             ? 'bg-indigo-600 text-white'
                                                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {filter.label}
                                                 </button>
@@ -538,16 +555,15 @@ export default function GeneralAdminDashboard() {
                                             <button
                                                 key={status}
                                                 onClick={() => setStatusFilter(status)}
-                                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-                                                    statusFilter === status
+                                                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${statusFilter === status
                                                         ? 'bg-indigo-600 text-white'
                                                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                                                }`}
+                                                    }`}
                                             >
                                                 {status === 'ALL' ? 'Tất cả' :
-                                                 status === 'COMPLETED' ? 'Hoàn thành' :
-                                                 status === 'PENDING' ? 'Đang chờ' :
-                                                 status === 'FAILED' ? 'Thất bại' : 'Hoàn tiền'}
+                                                    status === 'COMPLETED' ? 'Hoàn thành' :
+                                                        status === 'PENDING' ? 'Đang chờ' :
+                                                            status === 'FAILED' ? 'Thất bại' : 'Hoàn tiền'}
                                             </button>
                                         ))}
                                     </div>

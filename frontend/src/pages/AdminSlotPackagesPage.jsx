@@ -41,11 +41,15 @@ export default function AdminSlotPackagesPage() {
     const fetchPackages = async () => {
         setLoading(true);
         try {
-            const data = await getAllPackages();
-            setPackages(data || []);
+            const res = await getAllPackages();
+            // Lấy data thực sự (Bọc thêm lớp Array.isArray để chống crash)
+            const actualData = res?.data?.content || res?.content || res?.data || res;
+            setPackages(Array.isArray(actualData) ? actualData : []);
         } catch (error) {
             console.error('Error fetching packages:', error);
             toast.error('Lỗi tải danh sách gói suất học!');
+            // Chống crash khi catch error
+            setPackages([]);
         } finally {
             setLoading(false);
         }
@@ -146,24 +150,26 @@ export default function AdminSlotPackagesPage() {
     };
 
     // Stats
+    const safePackages = Array.isArray(packages) ? packages : [];
+    
     const stats = [
         {
             title: 'Tổng gói suất học',
-            value: packages.length,
+            value: safePackages.length,
             icon: Package,
             color: 'text-blue-600',
             bg: 'bg-blue-100'
         },
         {
             title: 'Gói đang bán',
-            value: packages.filter(p => p.isActive).length,
+            value: safePackages.filter(p => p?.isActive).length,
             icon: Check,
             color: 'text-emerald-600',
             bg: 'bg-emerald-100'
         },
         {
             title: 'Gói đã ẩn',
-            value: packages.filter(p => !p.isActive).length,
+            value: safePackages.filter(p => !p?.isActive).length,
             icon: AlertCircle,
             color: 'text-slate-600',
             bg: 'bg-slate-100'

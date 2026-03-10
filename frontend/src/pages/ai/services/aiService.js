@@ -1,4 +1,4 @@
-const API_BASE_URL = "/api/ai";
+const API_BASE_URL = "http://localhost:8000/api/ai";
 
 /**
  * Validate ID parameter
