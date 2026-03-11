@@ -30,14 +30,14 @@ for ($i = 1; $i -le $retries; $i++) {
 $services = @(
     @{
         name   = "auth-service"
-        url    = "http://auth-service:8080"
+        url    = "http://host.docker.internal:8080"
         routes = @(
             @{ name = "auth-route"; paths = @("/api/auth") }
         )
     },
     @{
         name   = "user-service"
-        url    = "http://user-service:8083"
+        url    = "http://host.docker.internal:8083"
         routes = @(
             @{ name = "user-route"; paths = @("/api/users") },
             @{ name = "admin-users-route"; paths = @("/api/admin/users") }
@@ -45,41 +45,42 @@ $services = @(
     },
     @{
         name   = "ai-service"
-        url    = "http://ai-service:8082"
+        url    = "http://host.docker.internal:8082"
         routes = @(
             @{ name = "ai-route"; paths = @("/api/ai") }
         )
     },
     @{
         name   = "exam-service"
-        url    = "http://exam-service:8085"
+        url    = "http://host.docker.internal:8085"
         routes = @(
             @{ name = "exam-route"; paths = @("/api/exams") }
         )
     },
     @{
         name   = "course-service"
-        url    = "http://course-service:8079"
+        url    = "http://host.docker.internal:8079"
         routes = @(
             @{ name = "course-route"; paths = @("/api/courses", "/api/course") }
         )
     },
     @{
         name   = "communication-service"
-        url    = "http://communication-service:8089"
+        url    = "http://host.docker.internal:8089"
         routes = @(
             @{ name = "communication-route"; paths = @("/api/notifications", "/api/communication", "/api/chat", "/api/comments") }
         )
     },
     @{
         name   = "payment-service"
-        url    = "http://payment-service:8084"
+        url    = "http://host.docker.internal:8084"
         routes = @(
             @{ name = "payment-route"; paths = @("/api/payment", "/api/payments") },
             @{ name = "admin-statistics-route"; paths = @("/api/admin/statistics") }
         )
     }
 )
+
 
 # Create services and routes
 Write-Host ""
