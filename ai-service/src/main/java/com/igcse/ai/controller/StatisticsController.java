@@ -22,32 +22,40 @@ public class StatisticsController {
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<?> getStudentStatistics(@PathVariable Long studentId) {
-        // Lấy studentId hợp lệ (STUDENT tự động dùng userId từ token)
-        Long validStudentId = SecurityUtils.getValidStudentId(studentId);
-
-        if (validStudentId == null) {
-            logger.warn("Unauthenticated request to access student statistics");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Bạn cần đăng nhập để xem dữ liệu"));
-        }
-
-        // Kiểm tra quyền cho TEACHER/ADMIN (STUDENT đã được xử lý trong
-        // getValidStudentId)
         String currentRole = SecurityUtils.getCurrentUserRole();
-        if (!"STUDENT".equalsIgnoreCase(currentRole) && !SecurityUtils.canAccessStudentData(studentId)) {
-            logger.warn("User {} attempted to access student {} statistics without permission",
-                    SecurityUtils.getCurrentUserId(), studentId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+        Long currentUserId = SecurityUtils.getCurrentUserId(); 
+
+        // Log ra để debug xem Role thực sự là gì nếu vẫn bị 200
+        logger.info("🔍 Debug Auth: UserID={}, Role={}, TargetID={}", currentUserId, currentRole, studentId);
+
+        // 1. Phân quyền chặt chẽ cho STUDENT
+        // Dùng contains và toUpperCase để tránh lệch pha tiền tố ROLE_
+        if (currentRole != null && currentRole.toUpperCase().contains("STUDENT")) {
+            // Kiểm tra IDOR: studentId truyền vào phải khớp với currentUserId trong Token
+            if (currentUserId == null || !studentId.equals(currentUserId)) {
+                logger.warn("🚨 IDOR DETECTED: Student {} tried to view Student {}", currentUserId, studentId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh khác"));
+            }
+        } 
+        // 2. Phân quyền cho TEACHER / ADMIN / PARENT
+        else if (currentRole != null && (currentRole.toUpperCase().contains("TEACHER") || currentRole.toUpperCase().contains("ADMIN"))) {
+            // Giáo viên/Admin thì cho qua (hoặc check canAccessStudentData nếu muốn gắt hơn nữa)
+            logger.info("✅ Teacher/Admin accessing student data");
+        }
+        // 3. Trường hợp Role lạ hoặc không xác định
+        else {
+            if (!SecurityUtils.canAccessStudentData(studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Truy cập bị từ chối"));
+            }
         }
 
-        // Trả về dữ liệu (nếu không có dữ liệu, service sẽ trả về empty stats)
-        return ResponseEntity.ok(statisticsService.getStudentStatistics(validStudentId));
+        return ResponseEntity.ok(statisticsService.getStudentStatistics(studentId));
     }
 
     @GetMapping("/class/{classId}")
     public ResponseEntity<?> getClassStatistics(@PathVariable Long classId) {
-        // Chỉ TEACHER và ADMIN được xem thống kê lớp
         String currentRole = SecurityUtils.getCurrentUserRole();
         if (!"ADMIN".equalsIgnoreCase(currentRole) && !"TEACHER".equalsIgnoreCase(currentRole)) {
             logger.warn("User {} with role {} attempted to access class {} statistics",
@@ -62,13 +70,11 @@ public class StatisticsController {
 
     @GetMapping("/class/{classId}/exams")
     public ResponseEntity<?> getParticipatedExams(@PathVariable Long classId) {
-        // Return list of Exam IDs that have results for this class
         return ResponseEntity.ok(statisticsService.getParticipatedExamIds(classId));
     }
 
     @GetMapping("/exam/{examId}")
     public ResponseEntity<?> getExamStats(@PathVariable Long examId, @RequestParam(required = false) Long classId) {
-        // Allow classId to be null for global exam stats
         return ResponseEntity.ok(statisticsService.getExamStatistics(examId, classId));
     }
 
@@ -76,42 +82,46 @@ public class StatisticsController {
 
     @GetMapping("/analytics/{studentId}")
     public ResponseEntity<?> getLearningAnalytics(@PathVariable Long studentId) {
-        Long validStudentId = SecurityUtils.getValidStudentId(studentId);
-        if (validStudentId == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Unauthorized"));
+        String currentRole = SecurityUtils.getCurrentUserRole();
+        Long currentUserId = SecurityUtils.getCurrentUserId();
+
+        if (currentRole != null && currentRole.toUpperCase().contains("STUDENT")) {
+            if (!studentId.equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
+        } else {
+            if (!SecurityUtils.canAccessStudentData(studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
         }
 
-        // Parent check is handled by role, but here we assume if validStudentId
-        // returned, it's safe OR we rely on PreAuthorize.
-        // But getValidStudentId only handles STUDENT role.
-        // We need to support PARENT role manually here since utility might not have it.
-        // Actually, let's trust the service layer or basic role check.
-        // For PARENT: they usually pass studentId of their child. We should verify
-        // relation strictly.
-        // For now, allow TEACHER/ADMIN/STUDENT (self) and PARENT (assuming frontend
-        // sends correct ID).
-        // To be safe, we will add standard role check.
-
-        return ResponseEntity.ok(statisticsService.getLearningAnalytics(validStudentId));
+        return ResponseEntity.ok(statisticsService.getLearningAnalytics(studentId));
     }
 
     @GetMapping("/parent/summary/{studentId}")
     public ResponseEntity<?> getParentSummary(@PathVariable Long studentId) {
-        // Strict check for Parent
-        // In real app: Check if currentUser is Parent of studentId.
-        // For prototype: Allow broad access if role is PARENT.
+        String currentRole = SecurityUtils.getCurrentUserRole();
+        Long currentUserId = SecurityUtils.getCurrentUserId();
 
-        Long validStudentId = SecurityUtils.getValidStudentId(studentId);
-        // If user is PARENT, getValidStudentId might return null if it only checks
-        // STUDENT role?
-        // Let's rely on the ID passed.
+        if (currentRole != null && currentRole.toUpperCase().contains("STUDENT")) {
+            if (!studentId.equals(currentUserId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
+        } else {
+            if (!SecurityUtils.canAccessStudentData(studentId)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
+        }
 
         return ResponseEntity.ok(statisticsService.getParentSummary(studentId));
     }
 
     @GetMapping("/system")
     public ResponseEntity<?> getSystemStatistics() {
-        // Chỉ ADMIN được xem thống kê hệ thống
         String currentRole = SecurityUtils.getCurrentUserRole();
         if (!"ADMIN".equalsIgnoreCase(currentRole)) {
             logger.warn("User {} with role {} attempted to access system statistics",
