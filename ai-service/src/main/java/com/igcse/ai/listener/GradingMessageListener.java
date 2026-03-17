@@ -19,7 +19,7 @@ public class GradingMessageListener {
     private final AIService aiService;
     private final RabbitTemplate rabbitTemplate;
 
-    @RabbitListener(queues = "exam.grading.queue")
+    @RabbitListener(queues = RabbitConfig.QUEUE_NAME)
     public void receiveGradingRequest(ExamAnswersDTO examAnswersDTO) {
         logger.info(">>> [RabbitMQ] Received grading request for attemptId: {}", examAnswersDTO.getAttemptId());
         try {

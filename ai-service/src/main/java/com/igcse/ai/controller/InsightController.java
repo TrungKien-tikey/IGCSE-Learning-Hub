@@ -26,28 +26,32 @@ public class InsightController {
     }
 
     @GetMapping("/student/{studentId}")
-    public ResponseEntity<?> getInsight(@PathVariable Long studentId) {
-        // Lấy studentId hợp lệ (STUDENT tự động dùng userId từ token)
-        Long validStudentId = SecurityUtils.getValidStudentId(studentId);
-        
-        if (validStudentId == null) {
-            logger.warn("Unauthenticated request to access student insights");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", "Bạn cần đăng nhập để xem dữ liệu"));
-        }
-        
-        // Kiểm tra quyền cho TEACHER/ADMIN (STUDENT đã được xử lý trong getValidStudentId)
-        String currentRole = SecurityUtils.getCurrentUserRole();
-        if (!"STUDENT".equalsIgnoreCase(currentRole) && !SecurityUtils.canAccessStudentData(studentId)) {
-            logger.warn("User {} attempted to access student {} insights without permission", 
-                    SecurityUtils.getCurrentUserId(), studentId);
+public ResponseEntity<?> getInsight(@PathVariable Long studentId) {
+    String currentRole = SecurityUtils.getCurrentUserRole();
+    Long currentUserId = SecurityUtils.getCurrentUserId(); // Giả sử bạn có hàm lấy ID từ token
+
+    // 1. Phân quyền riêng cho STUDENT
+    if ("STUDENT".equalsIgnoreCase(currentRole)) {
+        // Nếu ID trên URL không khớp với ID trong token -> Chặn luôn 403
+        if (!studentId.equals(currentUserId)) {
+            logger.warn("Student {} attempted to view insight of Student {}", currentUserId, studentId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
         }
-        
-        // Trả về dữ liệu (nếu không có dữ liệu, service sẽ trả về empty insight)
-        return ResponseEntity.ok(insightService.getInsight(validStudentId));
+    } 
+    // 2. Phân quyền cho ADMIN, TEACHER, PARENT
+    else {
+        if (!SecurityUtils.canAccessStudentData(studentId)) {
+            logger.warn("User {} attempted to access student {} insights without permission", 
+                    currentUserId, studentId);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+        }
     }
+
+    // 3. Passed hết các check bảo mật thì mới trả về dữ liệu
+    return ResponseEntity.ok(insightService.getInsight(studentId));
+}
 
     @GetMapping("/attempt/{attemptId}")
     public ResponseEntity<?> getInsightByAttempt(@PathVariable Long attemptId) {

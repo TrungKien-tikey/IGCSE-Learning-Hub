@@ -192,8 +192,10 @@ public class AIService {
         logger.debug("Fetching result for attemptId: {}", attemptId);
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
 
-        return aiResultRepository.findByAttemptId(attemptId)
-                .orElseThrow(() -> new AIResultNotFoundException(attemptId));
+        // FIX LỖI: Trả về null thay vì ném ra AIResultNotFoundException
+        // Điều này giúp Controller bên ngoài có thể bắt được giá trị null 
+        // và chủ động trả về 404 Not Found một cách "lịch sự".
+        return aiResultRepository.findByAttemptId(attemptId).orElse(null);
     }
 
     public DetailedGradingResultDTO getDetailedResult(Long attemptId) {
@@ -201,10 +203,17 @@ public class AIService {
         Objects.requireNonNull(attemptId, "Attempt ID cannot be null");
 
         AIResult result = getResult(attemptId);
+        
+        // FIX LỖI: Nếu bài thi không tồn tại (result = null), trả về null luôn.
+        // Tránh lỗi NullPointerException khi gọi result.getDetails() ở dòng dưới.
+        if (result == null) {
+            return null;
+        }
+
         List<GradingResult> detailsList = jsonService.parseGradingDetails(result.getDetails());
 
         Double maxScore = 10.0;
-        if (!detailsList.isEmpty()) {
+        if (detailsList != null && !detailsList.isEmpty()) {
             maxScore = gradingService.calculateMaxScore(detailsList);
         }
 
