@@ -22,26 +22,26 @@ public class StatisticsController {
 
     @GetMapping("/student/{studentId}")
     public ResponseEntity<?> getStudentStatistics(@PathVariable Long studentId) {
+        // Fix BVA: Chặn ID âm hoặc bằng 0
+        if (studentId == null || studentId <= 0) {
+            logger.warn("🚨 Validation Error: Invalid studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         Long currentUserId = SecurityUtils.getCurrentUserId(); 
 
-        // Log ra để debug xem Role thực sự là gì nếu vẫn bị 200
-        logger.info("🔍 Debug Auth: UserID={}, Role={}, TargetID={}", currentUserId, currentRole, studentId);
-
         // 1. Phân quyền chặt chẽ cho STUDENT
-        // Dùng contains và toUpperCase để tránh lệch pha tiền tố ROLE_
         if (currentRole != null && currentRole.toUpperCase().contains("STUDENT")) {
-            // Kiểm tra IDOR: studentId truyền vào phải khớp với currentUserId trong Token
             if (currentUserId == null || !studentId.equals(currentUserId)) {
-                logger.warn("🚨 IDOR DETECTED: Student {} tried to view Student {}", currentUserId, studentId);
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh khác"));
             }
         } 
         // 2. Phân quyền cho TEACHER / ADMIN / PARENT
         else if (currentRole != null && (currentRole.toUpperCase().contains("TEACHER") || currentRole.toUpperCase().contains("ADMIN"))) {
-            // Giáo viên/Admin thì cho qua (hoặc check canAccessStudentData nếu muốn gắt hơn nữa)
-            logger.info("✅ Teacher/Admin accessing student data");
+            // Cho phép
         }
         // 3. Trường hợp Role lạ hoặc không xác định
         else {
@@ -51,37 +51,78 @@ public class StatisticsController {
             }
         }
 
-        return ResponseEntity.ok(statisticsService.getStudentStatistics(studentId));
+        // Fix BVA (Biên Max): Kiểm tra dữ liệu rỗng của học sinh
+        var stats = statisticsService.getStudentStatistics(studentId);
+        if (stats == null || stats.getTotalExams() == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy dữ liệu thống kê cho học sinh này"));
+        }
+
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/class/{classId}")
     public ResponseEntity<?> getClassStatistics(@PathVariable Long classId) {
+        // Fix BVA: Chặn ID âm hoặc bằng 0
+        if (classId == null || classId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID lớp học không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         if (!"ADMIN".equalsIgnoreCase(currentRole) && !"TEACHER".equalsIgnoreCase(currentRole)) {
-            logger.warn("User {} with role {} attempted to access class {} statistics",
-                    SecurityUtils.getCurrentUserId(), currentRole, classId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Chỉ giáo viên và admin mới có thể xem thống kê lớp học"));
         }
 
-        logger.info("Teacher Dashboard: Fetching stats for class {}", classId);
-        return ResponseEntity.ok(statisticsService.getClassStatistics(classId));
+        // Fix BVA (Biên Max): Kiểm tra dữ liệu rỗng của Lớp học
+        var stats = statisticsService.getClassStatistics(classId);
+        if (stats == null || stats.getTotalStudents() == 0) {
+            logger.warn("🚨 Không tìm thấy dữ liệu thống kê cho classId {}", classId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy dữ liệu thống kê cho lớp học này (Lớp trống hoặc không tồn tại)"));
+        }
+
+        return ResponseEntity.ok(stats);
     }
 
     @GetMapping("/class/{classId}/exams")
     public ResponseEntity<?> getParticipatedExams(@PathVariable Long classId) {
+        // Fix BVA: Chặn ID âm hoặc bằng 0
+        if (classId == null || classId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID lớp học không hợp lệ"));
+        }
         return ResponseEntity.ok(statisticsService.getParticipatedExamIds(classId));
     }
 
     @GetMapping("/exam/{examId}")
     public ResponseEntity<?> getExamStats(@PathVariable Long examId, @RequestParam(required = false) Long classId) {
-        return ResponseEntity.ok(statisticsService.getExamStatistics(examId, classId));
+        // Fix BVA: Chặn ID âm hoặc bằng 0
+        if (examId == null || examId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID bài thi không hợp lệ"));
+        }
+        
+        // Fix BVA (Biên Max): Kiểm tra nếu chưa ai làm bài thi này
+        var stats = statisticsService.getExamStatistics(examId, classId);
+        if (stats == null || stats.getGradedCount() == 0) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy dữ liệu thống kê cho bài thi này"));
+        }
+        
+        return ResponseEntity.ok(stats);
     }
 
-    // --- NEW: Advanced Analytics ---
+    // --- Advanced Analytics ---
 
     @GetMapping("/analytics/{studentId}")
     public ResponseEntity<?> getLearningAnalytics(@PathVariable Long studentId) {
+        if (studentId == null || studentId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -102,6 +143,11 @@ public class StatisticsController {
 
     @GetMapping("/parent/summary/{studentId}")
     public ResponseEntity<?> getParentSummary(@PathVariable Long studentId) {
+        if (studentId == null || studentId <= 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -124,8 +170,6 @@ public class StatisticsController {
     public ResponseEntity<?> getSystemStatistics() {
         String currentRole = SecurityUtils.getCurrentUserRole();
         if (!"ADMIN".equalsIgnoreCase(currentRole)) {
-            logger.warn("User {} with role {} attempted to access system statistics",
-                    SecurityUtils.getCurrentUserId(), currentRole);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(Map.of("error", "Chỉ admin mới có thể xem thống kê toàn hệ thống"));
         }
