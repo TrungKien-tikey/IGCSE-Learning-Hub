@@ -26,6 +26,13 @@ public class RecommendationController {
 
     @GetMapping("/{studentId}")
     public ResponseEntity<?> getRecommendations(@PathVariable Long studentId) {
+        // Fix BVA (Biên Min): Chặn ID âm hoặc bằng 0
+        if (studentId == null || studentId <= 0) {
+            logger.warn("🚨 Validation Error: Invalid studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
@@ -54,8 +61,16 @@ public class RecommendationController {
             }
         }
 
-        // Truyền trực tiếp studentId từ URL (vì đã qua vòng check an toàn ở trên)
-        return ResponseEntity.ok(recommendationService.getRecommendations(studentId));
+        // Fix BVA (Biên Max): Kiểm tra nếu chưa có lộ trình nào (dữ liệu ảo) hoặc ID không tồn tại
+        var recommendations = recommendationService.getRecommendations(studentId);
+        if (recommendations == null || "Vui lòng hoàn thành bài thi để nhận được gợi ý học tập.".equals(recommendations.getLearningPathSuggestion())) {
+            logger.warn("🚨 Không tìm thấy dữ liệu lộ trình học cho studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy dữ liệu gợi ý lộ trình học cho học sinh này"));
+        }
+
+        // Truyền trực tiếp dữ liệu đã lấy
+        return ResponseEntity.ok(recommendations);
     }
 
     @PostMapping("/trigger/{studentId}")
@@ -63,6 +78,13 @@ public class RecommendationController {
             @PathVariable Long studentId,
             @RequestBody(required = false) String nifiData) {
             
+        // Fix BVA (Biên Min): Chặn ID âm hoặc bằng 0
+        if (studentId == null || studentId <= 0) {
+            logger.warn("🚨 Validation Error: Invalid studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
+
         String currentRole = SecurityUtils.getCurrentUserRole();
         Long currentUserId = SecurityUtils.getCurrentUserId();
 
