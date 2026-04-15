@@ -18,6 +18,7 @@ import com.igcse.auth.dto.RegisterRequest;
 import com.igcse.auth.dto.UserSyncDTO;
 import com.igcse.auth.entity.BlacklistedToken;
 import com.igcse.auth.entity.User;
+import com.igcse.auth.exception.DuplicateEmailException;
 import com.igcse.auth.repository.BlacklistedTokenRepository;
 import com.igcse.auth.repository.UserRepository;
 import com.igcse.auth.util.JwtUtils;
@@ -53,12 +54,12 @@ public class AuthService {
     // 1. ĐĂNG KÝ (Có bắn RabbitMQ)
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email nay da ton tai!");
+            throw new DuplicateEmailException("Email already exists");
         }
 
         User user = new User();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
+        user.setFullName(request.getFullName().trim());
+        user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         // Xử lý Role

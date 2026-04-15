@@ -13,7 +13,7 @@ This file replaces the Excel tracker for BVA test execution and bug logging.
 
 ## Test Cycle
 - Current Test Version: `local-dev-auth-2026-04-16`
-- Retest Version: `local-dev-auth-login-fix-2026-04-16`
+- Retest Version: `local-dev-auth-register-fix-2026-04-16`
 - Tester: `Codex`
 - Test Date: `2026-04-16`
 - Base URL: `http://localhost:8088`
@@ -146,10 +146,10 @@ Notes:
 ## Bug Log
 | Bug ID | Function | Test Case | Version Detected | Severity | Priority | Expected | Actual | Evidence | Status | Assignee | Fixed In Version | Retest Result | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BUG-AUTH-BVA-01` | `F01,F02` | `TC_RG_01,03,04,05,07; TC_LG_01,04,06` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Missing/invalid input must fail with clean `400` validation response | Register accepted bad payload or leaked ORM/SQL internals; login missing/empty fields returned `401` instead of `400` | Execution result tables above | Partial Fix | Backend | `local-dev-auth-login-fix-2026-04-16` | `Function 1 pass 6/6; Function 2 pending` | Login scope fixed by Bean Validation on `LoginRequest`, `@Valid` on `AuthController.login()`, and `MethodArgumentNotValidException` handler. Register scope is still open. |
-| `BUG-AUTH-BVA-02` | `F02` | `TC_RG_02,06` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Register success must return `201 Created` | API returned `200 OK` | Execution result table above | Open | Backend |  |  | `AuthController.register()` uses `ResponseEntity.ok(...)` |
-| `BUG-AUTH-BVA-03` | `F02` | `TC_RG_08` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Duplicate email must return `409 Conflict` | API returned `400 Bad Request` | Execution result table above | Open | Backend |  |  | Needs dedicated conflict exception / handler |
-| `BUG-AUTH-BVA-04` | `F01,F02` | `TC_RG_05 -> TC_LG_02` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Invalid-format email must never be persisted or authenticated | Invalid email user was created and later login returned a valid JWT pair | Execution result tables above | Open | Backend |  |  | Data integrity and auth correctness issue |
+| `BUG-AUTH-BVA-01` | `F01,F02` | `TC_RG_01,03,04,05,07; TC_LG_01,04,06` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Missing/invalid input must fail with clean `400` validation response | Register accepted bad payload or leaked ORM/SQL internals; login missing/empty fields returned `401` instead of `400` | Execution result tables above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `Function 1 pass 6/6; Function 2 validation pass 5/5` | Login scope was fixed first, and register validation is now fixed with Bean Validation on `RegisterRequest`, `@Valid` on `AuthController.register()`, and clean validation responses. |
+| `BUG-AUTH-BVA-02` | `F02` | `TC_RG_02,06` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Register success must return `201 Created` | API returned `200 OK` | Execution result table above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_02 pass; TC_RG_06 pass` | `AuthController.register()` now returns `ResponseEntity.status(HttpStatus.CREATED)` |
+| `BUG-AUTH-BVA-03` | `F02` | `TC_RG_08` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Duplicate email must return `409 Conflict` | API returned `400 Bad Request` | Execution result table above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_08 pass` | Added dedicated `DuplicateEmailException` mapped to `409 Conflict` |
+| `BUG-AUTH-BVA-04` | `F01,F02` | `TC_RG_05 -> TC_LG_02` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Invalid-format email must never be persisted or authenticated | Invalid email user was created and later login returned a valid JWT pair | Execution result tables above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_05 pass; stale invalid rows deleted` | Register now blocks invalid-format emails and 5 stale invalid-email rows were removed from local `auth_db.users`. |
 | `BUG-AUTH-BVA-05` | `F03` | `TC_LO_01,02,03` | `local-dev-auth-2026-04-16` | `Major` | `High` | Unauthorized logout attempts should return `401` JSON | Spring Security returned `403 Forbidden` | Execution result table above | Open | Backend |  |  | Missing `AuthenticationEntryPoint` and inconsistent JWT failure handling |
 
 ## Retest Report - BUG-AUTH-BVA-01 login scope
@@ -178,44 +178,55 @@ Retest result:
 Summary:
 - Login retest passed `6/6`
 - The login part of `BUG-AUTH-BVA-01` is fixed
-- Register-related validation defects under `BUG-AUTH-BVA-01` still need a separate fix and retest
+- Register-related validation defects were tracked separately and are covered in the register retest report below
 
-## Fix Plan
-1. Fix `BUG-AUTH-BVA-01`
-   - Add Bean Validation to `RegisterRequest`
-     - `@NotBlank` for `fullName`, `email`, `password`
-     - `@Email` for `email`
-     - `@Size(max = 255)` for `fullName`
-     - `@Size(max = 254)` for `email`
-   - Add Bean Validation to `LoginRequest`
-     - `@NotBlank` for `email`, `password`
-     - `@Email` for `email`
-   - Add `@Valid` in `AuthController.register()` and `AuthController.login()`
-   - Add `MethodArgumentNotValidException` handling in `GlobalExceptionHandler`
-   - Replace ORM/SQL error leakage with clean field-level validation messages
+## Retest Report - register scope
 
-2. Fix `BUG-AUTH-BVA-02`
-   - Change register success response to `ResponseEntity.status(HttpStatus.CREATED).body(...)`
+Implemented fix:
+- Added Bean Validation to `RegisterRequest`
+- Added `@Valid` to `AuthController.register()`
+- Changed register success response to `201 Created`
+- Added `DuplicateEmailException` and mapped it to `409 Conflict`
+- Trimmed `fullName` and `email` before persistence
+- Deleted stale invalid-email rows from local `auth_db.users`
 
-3. Fix `BUG-AUTH-BVA-03`
-   - Replace generic `RuntimeException` for duplicate email with a dedicated exception
-   - Map that exception to `409 Conflict`
+Retest environment:
+- Retest version: `local-dev-auth-register-fix-2026-04-16`
+- Retest date: `2026-04-16`
+- Endpoint: `POST /api/auth/register`
 
-4. Fix `BUG-AUTH-BVA-04`
-   - Clean invalid email rows already stored in `auth_db.users`
-   - After validation fix, confirm invalid-format emails cannot be created again
-   - Retest `TC_RG_05` and `TC_LG_02`
+Retest result:
+| Test Case | Expected | Actual | Result | Notes |
+| --- | --- | --- | --- | --- |
+| `TC_RG_01` | `400` | `400` | Pass | Empty `fullName` now returns clean validation error |
+| `TC_RG_02` | `201` | `201` | Pass | Min boundary full name is accepted |
+| `TC_RG_03` | `400` | `400` | Pass | Over-max `fullName` now fails before hitting DB |
+| `TC_RG_04` | `400` | `400` | Pass | Missing `email` returns validation error |
+| `TC_RG_05` | `400` | `400` | Pass | Invalid email format is blocked before persistence |
+| `TC_RG_06` | `201` | `201` | Pass | Valid 254-character email is accepted |
+| `TC_RG_07` | `400` | `400` | Pass | 255-character email is rejected with size validation |
+| `TC_RG_08` | `409` | `409` | Pass | Duplicate email now returns conflict |
 
-5. Fix `BUG-AUTH-BVA-05`
+Data cleanup:
+- Deleted 2 users created during retest (`TC_RG_02`, `TC_RG_06`)
+- Deleted 5 stale rows with invalid email values from local `auth_db.users`
+
+Summary:
+- Register retest passed `8/8`
+- `BUG-AUTH-BVA-01`, `BUG-AUTH-BVA-02`, `BUG-AUTH-BVA-03`, and `BUG-AUTH-BVA-04` are fixed in the local auth-service build
+- The remaining open bug in this log is `BUG-AUTH-BVA-05` for `logout`
+
+## Next Fix Plan
+1. Fix `BUG-AUTH-BVA-05`
    - Configure `authenticationEntryPoint` in `SecurityConfig` to always return `401` JSON for unauthenticated access
    - In `JwtAuthenticationFilter`, short-circuit malformed, expired, and blacklisted token cases with explicit `401`
    - Keep unauthorized response format consistent across auth endpoints
 
-6. Retest order after fix
-   - Retest all Function 2 cases first (`TC_RG_01 -> TC_RG_08`)
-   - Retest all Function 1 cases (`TC_LG_01 -> TC_LG_06`)
-   - Retest all Function 3 cases (`TC_LO_01 -> TC_LO_04`)
-   - Confirm no invalid user rows are inserted during retest
+2. Retest `logout`
+   - Retest `TC_LO_01` for missing token
+   - Retest `TC_LO_02` for malformed token
+   - Retest `TC_LO_03` for expired token
+   - Retest `TC_LO_04` for valid token
 
 ## Severity Rule
 - `Critical`: blocks core auth flow or allows bad data/security behavior

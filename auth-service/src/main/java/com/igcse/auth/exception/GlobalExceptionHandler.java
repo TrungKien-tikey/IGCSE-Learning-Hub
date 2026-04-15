@@ -40,6 +40,19 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateEmail(
+            DuplicateEmailException ex, WebRequest request) {
+        logger.warn("Duplicate email: {}", ex.getMessage());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.CONFLICT.value());
+        response.put("message", ex.getMessage());
+        response.put("timestamp", LocalDateTime.now());
+
+        return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+    }
+
     /**
      * Handle authentication failures (invalid credentials)
      */
