@@ -5,8 +5,11 @@ import com.igsce.exam_service.enums.GradingStatus;
 import com.igsce.exam_service.service.*;
 import com.igsce.exam_service.util.SecurityUtils;
 import com.igsce.exam_service.dto.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
 
 import lombok.*;
 import java.util.List;
@@ -53,7 +56,8 @@ public class ExamController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createExam(@RequestBody CreateExamRequest request) {
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
+    public ResponseEntity<?> createExam(@Valid @RequestBody CreateExamRequest request) {
         try {
             return ResponseEntity.ok(examService.createExam(request));
         } catch (Exception e) {

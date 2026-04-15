@@ -1,5 +1,6 @@
 package com.igsce.exam_service.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class CreateExamRequest {
     
     // --- Các field của Exam ---
+    @NotBlank(message = "Title không được để trống")
     private String title;
     private String description;
     private int duration;
