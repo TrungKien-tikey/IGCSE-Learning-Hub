@@ -5,6 +5,7 @@ import com.igsce.exam_service.enums.GradingStatus;
 import com.igsce.exam_service.service.*;
 import com.igsce.exam_service.util.SecurityUtils;
 import com.igsce.exam_service.dto.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +56,7 @@ public class ExamController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('TEACHER', 'ADMIN')")
     public ResponseEntity<?> createExam(@Valid @RequestBody CreateExamRequest request) {
         try {
             return ResponseEntity.ok(examService.createExam(request));
