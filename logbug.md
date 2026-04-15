@@ -1,132 +1,223 @@
-# Log Bug Tasks - Function 1 to 7
+# Log Bug Tasks
 
-File này thay cho Excel để theo dõi task test BVA và log bug cho `function1` đến `function7`.
+This file replaces the Excel tracker for BVA test execution and bug logging.
 
-## Quy ước dùng file
-- Dùng `{{auth_base}}` theo [postman_collection.json](/c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/postman_collection.json:270), mặc định hiện tại là `http://localhost:8088`.
-- Với các test yêu cầu token:
-  - `valid_token`: lấy từ login thành công.
-  - `invalid_token`: token JWT sai chữ ký / random string.
-  - `expired_token`: token hết hạn.
-  - `malformed_token`: token sai format.
-- Với các test `protected endpoint`:
-  - Nếu project không có `GET /api/protected`, thay bằng một endpoint bảo vệ có thật như:
-    - `POST {{auth_base}}/api/auth/logout`
-    - `POST {{auth_base}}/api/auth/change-password`
-- Khi `Actual Result != Expected Result`, tạo 1 dòng mới ở phần `Bug Log`.
-- Sau khi dev fix, cập nhật `Status`, `Fixed In Version`, `Retest Result`.
+## Scope
+- Function 1: `login`
+- Function 2: `register`
+- Function 3: `logout`
+- Function 4: `forgotPassword`
+- Function 5: `changePassword`
+- Function 6: `securityFilterChain`
+- Function 7: `doFilterInternal`
 
 ## Test Cycle
-- Current Test Version:
-- Retest Version:
-- Tester:
-- Test Date:
+- Current Test Version: `local-dev-auth-2026-04-16`
+- Retest Version: `local-dev-auth-login-fix-2026-04-16`
+- Tester: `Codex`
+- Test Date: `2026-04-16`
+- Base URL: `http://localhost:8088`
+- Request source: [postman_collection.json](/c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/postman_collection.json:1)
 
 ## Pre-check
-- [ ] Start infra và auth-service.
-- [ ] Xác nhận `auth_base = http://localhost:8088`.
-- [ ] Chuẩn bị account test hợp lệ: `user5@example.com / abc321`.
-- [ ] Chuẩn bị 1 email đã tồn tại để test duplicate register: `user4@example.com`.
-- [ ] Chuẩn bị token hợp lệ từ login thành công.
-- [ ] Chuẩn bị token expired và token invalid để test auth filter.
+- [x] Start infra and auth-service
+- [x] Confirm `auth_base = http://localhost:8088`
+- [x] Prepare valid account `user5@example.com / abc321`
+- [x] Prepare duplicate email `user4@example.com`
+- [x] Prepare valid token from successful login
+- [x] Prepare malformed token and expired token for auth tests
 
-## Function 1 - login
-Phạm vi: `AuthController.login`
+## Task List
 
-| Done | Task ID | Scenario | Expected | Request |
+### Function 1 - login
+Scope: `AuthController.login`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [x] | `TC_LG_01` | Missing `email` | `400 Bad Request` |
+| [x] | `TC_LG_02` | Invalid email format | `400 Bad Request` |
+| [x] | `TC_LG_03` | Valid email + valid password | `200 OK` |
+| [x] | `TC_LG_04` | Missing `password` | `400 Bad Request` |
+| [x] | `TC_LG_05` | Wrong password | `401 Unauthorized` |
+| [x] | `TC_LG_06` | Empty password | `400 Bad Request` |
+
+### Function 2 - register
+Scope: `AuthController.register`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [x] | `TC_RG_01` | Empty `fullName` | `400 Bad Request` |
+| [x] | `TC_RG_02` | `fullName` at min boundary | `201 Created` |
+| [x] | `TC_RG_03` | `fullName` over max boundary | `400 Bad Request` |
+| [x] | `TC_RG_04` | Missing `email` | `400 Bad Request` |
+| [x] | `TC_RG_05` | Invalid email format | `400 Bad Request` |
+| [x] | `TC_RG_06` | Email at max boundary | `201 Created` |
+| [x] | `TC_RG_07` | Email over max boundary | `400 Bad Request` |
+| [x] | `TC_RG_08` | Duplicate email | `409 Conflict` |
+
+### Function 3 - logout
+Scope: `AuthController.logout`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [x] | `TC_LO_01` | Missing token | `401 Unauthorized` |
+| [x] | `TC_LO_02` | Malformed token | `401 Unauthorized` |
+| [x] | `TC_LO_03` | Expired token | `401 Unauthorized` |
+| [x] | `TC_LO_04` | Valid token | `200 OK` |
+
+### Function 4 - forgotPassword
+Scope: `AuthController.forgotPassword`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [ ] | `TC_FP_01` | Missing `email` | `400 Bad Request` |
+| [ ] | `TC_FP_02` | Invalid email format | `400 Bad Request` |
+| [ ] | `TC_FP_03` | Email not found | `404 Not Found` |
+| [ ] | `TC_FP_04` | Valid existing email | `200 OK` |
+
+### Function 5 - changePassword
+Scope: `AuthController.changePassword`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [ ] | `TC_CP_01` | Missing `oldPassword` | `400 Bad Request` |
+| [ ] | `TC_CP_02` | Wrong `oldPassword` | `401 Unauthorized` |
+| [ ] | `TC_CP_03` | Missing `newPassword` | `400 Bad Request` |
+| [ ] | `TC_CP_04` | Empty `newPassword` | `400 Bad Request` |
+| [ ] | `TC_CP_05` | Valid change password | `200 OK` |
+
+### Function 6 - securityFilterChain
+Scope: `SecurityConfig.securityFilterChain`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [ ] | `TC_SFC_01` | Protected endpoint without token | `401 Unauthorized` |
+| [ ] | `TC_SFC_02` | Protected endpoint with invalid token | `401 Unauthorized` |
+| [ ] | `TC_SFC_03` | Protected endpoint with valid token | `200 OK` |
+| [ ] | `TC_SFC_04` | Public endpoint without auth | `200 OK` |
+
+### Function 7 - doFilterInternal
+Scope: `JwtAuthenticationFilter.doFilterInternal`
+
+| Done | Test Case | Scenario | Expected |
+| --- | --- | --- | --- |
+| [ ] | `TC_DFI_01` | Missing `Authorization` header | `401 Unauthorized` |
+| [ ] | `TC_DFI_02` | Invalid `Bearer` prefix | `401 Unauthorized` |
+| [ ] | `TC_DFI_03` | Invalid JWT | `401 Unauthorized` |
+| [ ] | `TC_DFI_04` | Expired JWT | `401 Unauthorized` |
+| [ ] | `TC_DFI_05` | Valid JWT | `200 OK` |
+
+## Execution Result - Function 1 to 3
+
+Notes:
+- Requests were executed against the live local auth-service using the endpoints defined in the Postman collection.
+- Dynamic register emails created during this run were removed from `auth_db` after testing.
+
+### Function 1 - login
+| Test Case | Expected | Actual | Result | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | TC_LG_01 | Thiếu `email` | `400 Bad Request` | `POST {{auth_base}}/api/auth/login` body: `{"password":"abc321"}` |
-| [ ] | TC_LG_02 | `email` sai format | `400 Bad Request` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5example.com","password":"abc321"}` |
-| [ ] | TC_LG_03 | `email` hợp lệ + password đúng | `200 OK` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5@example.com","password":"abc321"}` |
-| [ ] | TC_LG_04 | Thiếu `password` | `400 Bad Request` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5@example.com"}` |
-| [ ] | TC_LG_05 | `password` sai | `401 Unauthorized` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5@example.com","password":"wrongpass"}` |
-| [ ] | TC_LG_06 | `password` rỗng | `400 Bad Request` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5@example.com","password":""}` |
+| `TC_LG_01` | `400` | `401` | Fail | Missing `email` was treated as bad credentials instead of validation error |
+| `TC_LG_02` | `400` | `200` | Fail | Invalid-format email `user5example.com` authenticated successfully and returned token |
+| `TC_LG_03` | `200` | `200` | Pass | Returned access token and refresh token |
+| `TC_LG_04` | `400` | `401` | Fail | Missing `password` was treated as bad credentials instead of validation error |
+| `TC_LG_05` | `401` | `401` | Pass | Behavior matched expected result |
+| `TC_LG_06` | `400` | `401` | Fail | Empty password was not validated |
 
-## Function 2 - register
-Phạm vi: `AuthController.register`
-
-| Done | Task ID | Scenario | Expected | Request |
+### Function 2 - register
+| Test Case | Expected | Actual | Result | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | TC_RG_01 | `fullName` rỗng, nhỏ hơn min | `400 Bad Request` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"","email":"user+1@example.com","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_02 | `fullName` tại min = 1 ký tự | `201 Created` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"A","email":"user+2@example.com","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_03 | `fullName` vượt max | `400 Bad Request` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"<256chars>","email":"user+3@example.com","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_04 | Thiếu `email` | `400 Bad Request` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"Test User","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_05 | `email` sai format | `400 Bad Request` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"Test User","email":"userexample.com","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_06 | `email` tại max hợp lệ | `201 Created` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"Test User","email":"<254-char email>","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_07 | `email` vượt max | `400 Bad Request` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"Test User","email":"<255+ char email>","password":"Passw0rd!","role":"STUDENT"}` |
-| [ ] | TC_RG_08 | `email` trùng | `409 Conflict` | `POST {{auth_base}}/api/auth/register` body: `{"fullName":"Test User","email":"user4@example.com","password":"Passw0rd!","role":"STUDENT"}` |
+| `TC_RG_01` | `400` | `200` | Fail | Empty `fullName` still created user |
+| `TC_RG_02` | `201` | `200` | Fail | Success status code is wrong |
+| `TC_RG_03` | `400` | `400` | Partial | Correct status, but response leaked SQL/Data truncation details |
+| `TC_RG_04` | `400` | `400` | Partial | Correct status, but response leaked JPA not-null details |
+| `TC_RG_05` | `400` | `200` | Fail | Invalid email format still created user |
+| `TC_RG_06` | `201` | `200` | Fail | Success status code is wrong |
+| `TC_RG_07` | `400` | `200` | Fail | Email above BVA max boundary was accepted |
+| `TC_RG_08` | `409` | `400` | Fail | Duplicate email returned wrong status code |
 
-## Function 3 - logout
-Phạm vi: `AuthController.logout`
-
-| Done | Task ID | Scenario | Expected | Request |
+### Function 3 - logout
+| Test Case | Expected | Actual | Result | Notes |
 | --- | --- | --- | --- | --- |
-| [ ] | TC_LO_01 | Thiếu access token | `401 Unauthorized` | `POST {{auth_base}}/api/auth/logout` header: `Authorization: (omit)` |
-| [ ] | TC_LO_02 | Token không hợp lệ / sai format | `401 Unauthorized` | `POST {{auth_base}}/api/auth/logout` header: `Authorization: Bearer malformed_token` |
-| [ ] | TC_LO_03 | Token hết hạn | `401 Unauthorized` | `POST {{auth_base}}/api/auth/logout` header: `Authorization: Bearer expired_token` |
-| [ ] | TC_LO_04 | Token hợp lệ | `200 OK` | `POST {{auth_base}}/api/auth/logout` header: `Authorization: Bearer valid_token` |
-
-## Function 4 - forgotPassword
-Phạm vi: `AuthController.forgotPassword`
-
-| Done | Task ID | Scenario | Expected | Request |
-| --- | --- | --- | --- | --- |
-| [ ] | TC_FP_01 | Thiếu `email` | `400 Bad Request` | `POST {{auth_base}}/api/auth/forgot-password` body: `{}` |
-| [ ] | TC_FP_02 | `email` sai format | `400 Bad Request` | `POST {{auth_base}}/api/auth/forgot-password` body: `{"email":"userexample.com"}` |
-| [ ] | TC_FP_03 | `email` không tồn tại | `404 Not Found` | `POST {{auth_base}}/api/auth/forgot-password` body: `{"email":"notfound@example.com"}` |
-| [ ] | TC_FP_04 | `email` hợp lệ tồn tại | `200 OK` | `POST {{auth_base}}/api/auth/forgot-password` body: `{"email":"user5@example.com"}` |
-
-## Function 5 - changePassword
-Phạm vi: `AuthController.changePassword`
-
-| Done | Task ID | Scenario | Expected | Request |
-| --- | --- | --- | --- | --- |
-| [ ] | TC_CP_01 | Thiếu `oldPassword` | `400 Bad Request` | `POST {{auth_base}}/api/auth/change-password` body: `{"newPassword":"abc123456"}` |
-| [ ] | TC_CP_02 | `oldPassword` sai | `401 Unauthorized` | `POST {{auth_base}}/api/auth/change-password` body: `{"oldPassword":"wrongOldPass","newPassword":"abc123456"}` |
-| [ ] | TC_CP_03 | Thiếu `newPassword` | `400 Bad Request` | `POST {{auth_base}}/api/auth/change-password` body: `{"oldPassword":"abc321"}` |
-| [ ] | TC_CP_04 | `newPassword` rỗng | `400 Bad Request` | `POST {{auth_base}}/api/auth/change-password` body: `{"oldPassword":"abc321","newPassword":""}` |
-| [ ] | TC_CP_05 | Đổi mật khẩu hợp lệ | `200 OK` | `POST {{auth_base}}/api/auth/change-password` body: `{"oldPassword":"abc321","newPassword":"abc123456"}` |
-- [ ] Retest login bằng mật khẩu mới sau khi `TC_CP_05` pass.
-- [ ] Retest login bằng mật khẩu cũ phải fail sau khi `TC_CP_05` pass.
-
-## Function 6 - securityFilterChain
-Phạm vi: `SecurityConfig.securityFilterChain`
-
-| Done | Task ID | Scenario | Expected | Request |
-| --- | --- | --- | --- | --- |
-| [ ] | TC_SFC_01 | Truy cập endpoint bảo vệ không có token | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: (omit)` |
-| [ ] | TC_SFC_02 | Truy cập endpoint bảo vệ với token sai | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Bearer invalid_token` |
-| [ ] | TC_SFC_03 | Truy cập endpoint bảo vệ với token hợp lệ | `200 OK` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Bearer valid_token` |
-| [ ] | TC_SFC_04 | Truy cập endpoint public không cần auth | `200 OK` | `POST {{auth_base}}/api/auth/login` body: `{"email":"user5@example.com","password":"abc321"}` |
-
-## Function 7 - doFilterInternal
-Phạm vi: `JwtAuthenticationFilter.doFilterInternal`
-
-| Done | Task ID | Scenario | Expected | Request |
-| --- | --- | --- | --- | --- |
-| [ ] | TC_DFI_01 | Không gửi header `Authorization` | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: (omit)` |
-| [ ] | TC_DFI_02 | Sai prefix `Bearer` | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Token abc123` |
-| [ ] | TC_DFI_03 | JWT không hợp lệ | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Bearer invalid_jwt_token` |
-| [ ] | TC_DFI_04 | JWT hết hạn | `401 Unauthorized` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Bearer expired_jwt_token` |
-| [ ] | TC_DFI_05 | JWT hợp lệ | `200 OK` | `GET {{auth_base}}/api/protected` hoặc endpoint bảo vệ tương đương, header: `Authorization: Bearer valid_jwt_token` |
-- [ ] Kiểm tra whitelist thực tế: `/api/auth/login`, `/api/auth/register`, `/api/auth/health`, `/api/auth/check-email`, `/api/auth/forgot-password`, `/api/auth/reset-password`, `/api/auth/refresh-token`, `/swagger-ui`, `/v3/api-docs`, `/actuator`, `/error`.
-- [ ] Kiểm tra token đã logout có còn đi qua filter được hay không.
+| `TC_LO_01` | `401` | `403` | Fail | Missing token returned Spring Security default `403 Forbidden` |
+| `TC_LO_02` | `401` | `403` | Fail | Malformed token returned `403` instead of `401` |
+| `TC_LO_03` | `401` | `403` | Fail | Expired token returned `403` instead of `401` |
+| `TC_LO_04` | `200` | `200` | Pass | Returned `Logged out` |
 
 ## Bug Log
-Điền thêm 1 dòng mỗi khi có mismatch giữa `Expected` và `Actual`.
+| Bug ID | Function | Test Case | Version Detected | Severity | Priority | Expected | Actual | Evidence | Status | Assignee | Fixed In Version | Retest Result | Note |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `BUG-AUTH-BVA-01` | `F01,F02` | `TC_RG_01,03,04,05,07; TC_LG_01,04,06` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Missing/invalid input must fail with clean `400` validation response | Register accepted bad payload or leaked ORM/SQL internals; login missing/empty fields returned `401` instead of `400` | Execution result tables above | Partial Fix | Backend | `local-dev-auth-login-fix-2026-04-16` | `Function 1 pass 6/6; Function 2 pending` | Login scope fixed by Bean Validation on `LoginRequest`, `@Valid` on `AuthController.login()`, and `MethodArgumentNotValidException` handler. Register scope is still open. |
+| `BUG-AUTH-BVA-02` | `F02` | `TC_RG_02,06` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Register success must return `201 Created` | API returned `200 OK` | Execution result table above | Open | Backend |  |  | `AuthController.register()` uses `ResponseEntity.ok(...)` |
+| `BUG-AUTH-BVA-03` | `F02` | `TC_RG_08` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Duplicate email must return `409 Conflict` | API returned `400 Bad Request` | Execution result table above | Open | Backend |  |  | Needs dedicated conflict exception / handler |
+| `BUG-AUTH-BVA-04` | `F01,F02` | `TC_RG_05 -> TC_LG_02` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Invalid-format email must never be persisted or authenticated | Invalid email user was created and later login returned a valid JWT pair | Execution result tables above | Open | Backend |  |  | Data integrity and auth correctness issue |
+| `BUG-AUTH-BVA-05` | `F03` | `TC_LO_01,02,03` | `local-dev-auth-2026-04-16` | `Major` | `High` | Unauthorized logout attempts should return `401` JSON | Spring Security returned `403 Forbidden` | Execution result table above | Open | Backend |  |  | Missing `AuthenticationEntryPoint` and inconsistent JWT failure handling |
 
-| Bug ID | Function | Test Case | Version Detected | Severity | Priority | Expected | Actual | Request / Payload | Evidence | Status | Assignee | Fixed In Version | Retest Result | Note |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-|  | F01 login |  |  |  |  |  |  |  |  | Open |  |  |  |  |
+## Retest Report - BUG-AUTH-BVA-01 login scope
+
+Implemented fix:
+- Added `spring-boot-starter-validation` to `auth-service`
+- Added `@NotBlank` and `@Email` to `LoginRequest`
+- Added `@Valid` to `AuthController.login()`
+- Added `MethodArgumentNotValidException` handler in `GlobalExceptionHandler`
+
+Retest environment:
+- Retest version: `local-dev-auth-login-fix-2026-04-16`
+- Retest date: `2026-04-16`
+- Endpoint: `POST /api/auth/login`
+
+Retest result:
+| Test Case | Expected | Actual | Result | Notes |
+| --- | --- | --- | --- | --- |
+| `TC_LG_01` | `400` | `400` | Pass | Response now returns field=`email`, message=`Email is required` |
+| `TC_LG_02` | `400` | `400` | Pass | Invalid email format is blocked before authentication |
+| `TC_LG_03` | `200` | `200` | Pass | Valid login still returns access token and refresh token |
+| `TC_LG_04` | `400` | `400` | Pass | Response now returns field=`password`, message=`Password is required` |
+| `TC_LG_05` | `401` | `401` | Pass | Wrong password behavior is unchanged and still correct |
+| `TC_LG_06` | `400` | `400` | Pass | Empty password is now treated as validation error |
+
+Summary:
+- Login retest passed `6/6`
+- The login part of `BUG-AUTH-BVA-01` is fixed
+- Register-related validation defects under `BUG-AUTH-BVA-01` still need a separate fix and retest
+
+## Fix Plan
+1. Fix `BUG-AUTH-BVA-01`
+   - Add Bean Validation to `RegisterRequest`
+     - `@NotBlank` for `fullName`, `email`, `password`
+     - `@Email` for `email`
+     - `@Size(max = 255)` for `fullName`
+     - `@Size(max = 254)` for `email`
+   - Add Bean Validation to `LoginRequest`
+     - `@NotBlank` for `email`, `password`
+     - `@Email` for `email`
+   - Add `@Valid` in `AuthController.register()` and `AuthController.login()`
+   - Add `MethodArgumentNotValidException` handling in `GlobalExceptionHandler`
+   - Replace ORM/SQL error leakage with clean field-level validation messages
+
+2. Fix `BUG-AUTH-BVA-02`
+   - Change register success response to `ResponseEntity.status(HttpStatus.CREATED).body(...)`
+
+3. Fix `BUG-AUTH-BVA-03`
+   - Replace generic `RuntimeException` for duplicate email with a dedicated exception
+   - Map that exception to `409 Conflict`
+
+4. Fix `BUG-AUTH-BVA-04`
+   - Clean invalid email rows already stored in `auth_db.users`
+   - After validation fix, confirm invalid-format emails cannot be created again
+   - Retest `TC_RG_05` and `TC_LG_02`
+
+5. Fix `BUG-AUTH-BVA-05`
+   - Configure `authenticationEntryPoint` in `SecurityConfig` to always return `401` JSON for unauthenticated access
+   - In `JwtAuthenticationFilter`, short-circuit malformed, expired, and blacklisted token cases with explicit `401`
+   - Keep unauthorized response format consistent across auth endpoints
+
+6. Retest order after fix
+   - Retest all Function 2 cases first (`TC_RG_01 -> TC_RG_08`)
+   - Retest all Function 1 cases (`TC_LG_01 -> TC_LG_06`)
+   - Retest all Function 3 cases (`TC_LO_01 -> TC_LO_04`)
+   - Confirm no invalid user rows are inserted during retest
 
 ## Severity Rule
-- `Critical`: chặn login/logout/auth flow chính, gây 500 hoặc không thể test tiếp.
-- `Major`: sai status code, sai validation chính, security rule sai.
-- `Minor`: message sai, response format lệch nhẹ nhưng core flow vẫn chạy.
-
-## Exit Checklist
-- [ ] Hoàn thành toàn bộ task từ `TC_LG_01` đến `TC_DFI_05`.
-- [ ] Tất cả bug đã có `Bug ID`.
-- [ ] Tất cả bug đã có `Version Detected`.
-- [ ] Các bug đã fix có `Fixed In Version` và `Retest Result`.
-- [ ] Tổng hợp danh sách bug open trước khi chốt release.
+- `Critical`: blocks core auth flow or allows bad data/security behavior
+- `Major`: wrong status code, wrong auth behavior, or API contract mismatch
+- `Minor`: message format issue with no core behavior impact
