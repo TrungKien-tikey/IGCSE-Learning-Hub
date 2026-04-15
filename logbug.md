@@ -13,7 +13,7 @@ This file replaces the Excel tracker for BVA test execution and bug logging.
 
 ## Test Cycle
 - Current Test Version: `local-dev-auth-2026-04-16`
-- Retest Version: `local-dev-auth-register-fix-2026-04-16`
+- Retest Version: `local-dev-auth-logout-fix-2026-04-16`
 - Tester: `Codex`
 - Test Date: `2026-04-16`
 - Base URL: `http://localhost:8088`
@@ -150,7 +150,7 @@ Notes:
 | `BUG-AUTH-BVA-02` | `F02` | `TC_RG_02,06` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Register success must return `201 Created` | API returned `200 OK` | Execution result table above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_02 pass; TC_RG_06 pass` | `AuthController.register()` now returns `ResponseEntity.status(HttpStatus.CREATED)` |
 | `BUG-AUTH-BVA-03` | `F02` | `TC_RG_08` | `local-dev-auth-2026-04-16` | `Major` | `Medium` | Duplicate email must return `409 Conflict` | API returned `400 Bad Request` | Execution result table above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_08 pass` | Added dedicated `DuplicateEmailException` mapped to `409 Conflict` |
 | `BUG-AUTH-BVA-04` | `F01,F02` | `TC_RG_05 -> TC_LG_02` | `local-dev-auth-2026-04-16` | `Critical` | `High` | Invalid-format email must never be persisted or authenticated | Invalid email user was created and later login returned a valid JWT pair | Execution result tables above | Fixed | Backend | `local-dev-auth-register-fix-2026-04-16` | `TC_RG_05 pass; stale invalid rows deleted` | Register now blocks invalid-format emails and 5 stale invalid-email rows were removed from local `auth_db.users`. |
-| `BUG-AUTH-BVA-05` | `F03` | `TC_LO_01,02,03` | `local-dev-auth-2026-04-16` | `Major` | `High` | Unauthorized logout attempts should return `401` JSON | Spring Security returned `403 Forbidden` | Execution result table above | Open | Backend |  |  | Missing `AuthenticationEntryPoint` and inconsistent JWT failure handling |
+| `BUG-AUTH-BVA-05` | `F03` | `TC_LO_01,02,03` | `local-dev-auth-2026-04-16` | `Major` | `High` | Unauthorized logout attempts should return `401` JSON | Spring Security returned `403 Forbidden` | Execution result table above | Fixed | Backend | `local-dev-auth-logout-fix-2026-04-16` | `TC_LO_01 pass; TC_LO_02 pass; TC_LO_03 pass; TC_LO_04 pass` | Added `AuthenticationEntryPoint` for consistent `401` JSON and updated JWT filter to stop invalid, expired, and blacklisted token requests early. |
 
 ## Retest Report - BUG-AUTH-BVA-01 login scope
 
@@ -214,19 +214,39 @@ Data cleanup:
 Summary:
 - Register retest passed `8/8`
 - `BUG-AUTH-BVA-01`, `BUG-AUTH-BVA-02`, `BUG-AUTH-BVA-03`, and `BUG-AUTH-BVA-04` are fixed in the local auth-service build
-- The remaining open bug in this log is `BUG-AUTH-BVA-05` for `logout`
+- The logout bug is handled in the next retest section below
+
+## Retest Report - logout scope
+
+Implemented fix:
+- Added `RestAuthenticationEntryPoint` to return consistent `401` JSON
+- Configured `SecurityConfig` to use the custom authentication entry point
+- Updated `JwtAuthenticationFilter` to stop blacklisted, malformed, and expired token requests with `401`
+
+Retest environment:
+- Retest version: `local-dev-auth-logout-fix-2026-04-16`
+- Retest date: `2026-04-16`
+- Endpoint: `POST /api/auth/logout`
+
+Retest result:
+| Test Case | Expected | Actual | Result | Notes |
+| --- | --- | --- | --- | --- |
+| `TC_LO_01` | `401` | `401` | Pass | Missing token now returns JSON unauthorized response |
+| `TC_LO_02` | `401` | `401` | Pass | Malformed token returns `401` with `Invalid or expired token` |
+| `TC_LO_03` | `401` | `401` | Pass | Expired token returns `401` with consistent JSON body |
+| `TC_LO_04` | `200` | `200` | Pass | Valid token still logs out successfully |
+
+Summary:
+- Logout retest passed `4/4`
+- `BUG-AUTH-BVA-05` is fixed in the local auth-service build
+- Function 1 to 3 now have no open bugs in this log
 
 ## Next Fix Plan
-1. Fix `BUG-AUTH-BVA-05`
-   - Configure `authenticationEntryPoint` in `SecurityConfig` to always return `401` JSON for unauthenticated access
-   - In `JwtAuthenticationFilter`, short-circuit malformed, expired, and blacklisted token cases with explicit `401`
-   - Keep unauthorized response format consistent across auth endpoints
-
-2. Retest `logout`
-   - Retest `TC_LO_01` for missing token
-   - Retest `TC_LO_02` for malformed token
-   - Retest `TC_LO_03` for expired token
-   - Retest `TC_LO_04` for valid token
+1. Test `Function 4 - forgotPassword`
+   - Retest `TC_FP_01` for missing `email`
+   - Retest `TC_FP_02` for invalid email format
+   - Retest `TC_FP_03` for email not found
+   - Retest `TC_FP_04` for valid existing email
 
 ## Severity Rule
 - `Critical`: blocks core auth flow or allows bad data/security behavior
