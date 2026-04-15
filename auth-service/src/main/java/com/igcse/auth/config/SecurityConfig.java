@@ -35,35 +35,33 @@ public class SecurityConfig {
                 // Kích hoạt CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 
-                // Tắt CSRF (vì dùng API Stateless)
+                // Tắt CSRF cho API stateless
                 .csrf(csrf -> csrf.disable())
 
-                // Cấu hình quyền truy cập (AUTHORIZATION)
+                // Chỉ cho phép công khai các endpoint auth/open; còn lại yêu cầu JWT
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ NHÓM CÔNG KHAI (Không cần Token)
                         .requestMatchers(
                                 "/api/auth/register",
                                 "/api/auth/login",
-                                "/api/auth/verify-token", // Service khác gọi
-                                "/api/auth/health", // Gateway check
+                                "/api/auth/health",
+                                "/api/auth/check-email",
+                                "/api/auth/verify-token",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
-                                "/api/auth/check-email",
-                                "/v3/api-docs/**", // Swagger
-                                "/swagger-ui/**", // Swagger
+                                "/api/auth/refresh-token",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
                                 "/swagger-ui.html",
-                                "/actuator/**")
+                                "/actuator/**",
+                                "/error")
                         .permitAll()
-
-                        // 🔒 NHÓM BẢO MẬT (Bắt buộc có Token)
-                        // API /change-password sẽ rơi vào đây
                         .anyRequest().authenticated())
 
                 // Stateless Session (Không lưu session trên server)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // ⚠️ QUAN TRỌNG NHẤT: Thêm bộ lọc JWT trước bộ lọc Username/Password mặc định
+                // ⚠️ Thêm bộ lọc JWT trước bộ lọc Username/Password mặc định
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

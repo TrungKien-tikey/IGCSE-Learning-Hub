@@ -96,4 +96,15 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
     }
+
+    // 10. API Logout (cần Bearer token)
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(@RequestHeader(name = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
+        }
+        String token = authHeader.substring(7);
+        authService.logout(token);
+        return ResponseEntity.ok("Logged out");
+    }
 }

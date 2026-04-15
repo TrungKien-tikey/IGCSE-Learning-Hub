@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -23,6 +24,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private static final List<String> WHITELIST_PREFIXES = List.of(
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/auth/health",
+            "/api/auth/check-email",
+            "/api/auth/verify-token",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/refresh-token",
+            "/v3/api-docs",
+            "/swagger-ui",
+            "/swagger-ui.html",
+            "/actuator",
+            "/error"
+    );
 
     public JwtAuthenticationFilter(
             JwtUtils jwtUtils,
@@ -38,6 +54,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
+
+        // Bypass JWT check cho các endpoint công khai
+        String path = request.getServletPath();
+        if (WHITELIST_PREFIXES.stream().anyMatch(path::startsWith)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
