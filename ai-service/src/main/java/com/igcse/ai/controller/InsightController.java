@@ -26,44 +26,64 @@ public class InsightController {
     }
 
     @GetMapping("/student/{studentId}")
-public ResponseEntity<?> getInsight(@PathVariable Long studentId) {
-    String currentRole = SecurityUtils.getCurrentUserRole();
-    Long currentUserId = SecurityUtils.getCurrentUserId(); // Giả sử bạn có hàm lấy ID từ token
+    public ResponseEntity<?> getInsight(@PathVariable Long studentId) {
+        // 1. Fix BVA (Biên Min): Chặn ID âm hoặc bằng 0
+        if (studentId == null || studentId <= 0) {
+            logger.warn("🚨 Validation Error: Invalid studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID học sinh không hợp lệ"));
+        }
 
-    // 1. Phân quyền riêng cho STUDENT
-    if ("STUDENT".equalsIgnoreCase(currentRole)) {
-        // Nếu ID trên URL không khớp với ID trong token -> Chặn luôn 403
-        if (!studentId.equals(currentUserId)) {
-            logger.warn("Student {} attempted to view insight of Student {}", currentUserId, studentId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+        String currentRole = SecurityUtils.getCurrentUserRole();
+        Long currentUserId = SecurityUtils.getCurrentUserId(); 
+
+        // 2. Phân quyền riêng cho STUDENT
+        if ("STUDENT".equalsIgnoreCase(currentRole)) {
+            if (!studentId.equals(currentUserId)) {
+                logger.warn("Student {} attempted to view insight of Student {}", currentUserId, studentId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
+        } 
+        // 3. Phân quyền cho ADMIN, TEACHER, PARENT
+        else {
+            if (!SecurityUtils.canAccessStudentData(studentId)) {
+                logger.warn("User {} attempted to access student {} insights without permission", 
+                        currentUserId, studentId);
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+            }
         }
-    } 
-    // 2. Phân quyền cho ADMIN, TEACHER, PARENT
-    else {
-        if (!SecurityUtils.canAccessStudentData(studentId)) {
-            logger.warn("User {} attempted to access student {} insights without permission", 
-                    currentUserId, studentId);
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "Bạn không có quyền truy cập dữ liệu của học sinh này"));
+
+        // 4. Fix BVA (Biên Max): Kiểm tra nếu bị rỗng hoặc là dữ liệu giả (Chưa có dữ liệu)
+        AIInsightDTO insight = insightService.getInsight(studentId);
+        if (insight == null || "Chưa có dữ liệu để phân tích.".equals(insight.getOverallSummary())) {
+            logger.warn("🚨 Không tìm thấy dữ liệu Insight cho studentId {}", studentId);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Không tìm thấy dữ liệu phân tích cho học sinh này"));
         }
+
+        return ResponseEntity.ok(insight);
     }
-
-    // 3. Passed hết các check bảo mật thì mới trả về dữ liệu
-    return ResponseEntity.ok(insightService.getInsight(studentId));
-}
 
     @GetMapping("/attempt/{attemptId}")
     public ResponseEntity<?> getInsightByAttempt(@PathVariable Long attemptId) {
+        // Fix BVA (Biên Min): Chặn ID âm hoặc bằng 0 cho attemptId
+        if (attemptId == null || attemptId <= 0) {
+            logger.warn("🚨 Validation Error: Invalid attemptId {}", attemptId);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "ID lượt làm bài không hợp lệ"));
+        }
+
         AIInsightDTO insight = insightService.getInsightByAttempt(attemptId);
 
-        if (insight == null) {
+        // Fix BVA (Biên Max): Kiểm tra dữ liệu ảo cho attemptId
+        if (insight == null || "Chưa có dữ liệu để phân tích.".equals(insight.getOverallSummary())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Không tìm thấy kết quả phân tích cho lượt làm bài này"));
         }
 
-        // Kiểm tra quyền truy cập (Học sinh chỉ xem bài của mình, Teacher/Admin xem
-        // hết)
+        // Kiểm tra quyền truy cập
         if (!SecurityUtils.canAccessStudentData(insight.getStudentId())) {
             logger.warn("User {} attempted to access insight for attempt {} of student {} without permission",
                     SecurityUtils.getCurrentUserId(), attemptId, insight.getStudentId());

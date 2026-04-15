@@ -17,7 +17,7 @@ public class PaymentClient {
 
     @Autowired
     public PaymentClient(RestTemplate restTemplate,
-            @Value("${payment.service.url:http://payment-service:8084}") String paymentServiceUrl) {
+            @Value("${payment.service.url:http://localhost:8084}") String paymentServiceUrl)  {
         this.restTemplate = restTemplate;
         this.paymentServiceUrl = paymentServiceUrl;
     }
