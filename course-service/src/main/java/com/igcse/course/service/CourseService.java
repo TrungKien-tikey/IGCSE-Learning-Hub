@@ -38,6 +38,10 @@ public class CourseService {
         return courseRepository.findAll();
     }
 
+    // Thêm 2 tham số userId và role để đối soát quyền hạn
+    // Phiên bản 1: Giữ nguyên để phục vụ các hàm nội bộ như updateCourse,
+    // addLesson...
+    // Điều này sẽ fix ngay lập tức lỗi "not applicable for the arguments (Long)"
     public Course getCourseById(Long id) {
         Course course = courseRepository.findById(id).orElse(null);
         if (course != null) {
@@ -45,6 +49,29 @@ public class CourseService {
             courseRepository.save(course);
         }
         return course;
+    }
+
+    // Phiên bản 2: Dùng cho API Xem chi tiết, có kiểm tra quyền hạn (IDOR Fix)
+    // Trong CourseService.java
+    public Course getCourseById(Long id, Long userId, String role) {
+        // 1. Tìm khóa học - Nếu không thấy ném lỗi 404 (Dùng ResponseStatusException
+        // cho nhanh)
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy khóa học ID: " + id));
+
+        // 2. Logic phân quyền (Giữ nguyên)
+        boolean isPrivileged = role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER"));
+        boolean isOwner = userId != null && userId.equals(course.getTeacherId());
+        boolean isEnrolled = enrollmentRepository.existsByCourseCourseIdAndUserId(id, userId);
+
+        // 3. Nếu sai quyền - Ném lỗi 403
+        if (!isPrivileged && !isOwner && !isEnrolled) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "Bạn không có quyền xem chi tiết khóa học này.");
+        }
+
+        return getCourseById(id);
     }
 
     public Course createCourse(Course course, Long teacherId) {
