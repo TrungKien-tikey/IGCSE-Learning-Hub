@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-
+import jakarta.validation.constraints.NotBlank;
 @Entity
 @Table(name = "lessons")
 public class Lesson {
@@ -14,6 +14,7 @@ public class Lesson {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long lessonId;
 
+    @NotBlank(message = "Tiêu đề bài học không được để trống")
     private String title;
 
     @Lob // Cho phép lưu nội dung văn bản cực dài

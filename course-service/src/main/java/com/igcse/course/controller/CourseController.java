@@ -273,13 +273,37 @@ public class CourseController {
 
     // 2. Thêm bài học mới
     @PostMapping("/{courseId}/lessons")
-    public ResponseEntity<?> addLesson(@PathVariable Long courseId, @RequestBody Lesson lesson) {
-        boolean success = courseService.addLesson(courseId, lesson);
-        if (success) {
-            return ResponseEntity.ok("Thêm bài học thành công!");
-        } else {
-            return ResponseEntity.badRequest().body("Lỗi: Không tìm thấy khóa học để thêm bài.");
+    public ResponseEntity<?> addLesson(
+            @PathVariable Long courseId,
+            @jakarta.validation.Valid @RequestBody Lesson lesson, // Thêm @Valid để bắt lỗi tiêu đề rỗng
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        // 1. Lấy thông tin user từ Token (Sử dụng hàm helper có sẵn của bạn)
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("Vui lòng đăng nhập để thực hiện thao tác này.");
         }
+
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+
+        // 2. KIỂM TRA QUYỀN TRUY CẬP (Sửa lỗi TC-LESSON-ADD-04)
+        Course course = courseRepository.findById(courseId).orElse(null);
+        if (course == null) {
+            return ResponseEntity.status(404).body("Không tìm thấy khóa học để thêm bài học.");
+        }
+
+        boolean isPrivileged = role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER"));
+        boolean isOwner = userId.equals(course.getTeacherId());
+
+        if (!isPrivileged && !isOwner) {
+            // Chặn Giáo viên B can thiệp vào khóa học của Giáo viên A
+            return ResponseEntity.status(403).body("Bạn không có quyền quản lý nội dung của khóa học này.");
+        }
+
+        // 3. Thực hiện thêm bài học qua Service
+        Lesson savedLesson = courseService.addLesson(courseId, lesson);
+        return ResponseEntity.ok(savedLesson);
     }
 
     // 3. Xem chi tiết 1 bài học
