@@ -187,14 +187,17 @@ public class CourseService {
         return lessonRepository.findByCourseCourseIdOrderByOrderIndexAsc(courseId);
     }
 
-    public boolean addLesson(Long courseId, Lesson lesson) {
+    public Lesson addLesson(Long courseId, Lesson lesson) {
+        // Sử dụng hàm getCourseById(Long id) phiên bản nội bộ (1 tham số)
+        // để lấy dữ liệu Course gắn vào Lesson
         Course course = getCourseById(courseId);
-        if (course != null) {
-            lesson.setCourse(course);
-            lessonRepository.save(lesson);
-            return true;
+
+        if (course == null) {
+            throw new RuntimeException("Lỗi: Khóa học không tồn tại.");
         }
-        return false;
+
+        lesson.setCourse(course);
+        return lessonRepository.save(lesson);
     }
 
     public Lesson getLessonById(Long lessonId) {
