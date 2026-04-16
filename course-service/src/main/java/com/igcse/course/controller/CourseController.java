@@ -121,9 +121,17 @@ public class CourseController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCourseById(@PathVariable Long id) {
-        Course course = courseService.getCourseById(id);
-        return course != null ? ResponseEntity.ok(course) : ResponseEntity.status(404).body("Không tìm thấy khóa học");
+    public ResponseEntity<?> getCourseById(
+            @PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
+
+        Long userId = getUserIdFromHeader(tokenHeader);
+        String token = (tokenHeader != null && tokenHeader.startsWith("Bearer ")) ? tokenHeader.substring(7) : null;
+        String role = (token != null) ? jwtUtils.extractRole(token) : null;
+
+        // Không dùng try-catch ở đây nữa
+        Course course = courseService.getCourseById(id, userId, role);
+        return ResponseEntity.ok(course);
     }
 
     @PostMapping
