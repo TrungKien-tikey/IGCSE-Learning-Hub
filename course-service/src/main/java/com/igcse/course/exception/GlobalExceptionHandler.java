@@ -1,11 +1,13 @@
 package com.igcse.course.exception;
 
+import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
-
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -13,17 +15,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.status(400).body(Map.of(
-            "status", 400,
-            "message", "Tham số '" + ex.getName() + "' không hợp lệ. Phải là kiểu số (Long)!"
-        ));
+                "status", 400,
+                "message", "Tham số '" + ex.getName() + "' không hợp lệ. Phải là kiểu số (Long)!"));
     }
 
-    // Xử lý các lỗi 403, 404 ném từ Service qua ResponseStatusException
-    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
-    public ResponseEntity<Map<String, Object>> handleStatusException(org.springframework.web.server.ResponseStatusException ex) {
-        return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
-            "status", ex.getStatusCode().value(),
-            "message", ex.getReason()
-        ));
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationExceptions(
+            org.springframework.web.bind.MethodArgumentNotValidException ex) {
+
+        // Lấy thông báo lỗi cụ thể từ annotation @NotBlank
+        String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", 400);
+        body.put("error", "Dữ liệu đầu vào không hợp lệ");
+        body.put("message", errorMessage); // Trả về "Tiêu đề bài học không được để trống"
+
+        return ResponseEntity.status(400).body(body);
     }
+
+    
 }
