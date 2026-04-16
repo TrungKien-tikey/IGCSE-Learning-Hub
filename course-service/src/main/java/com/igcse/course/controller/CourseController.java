@@ -208,27 +208,37 @@ public class CourseController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
+    public ResponseEntity<?> deleteCourse(
+            @PathVariable Long id,
+            @RequestHeader("Authorization") String tokenHeader) {
+
+        // Giữ nguyên logic lấy ID và Role từ Header
         Long userId = getUserIdFromHeader(tokenHeader);
         if (userId == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
+
         Course existing = courseRepository.findById(id).orElse(null);
         if (existing == null) {
             return ResponseEntity.notFound().build();
         }
+
         String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
         String role = jwtUtils.extractRole(token);
+
+        // Giữ nguyên logic phân quyền cũ
         if (!userId.equals(existing.getTeacherId())
                 && !(role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER")))) {
             return ResponseEntity.status(403).body("Không có quyền xóa khóa học này");
         }
+
+        // Thực hiện gọi Service (Ngoại lệ 400 từ Service sẽ tự trôi ra ngoài)
         boolean deleted = courseService.deleteCourse(id);
 
         if (deleted) {
             return ResponseEntity.noContent().build();
         } else {
-            return ResponseEntity.status(500).body("Lỗi khi xóa");
+            return ResponseEntity.status(404).body("Không tìm thấy khóa học để xóa");
         }
     }
 

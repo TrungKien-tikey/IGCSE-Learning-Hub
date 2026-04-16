@@ -125,11 +125,25 @@ public class CourseService {
     }
 
     public boolean deleteCourse(Long id) {
+        // 1. Tìm khóa học
         Course course = courseRepository.findById(id).orElse(null);
+
         if (course != null) {
+            // 2. KIỂM TRA RÀNG BUỘC (Sửa lỗi TC-COURSE-DEL-04)
+            // Nếu phát hiện đã có học sinh đăng ký trong DB
+            if (enrollmentRepository.existsByCourseCourseId(id)) {
+                throw new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Không thể xóa khóa học do đã có học sinh đăng ký");
+            }
+
+            // 3. GIỮ NGUYÊN TÍNH CHẤT CŨ: Lưu lại teacherId trước khi xóa
             Long teacherId = course.getTeacherId();
+
+            // 4. THỰC HIỆN XÓA CỨNG
             courseRepository.deleteById(id);
-            // Hoàn trả 1 suất học cho giáo viên
+
+            // 5. GIỮ NGUYÊN TÍNH CHẤT CŨ: Hoàn trả 1 suất học cho giáo viên
             if (teacherId != null) {
                 paymentClient.returnSlot(teacherId);
             }
