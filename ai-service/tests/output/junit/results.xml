@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="8.361" tests="26" failures="0">
+  <testsuite name="Root Suite" timestamp="2026-04-13T15:14:19" tests="0" time="0.000" failures="0">
+  </testsuite>
+  <testsuite name="AI Service - Auth Guard" timestamp="2026-04-13T15:14:19" tests="1" file="F:\KIEMTHUPHANMEM\IGCSE-Learning-Hub\ai-service\tests\api\auth_guard_test.js" time="0.174" failures="0">
+    <testcase name="AI Service - Auth Guard: Protected endpoint should reject unauthenticated request" time="0.171" classname="Protected endpoint should reject unauthenticated request">
+    </testcase>
+  </testsuite>
+  <testsuite name="AI Service - Health" timestamp="2026-04-13T15:14:20" tests="1" file="F:\KIEMTHUPHANMEM\IGCSE-Learning-Hub\ai-service\tests\api\health_test.js" time="0.075" failures="0">
+    <testcase name="AI Service - Health: GET /api/ai/health should return service status UP" time="0.074" classname="GET /api/ai/health should return service status UP">
+    </testcase>
+  </testsuite>
+  <testsuite name="AI Service - Ingest Context Validation" timestamp="2026-04-13T15:14:20" tests="1" file="F:\KIEMTHUPHANMEM\IGCSE-Learning-Hub\ai-service\tests\api\ingest_context_validation_test.js" time="0.037" failures="0">
+    <testcase name="AI Service - Ingest Context Validation: POST /api/ai/ingest-context with empty payload should return 400" time="0.036" classname="POST /api/ai/ingest-context with empty payload should return 400">
+    </testcase>
+  </testsuite>
+  <testsuite name="AI Service - Task 8 Functions" timestamp="2026-04-13T15:14:20" tests="23" file="F:\KIEMTHUPHANMEM\IGCSE-Learning-Hub\ai-service\tests\api\task_8_functions_test.js" time="8.074" failures="0">
+    <testcase name="AI Service - Task 8 Functions: @F35 ingestContext should reject empty payload" time="0.009" classname="@F35 ingestContext should reject empty payload">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F35 ingestContext should reject payload larger than 100 records" time="0.011" classname="@F35 ingestContext should reject payload larger than 100 records">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F35 ingestContext should reject missing studentId" time="0.009" classname="@F35 ingestContext should reject missing studentId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F36 getResult should reject unauthenticated request" time="0.008" classname="@F36 getResult should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F36 getResult with JWT should return result or not found" time="0.167" classname="@F36 getResult with JWT should return result or not found">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F36 getResult should validate invalid attemptId" time="0.019" classname="@F36 getResult should validate invalid attemptId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F37 getDetailedResult should reject unauthenticated request" time="0.005" classname="@F37 getDetailedResult should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F37 getDetailedResult with JWT should return detail or not found" time="0.018" classname="@F37 getDetailedResult with JWT should return detail or not found">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F37 getDetailedResult should validate invalid attemptId" time="0.036" classname="@F37 getDetailedResult should validate invalid attemptId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F38 getStudentStatistics should reject unauthenticated request" time="0.007" classname="@F38 getStudentStatistics should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F38 getStudentStatistics should validate invalid studentId" time="0.012" classname="@F38 getStudentStatistics should validate invalid studentId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F38 getStudentStatistics with admin JWT should not return unauthorized" time="0.097" classname="@F38 getStudentStatistics with admin JWT should not return unauthorized">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F39 getClassStatistics should reject unauthenticated request" time="0.006" classname="@F39 getClassStatistics should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F39 getClassStatistics should validate invalid classId" time="0.010" classname="@F39 getClassStatistics should validate invalid classId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F39 getClassStatistics with admin JWT should not return unauthorized" time="0.029" classname="@F39 getClassStatistics with admin JWT should not return unauthorized">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F40 getSystemStatistics should reject unauthenticated request" time="0.004" classname="@F40 getSystemStatistics should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F40 getSystemStatistics with admin JWT should return stats" time="0.029" classname="@F40 getSystemStatistics with admin JWT should return stats">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F41 getInsight should reject unauthenticated request" time="0.008" classname="@F41 getInsight should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F41 getInsight should validate invalid studentId" time="0.010" classname="@F41 getInsight should validate invalid studentId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F41 getInsight with admin JWT should not return unauthorized" time="2.316" classname="@F41 getInsight with admin JWT should not return unauthorized">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F42 getRecommendations should reject unauthenticated request" time="0.006" classname="@F42 getRecommendations should reject unauthenticated request">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F42 getRecommendations should validate invalid studentId" time="0.012" classname="@F42 getRecommendations should validate invalid studentId">
+    </testcase>
+    <testcase name="AI Service - Task 8 Functions: @F42 getRecommendations with admin JWT should not return unauthorized" time="5.236" classname="@F42 getRecommendations with admin JWT should not return unauthorized">
+    </testcase>
+  </testsuite>
+</testsuites>

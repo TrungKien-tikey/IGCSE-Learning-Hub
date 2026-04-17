@@ -1,0 +1,20 @@
+{
+  "name": "ai-service-codecept-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CodeceptJS API automation tests for ai-service",
+  "scripts": {
+    "test:api": "codeceptjs run --steps",
+    "test:api:smoke": "codeceptjs run tests/api/health_test.js --steps",
+    "test:api:verbose": "codeceptjs run --verbose",
+    "test:api:report:junit": "codeceptjs run --steps --reporter mocha-junit-reporter --reporter-options mochaFile=tests/output/junit/results.xml,toConsole=true",
+    "test:api:report:html": "codeceptjs run --steps --reporter mochawesome --reporter-options reportDir=tests/output/html,reportFilename=api-test-report,quiet=true,overwrite=true,html=true,json=true",
+    "test:api:report": "npm run test:api:report:junit && npm run test:api:report:html"
+  },
+  "devDependencies": {
+    "codeceptjs": "^3.7.5",
+    "dotenv": "^16.4.5",
+    "mocha-junit-reporter": "^2.2.1",
+    "mochawesome": "^7.1.3"
+  }
+}
