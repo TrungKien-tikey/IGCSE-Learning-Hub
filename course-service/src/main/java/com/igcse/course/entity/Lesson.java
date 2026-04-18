@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 @Entity
 @Table(name = "lessons")
 public class Lesson {
@@ -15,6 +16,7 @@ public class Lesson {
     private Long lessonId;
 
     @NotBlank(message = "Tiêu đề bài học không được để trống")
+    @Size(min = 1, max = 255, message = "Tiêu đề phải từ 1 đến 255 ký tự")
     private String title;
 
     @Lob // Cho phép lưu nội dung văn bản cực dài
