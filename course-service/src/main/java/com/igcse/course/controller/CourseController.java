@@ -16,6 +16,7 @@ import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+
 @RestController
 @RequestMapping("/api/courses")
 @CrossOrigin(origins = "*")
@@ -126,7 +127,10 @@ public class CourseController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseById(
-            @PathVariable @Min(value = 1, message = "ID phải lớn hơn hoặc bằng 1") @Max(value = 10000000, message = "ID quá lớn") Long id, // <--- THÊM RÀNG BUỘC
+            @PathVariable @Min(value = 1, message = "ID phải lớn hơn hoặc bằng 1") @Max(value = 10000000, message = "ID quá lớn") Long id, // <---
+                                                                                                                                           // THÊM
+                                                                                                                                           // RÀNG
+                                                                                                                                           // BUỘC
             @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
 
         Long userId = getUserIdFromHeader(tokenHeader);
@@ -320,7 +324,8 @@ public class CourseController {
     // 4. Sửa bài học
     // Ví dụ trong Controller
     @PutMapping("/lessons/{lessonId}")
-    public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId, @RequestBody Lesson lessonDto) {
+    public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId,
+            @jakarta.validation.Valid @RequestBody Lesson lessonDto) {
         Lesson updated = courseService.updateLesson(
                 lessonId,
                 lessonDto.getTitle(),
@@ -482,8 +487,17 @@ public class CourseController {
             @PathVariable Long lessonId,
             @RequestHeader("Authorization") String token) {
 
+        // 1. CHẶN NGAY TỪ CỬA (Phải nằm trên cùng)
+        if (courseId < 1 || courseId > 10000000 || lessonId < 1 || lessonId > 10000000) {
+            return ResponseEntity.status(404).body(java.util.Map.of(
+                    "error", "Không tìm thấy khóa học hoặc bài học"));
+        }
+
+        // 2. NẾU ID HỢP LỆ MỚI ĐI TIẾP XUỐNG ĐÂY
         Long userId = getUserIdFromHeader(token);
-        courseService.markLessonAsComplete(userId, courseId, lessonId); // Hàm service phải tồn tại
+
+        // 3. GỌI SERVICE
+        courseService.markLessonAsComplete(userId, courseId, lessonId);
         return ResponseEntity.ok("Đã đánh dấu hoàn thành bài học");
     }
 
@@ -500,13 +514,16 @@ public class CourseController {
             @PathVariable Long studentId,
             @RequestHeader("Authorization") String tokenHeader) {
 
-        // Bước này chỉ để kiểm tra xem bạn có đăng nhập hay chưa
         Long requesterId = getUserIdFromHeader(tokenHeader);
         if (requesterId == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
-        double progress = courseService.getCourseProgress(studentId, courseId);
+        // CHẶN BVA CHO CẢ COURSE VÀ STUDENT
+        if (courseId < 1 || courseId > 10000000 || studentId < 1 || studentId > 10000000) {
+            return ResponseEntity.status(404).body("Không tìm thấy khóa học hoặc học sinh");
+        }
 
+        double progress = courseService.getCourseProgress(studentId, courseId);
         return ResponseEntity.ok(progress);
     }
 
