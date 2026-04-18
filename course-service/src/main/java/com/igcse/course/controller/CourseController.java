@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.*;
 import com.igcse.course.util.JwtUtils;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import jakarta.validation.Valid;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 @RestController
 @RequestMapping("/api/courses")
 @CrossOrigin(origins = "*")
+@Validated
 public class CourseController {
 
     @Autowired
@@ -122,7 +126,7 @@ public class CourseController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseById(
-            @PathVariable Long id,
+            @PathVariable @Min(value = 1, message = "ID phải lớn hơn hoặc bằng 1") @Max(value = 10000000, message = "ID quá lớn") Long id, // <--- THÊM RÀNG BUỘC
             @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
 
         Long userId = getUserIdFromHeader(tokenHeader);
@@ -136,7 +140,7 @@ public class CourseController {
 
     @PostMapping
     public ResponseEntity<?> createCourse(
-            @RequestBody Course course,
+            @Valid @RequestBody Course course,
             @RequestHeader("Authorization") String tokenHeader) {
         try {
             Long userId = getUserIdFromHeader(tokenHeader);

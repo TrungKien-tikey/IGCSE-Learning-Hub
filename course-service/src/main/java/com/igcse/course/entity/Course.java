@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.util.Date;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @Entity
 @Table(name = "courses")
@@ -20,6 +22,8 @@ public class Course {
     @Column(length = 1000) // Mô tả có thể dài
     private String description;
 
+    @Min(value = 0, message = "Lỗi: Giá khóa học không được nhỏ hơn 0")
+    @Max(value = 10000000, message = "Lỗi: Giá khóa học không được vượt quá 10 triệu")
     private Double price;
     private boolean isActive = true;
     private Date createdAt = new Date();
