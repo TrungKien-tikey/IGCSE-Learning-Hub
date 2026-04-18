@@ -80,3 +80,7 @@ ai_logs.txt
 .agent
 
 .cursor/
+
+# Testing automation outputs
+Testing/.generated/
+Testing/artifacts/
