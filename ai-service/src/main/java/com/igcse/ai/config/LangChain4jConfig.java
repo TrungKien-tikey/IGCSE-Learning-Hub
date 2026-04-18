@@ -4,8 +4,6 @@ import com.igcse.ai.service.llm.EssayGradingAiService;
 import com.igcse.ai.service.llm.InsightAiService;
 import com.igcse.ai.service.llm.RecommendationAiService;
 
-// import org.slf4j.Logger; // Import Logger
-// import org.slf4j.LoggerFactory; // Import LoggerFactory
 import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
 import dev.langchain4j.service.AiServices;
@@ -18,9 +16,6 @@ import java.time.Duration;
 
 @Configuration
 public class LangChain4jConfig {
-
-    // private static final Logger logger =
-    // LoggerFactory.getLogger(LangChain4jConfig.class); // Add Logger
 
     @Value("${openai.api.key}")
     private String openaiApiKey;
@@ -40,13 +35,10 @@ public class LangChain4jConfig {
     private ChatLanguageModel createChatModel(double temperature) {
         if (openaiApiKey == null || openaiApiKey.trim().isEmpty() ||
                 "your-api-key-here".equals(openaiApiKey) ||
-                openaiApiKey.contains("${") || // Check if Spring placeholder wasn't replaced
+                openaiApiKey.contains("${") ||
                 openaiApiKey.startsWith("invalid-")) {
-            // Thay vì throw exception làm crash app, ta log warning và dùng key dummy
-            // App vẫn khởi động được, nhưng chức năng AI sẽ lỗi (và rơi vào fallback)
-            System.err.println(
-                    "CẢNH BÁO: OpenAI API Key chưa được cấu hình hoặc không hợp lệ. Các chức năng AI sẽ không hoạt động.");
-            openaiApiKey = "demo-key-to-prevent-startup-crash";
+            throw new IllegalStateException(
+                    "OpenAI API Key chua duoc cau hinh hoac khong hop le. AI service khong the khoi dong voi du lieu gia.");
         }
 
         return OpenAiChatModel.builder()

@@ -1,6 +1,7 @@
 package com.igcse.auth.service;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -137,6 +138,10 @@ public class AuthService {
         
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
+
+        if (!Objects.equals(request.getNewPassword(), request.getConfirmPassword())) {
+            throw new RuntimeException("Xac nhan mat khau moi khong khop!");
+        }
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Mat khau cu khong chinh xac!");

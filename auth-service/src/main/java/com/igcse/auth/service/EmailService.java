@@ -18,7 +18,7 @@ public class EmailService {
     public void sendEmail(String to, String subject, String body) {
         // Cho phép tắt gửi mail ở môi trường dev/local để tránh quota SMTP
         if (!mailEnabled) {
-            System.out.printf("[MAIL MOCKED] to=%s | subject=%s%n%s%n", to, subject, body);
+            System.out.printf("Email sending disabled by configuration. to=%s | subject=%s%n", to, subject);
             return;
         }
 

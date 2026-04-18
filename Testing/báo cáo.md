@@ -78,7 +78,7 @@ Nguon tong hop:
 - `F1-F3` hien khong con open bug trong `Testing/logbug.md`
 - Moi thay doi cho `V2` va `V3` bat buoc chay regression lai `F1-F3`
 
-## Version 2 - Active bug-hunt
+## Version 2 - Closed After Fix
 
 ### Pham vi
 - Function 4: `forgotPassword`
@@ -91,34 +91,43 @@ Nguon tong hop:
 - `TC_CP_02` expected theo code hien tai la `400 Bad Request`
 - `TC_CP_04` duoc giu nguyen expected `400` de bat bug neu validation chua day du
 
-### Rui ro da biet truoc khi chay
-- `forgotPassword` khong dung DTO + Bean Validation, nen validation hien tai co the bi tron voi runtime handling
-- `changePassword` chua co Bean Validation tren `ChangePasswordRequest`
-- `changePassword` thanh cong co side effect doi mat khau that, nen runner phai co cleanup/restore password
-
 ### Ket qua Postman/Newman ngay 2026-04-18
-- Pass `7/10` assertions
-- Fail `3/10` assertions
-- Bug harness da duoc xu ly truoc khi chot ket qua:
-  - `Testing/scripts/auth-test-common.ps1` da doi token propagation sang `pm.environment.set(...)` de tranh header `Bearer ` rong trong Postman
+- Discovery run: pass `7/10`, fail `3/10`
+- Sau khi fix code va restart build moi: pass `10/10`
 
-### Bug dang mo trong V2
+### Bug da fix trong V2
 
 #### BUG-AUTH-V2-01
 - Pham vi: `forgotPassword`
 - Test case: `TC_FP_01`
 - Van de: thieu `email` query param nhung endpoint tra `500` thay vi `400`
-- Anh huong: contract validation sai, frontend nhan loi server thay vi loi request
+- Fix da ap dung:
+  - Them handler cho `MissingServletRequestParameterException`
+  - Khoa lai response `400` sach cho query param bat buoc
+- Retest: pass
 
 #### BUG-AUTH-V2-02
 - Pham vi: `changePassword`
 - Test case: `TC_CP_04`
 - Van de: `newPassword=""` van duoc chap nhan va API tra `200 OK`
-- Anh huong: loi validation nghiem trong; co the set mat khau rong cho user
+- Fix da ap dung:
+  - Them Bean Validation cho `ChangePasswordRequest`
+  - Them `@Valid` cho `AuthController.changePassword()`
+  - Them check `confirmPassword` khop `newPassword` trong service
+- Retest: pass
 
-### Xu ly tam thoi sau test
-- Tai khoan `user5@example.com` da duoc khoi phuc ve mat khau `abc321` bang `reset-password` flow de dam bao V3 regression khong bi lech state
-- Retest rieng `TC_CP_05` voi label `local-dev-auth-v2-retest-2026-04-18` da pass, xac nhan day la fail phu thuoc sau `TC_CP_04`, khong phai bug doc lap
+#### BUG-AUTH-V2-03
+- Pham vi: `changePassword`
+- Test case: `TC_CP_05`
+- Van de: fail phu thuoc sau khi `TC_CP_04` lam hu state password
+- Fix da ap dung:
+  - Khong con side effect doi mat khau rong sau khi `BUG-AUTH-V2-02` duoc fix
+  - Full suite `TC_CP_05` pass lai trong cung V2 run
+- Retest: pass
+
+### Ket luan V2
+- `F4-F5` hien khong con open bug
+- `V2` dat dieu kien release
 
 ### Tieu chi release V2
 - `TC_FP_*` dung contract query param, khong con request-body drift
@@ -152,6 +161,13 @@ Nguon tong hop:
 - Pass `11/11` requests
 - Pass `11/11` assertions
 - Scope `securityFilterChain` va `doFilterInternal` hien khong mo bug moi tren contract da canonicalize
+
+## Mockdata Cleanup Cho Release
+- Xoa seed sample `course_slot_packages` khoi `docker/init-db.sql`
+- Thay `overallEffortScore = 8.5` hardcode bang gia tri tinh toan tu effort metrics trong `ai-service`
+- Xoa fallback OpenAI `demo-key-to-prevent-startup-crash` va yeu cau cau hinh key hop le khi khoi dong `ai-service`
+- Doi ten `mockUser` o frontend thanh display-state de bo logic mock tren layout
+- Doi log `[MAIL MOCKED]` thanh log trung tinh theo config trong `auth-service`
 
 ## Ghi chu van hanh
 - Runner chinh: `Postman/Newman`

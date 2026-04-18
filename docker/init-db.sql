@@ -295,11 +295,3 @@ CREATE TABLE IF NOT EXISTS transactions (
     INDEX idx_date_status (transaction_date, payment_status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------------------------------------------------------
--- Dữ liệu mẫu: Các gói suất học mặc định
--- ----------------------------------------------------------------------------
-INSERT INTO course_slot_packages (name, description, slot_count, price, duration_days, is_active) VALUES
-('Gói Khởi Đầu', 'Gói dành cho giáo viên mới, bao gồm 3 suất tạo khóa học', 3, 500000.00, 365, TRUE),
-('Gói Tiêu Chuẩn', 'Gói phổ biến nhất, bao gồm 10 suất tạo khóa học', 10, 1500000.00, 365, TRUE),
-('Gói Chuyên Nghiệp', 'Gói dành cho giáo viên chuyên nghiệp, bao gồm 25 suất tạo khóa học', 25, 3000000.00, 365, TRUE),
-('Gói Không Giới Hạn', 'Gói không giới hạn số lượng khóa học trong 1 năm', 999, 10000000.00, 365, TRUE);

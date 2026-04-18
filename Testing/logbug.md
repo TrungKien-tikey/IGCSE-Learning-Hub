@@ -115,7 +115,7 @@ This file is the system of record for versioned auth-service test execution, bug
 - Postman/Newman rerun on `2026-04-18` passed `18/18`
 - Version 1 is treated as closed baseline unless regression is reproduced
 
-## Version 2 - Active Queue (Function 4 to 5)
+## Version 2 - Closed After Fix (Function 4 to 5)
 
 ### Task List
 
@@ -139,28 +139,31 @@ This file is the system of record for versioned auth-service test execution, bug
 ### Version 2 Notes
 - Function 4 must always use `POST /api/auth/forgot-password?email=...`
 - Function 5 must always include `Authorization: Bearer <valid_token>`
-- `TC_CP_04` stays open as a bug-catching case and must not be softened
 - Postman harness issue that previously produced `Bearer ` headers was fixed in `Testing/scripts/auth-test-common.ps1`; results below are from the corrected rerun.
 
 ### Execution Result - Version 2
-- Postman/Newman execution on `2026-04-18`: `7/10` assertions passed, `3/10` failed
-- Passed:
-  - `TC_FP_02`, `TC_FP_03`, `TC_FP_04`
-  - `TC_CP_01`, `TC_CP_02`, `TC_CP_03`
-- Failed:
-  - `TC_FP_01`: expected `400`, actual `500`
-  - `TC_CP_04`: expected `400`, actual `200`
-  - `TC_CP_05`: expected `200`, actual `400` in the full run after `TC_CP_04` mutated the account password to empty string
+- Discovery run on `2026-04-18`: `7/10` assertions passed, `3/10` failed
+- Fix + rerun on `2026-04-18`: `10/10` assertions passed
+- Verified cases:
+  - `TC_FP_01..04`
+  - `TC_CP_01..05`
 - Recovery note:
-  - `user5@example.com` was restored to `abc321` after the run via `POST /api/auth/reset-password`
-  - Isolated retest `local-dev-auth-v2-retest-2026-04-18` confirmed `TC_CP_05` passes when run without `TC_CP_04`
+  - `user5@example.com` was restored to `abc321` after the earlier failing run via `POST /api/auth/reset-password`
+  - After code fix, the full V2 suite completed without mutating the account into an invalid state
 
 ### Bug Log - Version 2
 | Bug ID | Function | Test Case | Version Detected | Severity | Priority | Expected | Actual | Status | Fixed In Version | Retest Result | Note |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BUG-AUTH-V2-01` | `F04` | `TC_FP_01` | `local-dev-auth-v2-fix-2026-04-18` | `Major` | `High` | Missing `email` query param must return `400 Bad Request` | Endpoint returned `500 Internal Server Error` | Open |  |  | `@RequestParam String email` is not handled cleanly when omitted. |
-| `BUG-AUTH-V2-02` | `F05` | `TC_CP_04` | `local-dev-auth-v2-fix-2026-04-18` | `Critical` | `High` | Empty `newPassword` must be rejected with `400 Bad Request` | Endpoint returned `200 OK` and changed the password | Open |  |  | `ChangePasswordRequest` has no Bean Validation and service accepts blank password. |
+| `BUG-AUTH-V2-01` | `F04` | `TC_FP_01` | `local-dev-auth-v2-fix-2026-04-18` | `Major` | `High` | Missing `email` query param must return `400 Bad Request` | Endpoint returned `500 Internal Server Error` | Fixed | `auth-service-testing-v2` | `TC_FP_01` pass in full V2 rerun | Added clean handling for missing request parameters in `GlobalExceptionHandler`. |
+| `BUG-AUTH-V2-02` | `F05` | `TC_CP_04` | `local-dev-auth-v2-fix-2026-04-18` | `Critical` | `High` | Empty `newPassword` must be rejected with `400 Bad Request` | Endpoint returned `200 OK` and changed the password | Fixed | `auth-service-testing-v2` | `TC_CP_04` pass in full V2 rerun | Added Bean Validation for `ChangePasswordRequest` and `@Valid` on controller. |
 | `BUG-AUTH-V2-03` | `F05` | `TC_CP_05` | `local-dev-auth-v2-fix-2026-04-18` | `Minor` | `Medium` | Valid change-password case should return `200 OK` with known baseline password | Full-run execution returned `400` because prior invalid case corrupted account state | Closed - dependent | `local-dev-auth-v2-retest-2026-04-18` | `TC_CP_05` pass | Not a standalone product bug; isolated retest passed after state recovery. |
+
+### Release Note - Version 2
+- `V2` is ready for release after the full Postman/Newman rerun passed `10/10`
+- Auth cross-version regression remains green:
+  - `V1`: `18/18`
+  - `V2`: `10/10`
+  - `V3`: `11/11`
 
 ## Version 3 - Active Queue (Function 6 to 7)
 
@@ -197,6 +200,13 @@ This file is the system of record for versioned auth-service test execution, bug
 
 ### Bug Log - Version 3
 - No V3 bugs logged yet
+
+## Mockdata Cleanup
+- Removed seeded `course_slot_packages` sample rows from [docker/init-db.sql](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/docker/init-db.sql:1>)
+- Replaced hardcoded parent analytics effort score with computed data in [StatisticsService.java](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/ai-service/src/main/java/com/igcse/ai/service/thongKe/StatisticsService.java:1>)
+- Removed demo OpenAI key fallback in [LangChain4jConfig.java](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/ai-service/src/main/java/com/igcse/ai/config/LangChain4jConfig.java:1>)
+- Replaced mocked email log wording in [EmailService.java](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/auth-service/src/main/java/com/igcse/auth/service/EmailService.java:1>)
+- Replaced frontend `mockUser` display object with real display-state naming in [MainLayout.jsx](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/frontend/src/layouts/MainLayout.jsx:1>)
 
 ## Severity Rule
 - `Critical`: blocks core auth flow or allows bad data/security behavior

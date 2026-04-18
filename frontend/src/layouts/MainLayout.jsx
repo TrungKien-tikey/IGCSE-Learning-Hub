@@ -96,14 +96,14 @@ const MainLayout = ({ children }) => {
     fetchProfile();
   }, []);
 
-  const mockUser = {
+  const displayUser = {
     name: currentUser.fullName || "User",
     role: (currentUser.role || localStorage.getItem("userRole") || "student").toLowerCase(),
     username: currentUser.email?.split('@')[0] || "user"
   };
 
   // Xác định menu dựa trên role
-  const role = mockUser.role || "student";
+  const role = displayUser.role || "student";
   let items = menuItems[role] || menuItems["student"];
 
   // Nếu là Phụ huynh và đã liên kết học sinh, gắn StudentId vào URL nếu cần
@@ -250,14 +250,14 @@ const MainLayout = ({ children }) => {
           {/* User Info */}
           <div className="flex items-center space-x-2 sm:space-x-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-bold text-gray-800">{mockUser.name}</p>
-              <p className="text-xs text-blue-500 font-medium capitalize">{mockUser.role}</p>
+              <p className="text-sm font-bold text-gray-800">{displayUser.name}</p>
+              <p className="text-xs text-blue-500 font-medium capitalize">{displayUser.role}</p>
             </div>
             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border border-blue-200 overflow-hidden flex-shrink-0">
               {currentUser.avatar ? (
                 <img src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover" />
               ) : (
-                mockUser.name.charAt(0).toUpperCase()
+                displayUser.name.charAt(0).toUpperCase()
               )}
             </div>
           </div>
