@@ -1,0 +1,403 @@
+﻿{
+    "info":  {
+                 "name":  "Auth Service Versioned Tests",
+                 "description":  "Postman suite for auth-service V2 forgot-password and change-password flows.",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+             },
+    "item":  [
+                 {
+                     "name":  "V2 - F4-F5",
+                     "item":  [
+                                  {
+                                      "name":  "Function 4 - forgotPassword",
+                                      "item":  [
+                                                   {
+                                                       "name":  "TC_FP_01 - Missing email query param",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/forgot-password"
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_FP_01 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_FP_02 - Invalid email format via query param",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/forgot-password?email=userexample.com"
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_FP_02 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_FP_03 - Email not found",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/forgot-password?email=notfound@example.com"
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_FP_03 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_FP_04 - Valid existing email",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/forgot-password?email={{valid_user_email}}"
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_FP_04 returns 200\", function () {",
+                                                                                                 "    pm.response.to.have.status(200);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   }
+                                               ]
+                                  },
+                                  {
+                                      "name":  "Function 5 - changePassword",
+                                      "item":  [
+                                                   {
+                                                       "name":  "SETUP - login valid token for F5",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/login",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"email\":\"{{valid_user_email}}\",\"password\":\"{{valid_user_password}}\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"SETUP - login valid token for F5 returns 200\", function () {",
+                                                                                                 "    pm.response.to.have.status(200);",
+                                                                                                 "});",
+                                                                                                 "",
+                                                                                                 "if (pm.response.code === 200) {",
+                                                                                                 "    const data = pm.response.json();",
+                                                                                                 "    pm.expect(data.token).to.be.a(\"string\").and.not.empty;",
+                                                                                                 "    pm.collectionVariables.set(\"access_token\", data.token);",
+                                                                                                 "    pm.environment.set(\"access_token\", data.token);",
+                                                                                                 "    if (data.refreshToken) {",
+                                                                                                 "        pm.collectionVariables.set(\"refresh_token\", data.refreshToken);",
+                                                                                                 "        pm.environment.set(\"refresh_token\", data.refreshToken);",
+                                                                                                 "    }",
+                                                                                                 "}"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_CP_01 - Missing oldPassword with valid JWT",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "Authorization",
+                                                                                          "value":  "Bearer {{access_token}}"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/change-password",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"newPassword\":\"{{change_new_password}}\",\"confirmPassword\":\"{{change_new_password}}\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_CP_01 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_CP_02 - Wrong oldPassword with valid JWT",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "Authorization",
+                                                                                          "value":  "Bearer {{access_token}}"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/change-password",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"oldPassword\":\"wrongOldPass\",\"newPassword\":\"{{change_new_password}}\",\"confirmPassword\":\"{{change_new_password}}\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_CP_02 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_CP_03 - Missing newPassword with valid JWT",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "Authorization",
+                                                                                          "value":  "Bearer {{access_token}}"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/change-password",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"oldPassword\":\"{{valid_user_password}}\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_CP_03 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_CP_04 - Empty newPassword with valid JWT",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "Authorization",
+                                                                                          "value":  "Bearer {{access_token}}"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/change-password",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"oldPassword\":\"{{valid_user_password}}\",\"newPassword\":\"\",\"confirmPassword\":\"\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_CP_04 returns 400\", function () {",
+                                                                                                 "    pm.response.to.have.status(400);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   },
+                                                   {
+                                                       "name":  "TC_CP_05 - Valid change password",
+                                                       "request":  {
+                                                                       "method":  "POST",
+                                                                       "header":  [
+                                                                                      {
+                                                                                          "key":  "Content-Type",
+                                                                                          "value":  "application/json"
+                                                                                      },
+                                                                                      {
+                                                                                          "key":  "Authorization",
+                                                                                          "value":  "Bearer {{access_token}}"
+                                                                                      }
+                                                                                  ],
+                                                                       "url":  "{{auth_base}}/api/auth/change-password",
+                                                                       "body":  {
+                                                                                    "mode":  "raw",
+                                                                                    "raw":  "{\"oldPassword\":\"{{valid_user_password}}\",\"newPassword\":\"{{change_new_password}}\",\"confirmPassword\":\"{{change_new_password}}\"}",
+                                                                                    "options":  {
+                                                                                                    "raw":  {
+                                                                                                                "language":  "json"
+                                                                                                            }
+                                                                                                }
+                                                                                }
+                                                                   },
+                                                       "event":  {
+                                                                     "script":  {
+                                                                                    "exec":  [
+                                                                                                 "pm.test(\"TC_CP_05 returns 200\", function () {",
+                                                                                                 "    pm.response.to.have.status(200);",
+                                                                                                 "});"
+                                                                                             ],
+                                                                                    "type":  "text/javascript"
+                                                                                },
+                                                                     "listen":  "test"
+                                                                 }
+                                                   }
+                                               ]
+                                  }
+                              ]
+                 }
+             ],
+    "variable":  [
+                     {
+                         "key":  "auth_base",
+                         "value":  "http://localhost:8088"
+                     },
+                     {
+                         "key":  "valid_user_email",
+                         "value":  "user5@example.com"
+                     },
+                     {
+                         "key":  "valid_user_password",
+                         "value":  "abc321"
+                     },
+                     {
+                         "key":  "duplicate_email",
+                         "value":  "user4@example.com"
+                     },
+                     {
+                         "key":  "register_email_1",
+                         "value":  "codex+rg02+0419110628@example.com"
+                     },
+                     {
+                         "key":  "register_email_2",
+                         "value":  "codex+rg01+0419110628@example.com"
+                     },
+                     {
+                         "key":  "register_email_3",
+                         "value":  "codex+rg08+0419110628@example.com"
+                     },
+                     {
+                         "key":  "email_boundary_254",
+                         "value":  "codex0419110628aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com"
+                     },
+                     {
+                         "key":  "email_boundary_255",
+                         "value":  "codex0419110628aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com"
+                     },
+                     {
+                         "key":  "expired_access_token",
+                         "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImV4cCI6MTc3NjU2Nzk4OCwic3ViIjoidXNlcjVAZXhhbXBsZS5jb20iLCJlbWFpbCI6InVzZXI1QGV4YW1wbGUuY29tIiwicm9sZSI6IlNUVURFTlQiLCJ2ZXJpZmljYXRpb25TdGF0dXMiOiJWRVJJRklFRCIsImlhdCI6MTc3NjU2NDM4OH0.Ve3xwUYKHwYkGoc4aK65yfZh2_SiG-I_oAe4LkkLFXM"
+                     },
+                     {
+                         "key":  "malformed_token",
+                         "value":  "malformed_token"
+                     },
+                     {
+                         "key":  "invalid_jwt_token",
+                         "value":  "invalid_jwt_token"
+                     },
+                     {
+                         "key":  "invalid_prefix_value",
+                         "value":  "Token abc123"
+                     },
+                     {
+                         "key":  "change_new_password",
+                         "value":  "abc123456"
+                     },
+                     {
+                         "key":  "access_token",
+                         "value":  ""
+                     },
+                     {
+                         "key":  "refresh_token",
+                         "value":  ""
+                     }
+                 ]
+}

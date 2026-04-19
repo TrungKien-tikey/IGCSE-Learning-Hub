@@ -1,37 +1,27 @@
 import axios from 'axios';
 
-const HARDCODED_URL = 'https://aniya-scrumptious-lina.ngrok-free.dev';
-let baseURL = import.meta.env.VITE_MAIN_API_URL;
+const stripApiBase = (url = '') => {
+  let normalized = url.trim();
+  normalized = normalized.replace(/\/api\/v1\/?$/, '');
+  normalized = normalized.replace(/\/api\/?$/, '');
+  normalized = normalized.replace(/\/$/, '');
+  return normalized;
+};
+
+let baseURL = stripApiBase(import.meta.env.VITE_MAIN_API_URL || '');
 
 if (!baseURL) {
-  const otherUrl = import.meta.env.VITE_AI_SERVICE_URL || 
-                   import.meta.env.VITE_USER_SERVICE_URL || 
-                   import.meta.env.VITE_ADMIN_API_URL;
-                   
-  if (otherUrl && otherUrl.includes('/api')) {
-    baseURL = otherUrl.split('/api')[0];
-  } else {
-    baseURL = HARDCODED_URL;
-  }
-  
-  console.log("⚠️ CommentClient: VITE_MAIN_API_URL missing using fallback:", baseURL);
-}
-
-if (baseURL.endsWith('/api/v1')) {
-  baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-} else if (baseURL.endsWith('/api/v1/')) {
-  baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-}
-
-if (baseURL.endsWith('/api')) {
-  baseURL = baseURL.replace(/\/api\/?$/, '');
+  const fallbackUrl = import.meta.env.VITE_AI_SERVICE_URL ||
+    import.meta.env.VITE_USER_SERVICE_URL ||
+    import.meta.env.VITE_ADMIN_API_URL ||
+    '';
+  baseURL = stripApiBase(fallbackUrl);
 }
 
 const commentClient = axios.create({
   baseURL: `${baseURL}/api/comments`,
   headers: {
     'Content-Type': 'application/json',
-    'ngrok-skip-browser-warning': '69420',
   },
 });
 
@@ -39,19 +29,15 @@ commentClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 commentClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
@@ -62,23 +48,22 @@ commentClient.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
 
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error('No refresh token available');
         }
 
         const result = await axios.post(`${baseURL}/api/auth/refresh-token`, {
-          refreshToken: refreshToken
+          refreshToken,
         });
 
         const { token } = result.data;
         localStorage.setItem('accessToken', token);
 
-        commentClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        commentClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
 
         return commentClient(originalRequest);
-
       } catch (refreshError) {
-        console.error("Lỗi refresh token:", refreshError);
+        console.error('Lỗi refresh token:', refreshError);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('role');

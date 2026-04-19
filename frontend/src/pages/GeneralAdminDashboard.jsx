@@ -23,13 +23,9 @@ import {
 } from '../api/paymentService';
 import { toast } from 'react-toastify';
 
-// Monitor client with Ngrok URL for health checks
-const NGROK_BASE_URL = import.meta.env.VITE_MAIN_API_URL?.replace('/api', '') || '';
+const MONITOR_BASE_URL = import.meta.env.VITE_MAIN_API_URL?.replace('/api', '') || '';
 const monitorClient = axios.create({
-    baseURL: NGROK_BASE_URL,
-    headers: {
-        'ngrok-skip-browser-warning': '69420',
-    },
+    baseURL: MONITOR_BASE_URL,
 });
 
 // Hàm format tiền VNĐ

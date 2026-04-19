@@ -16,7 +16,6 @@ export const useSystemData = () => {
                 const response = await axios.get(`${AI_SERVICE_URL}/statistics/system`, {
                     headers: {
                         'Content-Type': 'application/json',
-                        'ngrok-skip-browser-warning': '69420',
                         ...(token ? { "Authorization": `Bearer ${token}` } : {})
                     }
                 });

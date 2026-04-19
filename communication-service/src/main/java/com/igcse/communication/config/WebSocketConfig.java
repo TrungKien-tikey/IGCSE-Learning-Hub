@@ -15,7 +15,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/api/chat/ws")
                 .setAllowedOrigins(
                     "https://igcse-learning-hub.vercel.app", 
-                    "https://aniya-scrumptious-lina.ngrok-free.dev",
                     "http://localhost:5173", 
                     "http://localhost:5174", 
                     "http://localhost:3000"

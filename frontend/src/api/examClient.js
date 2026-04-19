@@ -8,7 +8,6 @@ const examClient = axios.create({
     baseURL: import.meta.env.VITE_EXAM_SERVICE_URL,
     headers: {
         'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': '69420',
     },
 });
 

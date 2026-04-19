@@ -26,7 +26,7 @@ export default function ParentDashboard() {
     useEffect(() => {
         // Validate studentId - must be a valid positive integer
         const numStudentId = parseInt(studentId, 10);
-        if (!studentId || isNaN(numStudentId) || numStudentId <= 0 || studentId === 'placeholder') {
+        if (!studentId || isNaN(numStudentId) || numStudentId <= 0) {
             toast.warning("Vui lòng chọn học sinh từ trang Parent Dashboard.");
             navigate('/parent-dashboard');
             return;

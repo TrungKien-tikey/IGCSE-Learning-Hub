@@ -1,20 +1,32 @@
 package com.igcse.auth.controller;
 
-import com.igcse.auth.dto.AuthResponse;
-import com.igcse.auth.dto.LoginRequest;
-import com.igcse.auth.dto.RefreshTokenRequest;
-import com.igcse.auth.dto.RegisterRequest;
-import com.igcse.auth.dto.ChangePasswordRequest; // Import class này
-import com.igcse.auth.service.AuthService;
+import java.util.Map;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Map; // Import Map để lấy email từ request body
+import com.igcse.auth.dto.AuthResponse;
+import com.igcse.auth.dto.ChangePasswordRequest;
+import com.igcse.auth.dto.LoginRequest;
+import com.igcse.auth.dto.RefreshTokenRequest;
+import com.igcse.auth.dto.RegisterRequest;
+import com.igcse.auth.service.AuthService;
+
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 @RestController
 @RequestMapping("/api/auth")
+@Validated
 public class AuthController {
 
     private final AuthService authService;
@@ -23,28 +35,21 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // 1. API Health Check (Để test kết nối)
     @GetMapping("/health")
     public Map<String, String> healthCheck() {
         return Map.of("status", "UP", "message", "Auth Service is connecting to Gateway successfully!");
     }
 
-    // 2. API Đăng ký
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody RegisterRequest request) {
-        System.out.println("GỌI VÀO REGISTER: " + request.getEmail());
-        return ResponseEntity.ok(authService.register(request));
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
-    // 3. API Đăng nhập
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
-    // 👇 4. API CHECK TRÙNG EMAIL (MỚI THÊM)
-    // Frontend gửi lên: { "email": "abc@gmail.com" }
-    // Backend trả về: true (đã có) hoặc false (chưa có)
     @PostMapping("/check-email")
     public ResponseEntity<Boolean> checkEmailExist(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -52,15 +57,16 @@ public class AuthController {
         return ResponseEntity.ok(exists);
     }
 
-    // 5. API Verify Token (Dùng cho Gateway hoặc các Service khác gọi sang)
     @PostMapping("/verify-token")
     public ResponseEntity<Boolean> verifyToken(@RequestParam String token) {
         return ResponseEntity.ok(authService.verifyToken(token));
     }
 
-    // 6. API Quên mật khẩu (Public - Không cần auth)
     @PostMapping("/forgot-password")
-    public ResponseEntity<String> forgotPassword(@RequestParam String email) {
+    public ResponseEntity<String> forgotPassword(
+            @RequestParam
+            @NotBlank(message = "Email is required")
+            @Email(message = "Email format is invalid") String email) {
         try {
             authService.forgotPassword(email);
             return ResponseEntity.ok("Email đặt lại mật khẩu đã được gửi. Vui lòng kiểm tra hộp thư của bạn.");
@@ -69,7 +75,6 @@ public class AuthController {
         }
     }
 
-    // 7. API Đặt lại mật khẩu (Public - Không cần auth)
     @PostMapping("/reset-password")
     public ResponseEntity<String> resetPassword(@RequestParam String token, @RequestParam String newPassword) {
         try {
@@ -80,13 +85,11 @@ public class AuthController {
         }
     }
 
-    // 8. API Đổi mật khẩu (Cần auth)
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<String> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         return ResponseEntity.ok(authService.changePassword(request));
     }
 
-    // 9. API Refresh Token
     @PostMapping("/refresh-token")
     public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest request) {
         try {
@@ -95,5 +98,16 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(
+            @RequestHeader(name = "Authorization", required = false) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
+        }
+        String token = authHeader.substring(7);
+        authService.logout(token);
+        return ResponseEntity.ok("Logged out");
     }
 }

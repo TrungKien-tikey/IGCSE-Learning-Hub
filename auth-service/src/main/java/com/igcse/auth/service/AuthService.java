@@ -1,20 +1,28 @@
 package com.igcse.auth.service;
 
-import com.igcse.auth.config.RabbitMQConfig;
-import com.igcse.auth.dto.*;
-import com.igcse.auth.entity.BlacklistedToken;
-import com.igcse.auth.entity.User;
-import com.igcse.auth.repository.BlacklistedTokenRepository;
-import com.igcse.auth.repository.UserRepository;
-import com.igcse.auth.util.JwtUtils;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.UUID;
+
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
+import com.igcse.auth.config.RabbitMQConfig;
+import com.igcse.auth.dto.AuthResponse;
+import com.igcse.auth.dto.ChangePasswordRequest;
+import com.igcse.auth.dto.LoginRequest;
+import com.igcse.auth.dto.RefreshTokenRequest;
+import com.igcse.auth.dto.RegisterRequest;
+import com.igcse.auth.dto.UserSyncDTO;
+import com.igcse.auth.entity.BlacklistedToken;
+import com.igcse.auth.entity.User;
+import com.igcse.auth.exception.DuplicateEmailException;
+import com.igcse.auth.repository.BlacklistedTokenRepository;
+import com.igcse.auth.repository.UserRepository;
+import com.igcse.auth.util.JwtUtils;
 
 @Service
 public class AuthService {
@@ -47,12 +55,12 @@ public class AuthService {
     // 1. ĐĂNG KÝ (Có bắn RabbitMQ)
     public String register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email nay da ton tai!");
+            throw new DuplicateEmailException("Email already exists");
         }
 
         User user = new User();
-        user.setFullName(request.getFullName());
-        user.setEmail(request.getEmail());
+        user.setFullName(request.getFullName().trim());
+        user.setEmail(request.getEmail().trim());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
 
         // Xử lý Role
@@ -100,11 +108,13 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
 
-        // Sinh Access Token (1 ngày)
+        if (!user.isActive()) {
+            throw new RuntimeException("Tài khoản của bạn đã bị vô hiệu hóa!");
+        }
+
         String token = jwtUtils.generateToken(user.getEmail(), user.getRole(), user.getId(),
                 user.getVerificationStatus());
 
-        // Sinh Refresh Token (7 ngày)
         String refreshToken = jwtUtils.generateRefreshToken(user.getEmail(), user.getRole(), user.getId());
 
         return new AuthResponse(token, refreshToken, user.getEmail(), user.getRole());
@@ -128,6 +138,10 @@ public class AuthService {
         
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("User khong ton tai"));
+
+        if (!Objects.equals(request.getNewPassword(), request.getConfirmPassword())) {
+            throw new RuntimeException("Xac nhan mat khau moi khong khop!");
+        }
 
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Mat khau cu khong chinh xac!");
