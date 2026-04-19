@@ -1,12 +1,10 @@
 package com.igcse.auth.config;
 
-import com.igcse.auth.repository.BlacklistedTokenRepository;
-import com.igcse.auth.util.JwtUtils;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.List;
+
 import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,22 +13,46 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
+import com.igcse.auth.repository.BlacklistedTokenRepository;
+import com.igcse.auth.util.JwtUtils;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
+    private static final List<String> WHITELIST_PREFIXES = List.of(
+            "/api/auth/register",
+            "/api/auth/login",
+            "/api/auth/health",
+            "/api/auth/check-email",
+            "/api/auth/verify-token",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/refresh-token",
+            "/v3/api-docs",
+            "/swagger-ui",
+            "/swagger-ui.html",
+            "/actuator",
+            "/error");
+
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
     private final BlacklistedTokenRepository blacklistedTokenRepository;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     public JwtAuthenticationFilter(
             JwtUtils jwtUtils,
             UserDetailsService userDetailsService,
-            BlacklistedTokenRepository blacklistedTokenRepository) {
+            BlacklistedTokenRepository blacklistedTokenRepository,
+            RestAuthenticationEntryPoint restAuthenticationEntryPoint) {
         this.jwtUtils = jwtUtils;
         this.userDetailsService = userDetailsService;
         this.blacklistedTokenRepository = blacklistedTokenRepository;
+        this.restAuthenticationEntryPoint = restAuthenticationEntryPoint;
     }
 
     @Override
@@ -39,69 +61,60 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userEmail;
-
-        // DEBUG LOG
-        logger.info(">>> JWT Filter: " + request.getRequestURI());
-        logger.info(">>> Authorization Header: " + (authHeader != null ? "EXISTS" : "NULL"));
-
-        // 1. Kiểm tra Header
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            logger.debug(">>> No Bearer token found");
+        String path = request.getServletPath();
+        if (WHITELIST_PREFIXES.stream().anyMatch(path::startsWith)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 2. Lấy Token
-        jwt = authHeader.substring(7);
-
-        // --- CHECK BLACKLIST ---
-        if (blacklistedTokenRepository.existsByToken(jwt)) {
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("Token da het han hoac da dang xuat!");
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
             return;
         }
-        // -----------------------
 
-        // 3. Trích xuất Email từ Token và load User
+        String jwt = authHeader.substring(7);
+        if (blacklistedTokenRepository.existsByToken(jwt)) {
+            commenceUnauthorized(request, response, "Token da het han hoac da dang xuat!");
+            return;
+        }
+
         try {
-            userEmail = jwtUtils.extractEmail(jwt);
-            logger.info(">>> Extracted email: " + userEmail);
+            String userEmail = jwtUtils.extractEmail(jwt);
 
-            // 4. Nếu có Email và chưa được xác thực
             if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Lấy thông tin User từ Database
-                UserDetails userDetails = this.userDetailsService.loadUserByUsername(userEmail);
-                logger.info(">>> User loaded: " + userEmail);
+                UserDetails userDetails = userDetailsService.loadUserByUsername(userEmail);
 
-                // 5. Kiểm tra Token có hợp lệ không
                 if (jwtUtils.validateToken(jwt)) {
-                    logger.info(">>> Token is VALID");
-
-                    // 6. Tạo đối tượng Authentication
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
                             userDetails.getAuthorities());
 
-                    authToken.setDetails(
-                            new WebAuthenticationDetailsSource().buildDetails(request));
-
-                    // 7. LƯU VÀO SECURITY CONTEXT
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
-                    logger.info(">>> Authentication set in SecurityContext");
                 } else {
-                    logger.warn(">>> Token is INVALID");
+                    commenceUnauthorized(request, response, "Invalid or expired token");
+                    return;
                 }
             }
         } catch (Exception e) {
-            // Nếu token sai, hết hạn hoặc user không tồn tại trong DB mới
-            // Chỉ cần log và cho phép request đi tiếp (nếu là public API)
-            logger.error(">>> JWT validation failed: " + e.getMessage(), e);
+            logger.error("JWT validation failed: " + e.getMessage(), e);
+            commenceUnauthorized(request, response, "Invalid or expired token");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void commenceUnauthorized(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            String message) throws IOException, ServletException {
+        request.setAttribute("auth_error", message);
+        restAuthenticationEntryPoint.commence(
+                request,
+                response,
+                new BadCredentialsException(message));
     }
 }

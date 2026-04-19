@@ -21,6 +21,8 @@ target/
 **/target/
 build/
 **/build/
+.m2/
+**/.m2/
 .mvn/wrapper/maven-wrapper.jar
 *.class
 *.jar
@@ -78,3 +80,7 @@ ai_logs.txt
 .agent
 
 .cursor/
+
+# Testing automation outputs
+Testing/.generated/
+Testing/artifacts/
