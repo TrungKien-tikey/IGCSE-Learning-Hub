@@ -1,6 +1,6 @@
 ﻿{
-    "id":  "b29004a9-d4b2-4dab-ad33-93f8d58b0f0b",
-    "name":  "Auth Service Local - local-dev-auth-v3-fix-2026-04-18",
+    "id":  "b95c57c0-0743-4c03-a18d-5e88a99acdb1",
+    "name":  "Auth Service Local - local-dev-auth-v3-fix-2026-04-19",
     "values":  [
                    {
                        "key":  "auth_base",
@@ -24,32 +24,32 @@
                    },
                    {
                        "key":  "register_email_1",
-                       "value":  "codex+rg02+0418180736@example.com",
+                       "value":  "codex+rg02+0419110629@example.com",
                        "enabled":  true
                    },
                    {
                        "key":  "register_email_2",
-                       "value":  "codex+rg01+0418180736@example.com",
+                       "value":  "codex+rg01+0419110629@example.com",
                        "enabled":  true
                    },
                    {
                        "key":  "register_email_3",
-                       "value":  "codex+rg08+0418180736@example.com",
+                       "value":  "codex+rg08+0419110629@example.com",
                        "enabled":  true
                    },
                    {
                        "key":  "email_boundary_254",
-                       "value":  "codex0418180736aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+                       "value":  "codex0419110629aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
                        "enabled":  true
                    },
                    {
                        "key":  "email_boundary_255",
-                       "value":  "codex0418180736aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+                       "value":  "codex0419110629aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
                        "enabled":  true
                    },
                    {
                        "key":  "expired_access_token",
-                       "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImV4cCI6MTc3NjUwNjg1Niwic3ViIjoidXNlcjVAZXhhbXBsZS5jb20iLCJlbWFpbCI6InVzZXI1QGV4YW1wbGUuY29tIiwicm9sZSI6IlNUVURFTlQiLCJ2ZXJpZmljYXRpb25TdGF0dXMiOiJWRVJJRklFRCIsImlhdCI6MTc3NjUwMzI1Nn0.CHuEqKeo0qVvxfj127wZxtTH3SudZPXCfxBPZPGiXY8",
+                       "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImV4cCI6MTc3NjU2Nzk4OSwic3ViIjoidXNlcjVAZXhhbXBsZS5jb20iLCJlbWFpbCI6InVzZXI1QGV4YW1wbGUuY29tIiwicm9sZSI6IlNUVURFTlQiLCJ2ZXJpZmljYXRpb25TdGF0dXMiOiJWRVJJRklFRCIsImlhdCI6MTc3NjU2NDM4OX0.Qx4gAlXVgFsd3O3aHy0IhH5Q2TAbtVRIwrIhgFfgoyw",
                        "enabled":  true
                    },
                    {

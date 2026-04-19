@@ -10,9 +10,9 @@ Nguon tong hop:
 
 | Version | Branch | Scope | Status | Release label |
 | --- | --- | --- | --- | --- |
-| `V1` | `test/v1-f1-f3-baseline` | `login`, `register`, `logout` | Verified pass by Postman/Newman rerun | `local-dev-auth-v1-regression-2026-04-18` |
-| `V2` | `test/v2-f4-f5` | `forgotPassword`, `changePassword` | Open bugs: `2` | `local-dev-auth-v2-fix-2026-04-18` |
-| `V3` | `test/v3-f6-f7` | `securityFilterChain`, `doFilterInternal` | Verified pass by Postman/Newman rerun | `local-dev-auth-v3-fix-2026-04-18` |
+| `V1` | `test/v1-f1-f3-baseline` | `login`, `register`, `logout` | Verified pass by Postman/Newman rerun | `local-dev-auth-v1-regression-2026-04-19` |
+| `V2` | `test/v2-f4-f5` | `forgotPassword`, `changePassword` | Release-ready after fix | `local-dev-auth-v2-fix-2026-04-19` |
+| `V3` | `test/v3-f6-f7` | `securityFilterChain`, `doFilterInternal` | Release-ready after full regression | `local-dev-auth-v3-fix-2026-04-19` |
 
 ## Version 1 - Baseline da dong
 
@@ -135,7 +135,7 @@ Nguon tong hop:
 - Moi case fail deu co bug log, fix note, retest result, va version label
 - Khong con open bug trong `F4-F5`
 
-## Version 3 - Active bug-hunt
+## Version 3 - Closed After Regression
 
 ### Pham vi
 - Function 6: `securityFilterChain`
@@ -151,16 +151,25 @@ Nguon tong hop:
 ### Rui ro da biet truoc khi chay
 - `TC_SFC_03` va `TC_DFI_05` dung `logout` lam protected endpoint nen token se bi blacklist neu tai su dung
 - Runner phai login lai de lay fresh token truoc moi valid-token case co side effect
+- Test harness `auth-test-common.ps1` truoc do hardcode pattern `Active Queue` trong precheck canonicalization; da duoc sua de khong chan rerun tren tai lieu da cap nhat trang thai
 
 ### Tieu chi release V3
 - `TC_SFC_*` va `TC_DFI_*` dung endpoint that
 - Security response code khong mo ho
 - Full regression `F1-F7` pass truoc khi release
 
-### Ket qua Postman/Newman ngay 2026-04-18
+### Ket qua Postman/Newman ngay 2026-04-19
 - Pass `11/11` requests
 - Pass `11/11` assertions
 - Scope `securityFilterChain` va `doFilterInternal` hien khong mo bug moi tren contract da canonicalize
+- Full regression tren cung branch cung pass:
+  - `V1`: `18/18`
+  - `V2`: `10/10`
+  - `V3`: `11/11`
+
+### Ket luan V3
+- `F6-F7` hien khong co open bug san pham
+- `V3` dat dieu kien release sau full regression `F1-F7`
 
 ## Mockdata Cleanup Cho Release
 - Xoa seed sample `course_slot_packages` khoi `docker/init-db.sql`

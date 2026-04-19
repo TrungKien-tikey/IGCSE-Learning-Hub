@@ -276,7 +276,7 @@ function Assert-CanonicalizedDocs {
             Path = Join-Path $Script:TestingRoot "intergration-test.md"
             Patterns = @(
                 "Number of TCs\s+36",
-                "Round 1\s+18\s+0\s+18\s+0",
+                "Round 1\s+(18\s+0\s+18\s+0|36\s+0\s+0\s+0)",
                 "TC_FP_03\s+Tu choi forgot-password khi email khong ton tai\s+POST {{auth_base}}/api/auth/forgot-password\?email=notfound@example.com\s+400 Bad Request",
                 "TC_CP_02\s+Tu choi doi mat khau khi oldPassword sai voi JWT hop le",
                 "Function6 \(securityFilterChain\)",
@@ -288,10 +288,10 @@ function Assert-CanonicalizedDocs {
             Patterns = @(
                 "## Release Tracks",
                 "test/v1-f1-f3-baseline",
-                "Version 2 - Active Queue \(Function 4 to 5\)",
+                "Version 2 - (Active Queue|Closed After Fix) \(Function 4 to 5\)",
                 "TC_FP_03.*400 Bad Request",
                 "TC_CP_02.*400 Bad Request",
-                "Version 3 - Active Queue \(Function 6 to 7\)"
+                "Version 3 - (Active Queue|Closed After Fix|Closed After Regression) \(Function 6 to 7\)"
             )
         }
     )

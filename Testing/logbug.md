@@ -17,9 +17,9 @@ This file is the system of record for versioned auth-service test execution, bug
 - Version 3 branch: `test/v3-f6-f7`
 
 ## Test Cycle
-- Version 1 baseline label: `local-dev-auth-v1-regression-2026-04-16`
-- Version 2 active label: `local-dev-auth-v2-fix-2026-04-18`
-- Version 3 active label: `local-dev-auth-v3-fix-2026-04-18`
+- Version 1 baseline label: `local-dev-auth-v1-regression-2026-04-19`
+- Version 2 active label: `local-dev-auth-v2-fix-2026-04-19`
+- Version 3 active label: `local-dev-auth-v3-fix-2026-04-19`
 - Base URL: `http://localhost:8088`
 - Request source for automation: `Testing/scripts/auth-test-common.ps1`
 - Runner target: `Postman/Newman`
@@ -165,7 +165,7 @@ This file is the system of record for versioned auth-service test execution, bug
   - `V2`: `10/10`
   - `V3`: `11/11`
 
-## Version 3 - Active Queue (Function 6 to 7)
+## Version 3 - Closed After Regression (Function 6 to 7)
 
 ### Task List
 
@@ -190,16 +190,26 @@ This file is the system of record for versioned auth-service test execution, bug
 - Remove any placeholder `/api/protected` usage; protected endpoint is `POST /api/auth/logout`
 - Public endpoint is `GET /api/auth/health`
 - Version 3 must finish with cross-version regression `F1-F7`
+- Test harness note:
+  - `Testing/scripts/auth-test-common.ps1` canonicalization precheck was updated to accept closed-state doc sections so reruns do not fail on already-fixed versions
 
 ### Execution Result - Version 3
-- Postman/Newman execution on `2026-04-18`: `11/11` requests passed, `11/11` assertions passed
+- Postman/Newman execution on `2026-04-19`: `11/11` requests passed, `11/11` assertions passed
 - All security contract cases passed:
   - `TC_SFC_01..04`
   - `TC_DFI_01..05`
 - Fresh login token setup before `TC_SFC_03` and `TC_DFI_05` worked as intended
+- Cross-version regression on `2026-04-19` also passed on the same branch:
+  - `V1`: `18/18`
+  - `V2`: `10/10`
+  - `V3`: `11/11`
 
 ### Bug Log - Version 3
-- No V3 bugs logged yet
+- No V3 product bugs were reproduced on the current branch
+
+### Release Note - Version 3
+- `V3` is ready for release after the full Postman/Newman rerun passed `11/11`
+- Release acceptance is satisfied because the full regression `F1-F7` passed on `2026-04-19`
 
 ## Mockdata Cleanup
 - Removed seeded `course_slot_packages` sample rows from [docker/init-db.sql](</c:/Users/Phat/OneDrive/Máy tính/KCPM/IGCSE-Learning-Hub/docker/init-db.sql:1>)
