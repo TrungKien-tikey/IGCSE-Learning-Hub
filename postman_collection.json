@@ -1,0 +1,284 @@
+{
+  "info": {
+    "name": "IGCSE-Learning-Hub APIs",
+    "description": "Auto-generated Postman collection with discovered endpoints from project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth Service",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{auth_base}}/api/auth/health"
+          }
+        },
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{auth_base}}/api/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"user@example.com\", \"fullName\": \"User Example\", \"password\": \"pass\", \"role\": \"STUDENT\" }",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "description": "Login returns access token and refresh token. The test script stores both tokens into collection variables for follow-up requests such as refresh-token and logout.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{auth_base}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"user@example.com\", \"password\": \"pass\" }",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Login returns token pair\", function () {",
+                  "        pm.expect(data.token).to.be.a(\"string\").and.not.empty;",
+                  "        pm.expect(data.refreshToken).to.be.a(\"string\").and.not.empty;",
+                  "    });",
+                  "    pm.collectionVariables.set(\"access_token\", data.token);",
+                  "    pm.collectionVariables.set(\"refresh_token\", data.refreshToken);",
+                  "    if (data.email) pm.collectionVariables.set(\"user_email\", data.email);",
+                  "    if (data.role) pm.collectionVariables.set(\"user_role\", data.role);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Check Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{auth_base}}/api/auth/check-email",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"email\": \"user@example.com\" }",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            }
+          }
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "POST",
+            "description": "This endpoint only checks jwtUtils.validateToken(token). It does not consult the logout blacklist, so do not use it to confirm logout behavior.",
+            "url": "{{auth_base}}/api/auth/verify-token?token={{access_token}}"
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{auth_base}}/api/auth/forgot-password?email=user@example.com"
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{auth_base}}/api/auth/reset-password?token={{reset_password_token}}&newPassword=newpass"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{auth_base}}/api/auth/change-password",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"oldPassword\": \"old\", \"newPassword\": \"new\", \"confirmPassword\": \"new\" }",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "description": "Refresh uses the refresh token from request body. Current logout only blacklists the access token, so refresh may still succeed after logout while the refresh token remains valid.",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{auth_base}}/api/auth/refresh-token",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"refreshToken\": \"{{refresh_token}}\" }",
+              "options": {
+                "raw": { "language": "json" }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Refresh returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    const data = pm.response.json();",
+                  "    pm.test(\"Refresh returns a new access token\", function () {",
+                  "        pm.expect(data.token).to.be.a(\"string\").and.not.empty;",
+                  "    });",
+                  "    pm.collectionVariables.set(\"access_token\", data.token);",
+                  "    if (data.refreshToken) pm.collectionVariables.set(\"refresh_token\", data.refreshToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "description": "Logout business flow in current auth-service:\\n- Requires a valid Authorization: Bearer <access_token>. Request body is ignored.\\n- Auth service saves the current access token into blacklisted_tokens until the token reaches its original expiration time.\\n- Refresh token is not revoked here.\\n- Other services currently validate JWT locally and do not read auth-service blacklist, so logout is enforced by auth-service plus client-side token removal, not by global server-side revocation.",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": "{{auth_base}}/api/auth/logout"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const activeToken = pm.collectionVariables.get(\"access_token\");",
+                  "",
+                  "pm.test(\"Logout returns 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    pm.expect(pm.response.text()).to.eql(\"Logged out\");",
+                  "});",
+                  "",
+                  "if (activeToken) {",
+                  "    pm.collectionVariables.set(\"logged_out_access_token\", activeToken);",
+                  "    pm.collectionVariables.unset(\"access_token\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{user_base}}/api/users/health" } },
+        { "name": "Get Me", "request": { "method": "GET", "url": "{{user_base}}/api/users/me", "header":[{"key":"Authorization","value":"Bearer {{access_token}}"}] } },
+        { "name": "Update Me", "request": { "method": "PUT", "url": "{{user_base}}/api/users/me", "header":[{"key":"Authorization","value":"Bearer {{access_token}}"}], "body": { "mode": "raw", "raw": "{ \"fullName\": \"Name\" }" } } },
+        { "name": "Search By Email", "request": { "method": "GET", "url": "{{user_base}}/api/users/search?email=user@example.com" } },
+        { "name": "Get User By Id", "request": { "method": "GET", "url": "{{user_base}}/api/users/{{id}}" } },
+        { "name": "Admin - Delete User", "request": { "method": "DELETE", "url": "{{user_base}}/api/admin/users/{{id}}" } },
+        { "name": "Admin - Deactivate User", "request": { "method": "PATCH", "url": "{{user_base}}/api/admin/users/{{id}}/deactivate" } },
+        { "name": "Admin - Activate User", "request": { "method": "PATCH", "url": "{{user_base}}/api/admin/users/{{id}}/activate" } },
+        { "name": "Admin - Update Role", "request": { "method": "PATCH", "url": "{{user_base}}/api/admin/users/{{id}}/role", "body": { "mode": "raw", "raw": "{ \"role\": \"TEACHER\" }" } } }
+      ]
+    },
+    {
+      "name": "Course Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{course_base}}/api/courses/health" } },
+        { "name": "Get Course", "request": { "method": "GET", "url": "{{course_base}}/api/courses/{{id}}" } },
+        { "name": "Search Courses", "request": { "method": "GET", "url": "{{course_base}}/api/courses/search?keyword=Java" } },
+        { "name": "Get My Courses", "request": { "method": "GET", "url": "{{course_base}}/api/courses/mine", "header":[{"key":"Authorization","value":"Bearer {{access_token}}"}] } },
+        { "name": "Enroll Course", "request": { "method": "POST", "url": "{{course_base}}/api/courses/{{courseId}}/enroll", "header":[{"key":"Authorization","value":"Bearer {{access_token}}"}] } }
+      ]
+    },
+    {
+      "name": "Exam Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{exam_base}}/api/exams/health" } },
+        { "name": "Get Exam", "request": { "method": "GET", "url": "{{exam_base}}/api/exams/{{examId}}" } },
+        { "name": "Start Exam", "request": { "method": "POST", "url": "{{exam_base}}/api/exams/start", "body": { "mode": "raw", "raw": "{ \"examId\": 1 }" } } },
+        { "name": "Submit Exam", "request": { "method": "POST", "url": "{{exam_base}}/api/exams/submit", "body": { "mode": "raw", "raw": "{ \"attemptId\": 1, \"answers\": [] }" } } }
+      ]
+    },
+    {
+      "name": "Payment Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{payment_base}}/api/payment/health" } },
+        { "name": "List Packages", "request": { "method": "GET", "url": "{{payment_base}}/api/payment/packages" } },
+        { "name": "Get Package", "request": { "method": "GET", "url": "{{payment_base}}/api/payment/packages/{{id}}" } },
+        { "name": "Purchase Slots", "request": { "method": "POST", "url": "{{payment_base}}/api/payment/slots/purchase", "body": { "mode": "raw", "raw": "{ \"packageId\": 1, \"teacherId\": 2 }" } } }
+      ]
+    },
+    {
+      "name": "Communication Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{comm_base}}/api/notifications/health" } },
+        { "name": "Subscribe", "request": { "method": "POST", "url": "{{comm_base}}/api/notifications/subscribe", "body": { "mode": "raw", "raw": "{ \"topic\": \"all\" }" } } },
+        { "name": "Get Comments By Exam", "request": { "method": "GET", "url": "{{comm_base}}/api/comments/exam/{{examId}}" } },
+        { "name": "Send Chat Message", "request": { "method": "POST", "url": "{{comm_base}}/api/chat/send", "body": { "mode": "raw", "raw": "{ \"roomId\": \"r1\", \"message\": \"hi\" }" } } }
+      ]
+    },
+    {
+      "name": "AI Service",
+      "item": [
+        { "name": "Health", "request": { "method": "GET", "url": "{{ai_base}}/api/ai/health" } },
+        { "name": "Get Result", "request": { "method": "GET", "url": "{{ai_base}}/api/ai/result/{{attemptId}}" } },
+        { "name": "Ingest Context (NiFi)", "request": { "method": "POST", "url": "{{ai_base}}/api/ai/ingest-context", "body": { "mode": "raw", "raw": "{ \"data\": {} }" } } }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "auth_base", "value": "http://localhost:8088" },
+    { "key": "user_base", "value": "http://localhost:8082" },
+    { "key": "course_base", "value": "http://localhost:8083" },
+    { "key": "exam_base", "value": "http://localhost:8084" },
+    { "key": "payment_base", "value": "http://localhost:8085" },
+    { "key": "comm_base", "value": "http://localhost:8086" },
+    { "key": "ai_base", "value": "http://localhost:8087" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "reset_password_token", "value": "" },
+    { "key": "logged_out_access_token", "value": "" },
+    { "key": "user_email", "value": "" },
+    { "key": "user_role", "value": "" }
+  ]
+}

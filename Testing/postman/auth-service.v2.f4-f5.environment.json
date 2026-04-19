@@ -1,0 +1,86 @@
+﻿{
+    "id":  "a327bc1c-faf0-4048-b3ab-9ee4cdddd29d",
+    "name":  "Auth Service Local - local-dev-auth-v2-fix-2026-04-18",
+    "values":  [
+                   {
+                       "key":  "auth_base",
+                       "value":  "http://localhost:8088",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "valid_user_email",
+                       "value":  "user5@example.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "valid_user_password",
+                       "value":  "abc321",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "duplicate_email",
+                       "value":  "user4@example.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "register_email_1",
+                       "value":  "codex+rg02+0418180736@example.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "register_email_2",
+                       "value":  "codex+rg01+0418180736@example.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "register_email_3",
+                       "value":  "codex+rg08+0418180736@example.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "email_boundary_254",
+                       "value":  "codex0418180736aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.ddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "email_boundary_255",
+                       "value":  "codex0418180736aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.dddddddddddddddddddddddddddddddddddddddddddddddddddddddddd.com",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "expired_access_token",
+                       "value":  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjEsImV4cCI6MTc3NjUwNjg1Niwic3ViIjoidXNlcjVAZXhhbXBsZS5jb20iLCJlbWFpbCI6InVzZXI1QGV4YW1wbGUuY29tIiwicm9sZSI6IlNUVURFTlQiLCJ2ZXJpZmljYXRpb25TdGF0dXMiOiJWRVJJRklFRCIsImlhdCI6MTc3NjUwMzI1Nn0.CHuEqKeo0qVvxfj127wZxtTH3SudZPXCfxBPZPGiXY8",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "malformed_token",
+                       "value":  "malformed_token",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "invalid_jwt_token",
+                       "value":  "invalid_jwt_token",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "invalid_prefix_value",
+                       "value":  "Token abc123",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "change_new_password",
+                       "value":  "abc123456",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "access_token",
+                       "value":  "",
+                       "enabled":  true
+                   },
+                   {
+                       "key":  "refresh_token",
+                       "value":  "",
+                       "enabled":  true
+                   }
+               ]
+}

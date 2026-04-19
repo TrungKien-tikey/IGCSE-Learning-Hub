@@ -279,16 +279,31 @@ public class StatisticsService implements IStatisticsService {
                 summary.setRecentAlerts(alerts.stream().limit(5).collect(Collectors.toList()));
 
                 // 4. Weaknesses (Re-use basic stats logic if available, or simplify)
-                // For now, simplify as we don't store aggregate topic stats easily without
-                // heavy calc
-                // We will take weakness from the LATEST Exam if possible?
-                // Or better, extract from basic stats subject performance if it was topics.
-                // Here we imply using a placeholder or simple logic.
                 summary.setTopWeaknesses(new ArrayList<>());
 
-                summary.setOverallEffortScore(8.5); // Mock/Placeholder until complex Algo
+                summary.setOverallEffortScore(calculateOverallEffortScore(analytics));
 
                 return summary;
+        }
+
+        private double calculateOverallEffortScore(LearningAnalyticsDTO analytics) {
+                if (analytics == null || analytics.getEffortMetrics() == null || analytics.getEffortMetrics().isEmpty()) {
+                        return 0.0;
+                }
+
+                double averageEffortRatio = analytics.getEffortMetrics().stream()
+                                .filter(point -> point.getDurationSeconds() != null
+                                                && point.getExpectedDurationSeconds() != null
+                                                && point.getExpectedDurationSeconds() > 0)
+                                .mapToDouble(point -> {
+                                        double ratio = (double) point.getDurationSeconds()
+                                                        / point.getExpectedDurationSeconds();
+                                        return Math.min(ratio, 1.0);
+                                })
+                                .average()
+                                .orElse(0.0);
+
+                return Math.round((averageEffortRatio * 10.0) * 10.0) / 10.0;
         }
 
         private int extractDurationFromDetails(String jsonDetails) {
