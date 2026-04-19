@@ -3,6 +3,7 @@ package com.igcse.course.exception;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -32,7 +33,8 @@ public class GlobalExceptionHandler {
                 "message", errorMessage));
     }
 
-    // 3. QUAN TRỌNG: Xử lý lỗi vi phạm ràng buộc từ Entity (Sửa lỗi 500 cho Min -1/Max +1)
+    // 3. QUAN TRỌNG: Xử lý lỗi vi phạm ràng buộc từ Entity (Sửa lỗi 500 cho Min
+    // -1/Max +1)
     // Lỗi này xảy ra khi dữ liệu vượt biên @Min, @Max trong file Course.java
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
@@ -43,5 +45,20 @@ public class GlobalExceptionHandler {
                 "status", 400,
                 "error", "Vi phạm ràng buộc dữ liệu",
                 "message", errorMessage));
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    public ResponseEntity<?> handleMissingHeaderException(MissingRequestHeaderException ex) {
+        // Nếu lỗi là do thiếu header Authorization (Thiếu Token)
+        if ("Authorization".equalsIgnoreCase(ex.getHeaderName())) {
+            return ResponseEntity.status(401).body(java.util.Map.of(
+                    "error", "Unauthorized",
+                    "message", "Thiếu Token xác thực (Authorization header)"));
+        }
+
+        // Nếu thiếu các header khác thì trả về 400 Bad Request
+        return ResponseEntity.status(400).body(java.util.Map.of(
+                "error", "Bad Request",
+                "message", "Thiếu thông tin header: " + ex.getHeaderName()));
     }
 }

@@ -175,7 +175,8 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCourse(@PathVariable Long id, @RequestBody Course courseDetails,
+    public ResponseEntity<?> updateCourse(@PathVariable Long id,
+            @jakarta.validation.Valid @RequestBody Course courseDetails,
             @RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
         if (userId == null) {
@@ -440,14 +441,28 @@ public class CourseController {
 
     // API Bước 4: Duyệt khóa học (Chỉ dành cho MANAGER/ADMIN)
     @PutMapping("/{id}/approve")
-    public ResponseEntity<?> approveCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
-        String role = jwtUtils.extractRole(tokenHeader.substring(7));
-        if (!"MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
-            return ResponseEntity.status(403).body("Bạn không có quyền thực hiện hành động này");
+    public ResponseEntity<?> approveCourse(@PathVariable Long id,
+            @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
+        // 1. Kiểm tra an toàn trước khi cắt chuỗi
+        if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
         }
 
-        boolean success = courseService.approveCourse(id);
-        return success ? ResponseEntity.ok("Duyệt thành công!") : ResponseEntity.notFound().build();
+        try {
+            String token = tokenHeader.substring(7);
+            String role = jwtUtils.extractRole(token);
+
+            if (!"MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
+                return ResponseEntity.status(403).body("Bạn không có quyền thực hiện hành động này");
+            }
+
+            boolean success = courseService.approveCourse(id);
+            return success ? ResponseEntity.ok("Duyệt thành công!") : ResponseEntity.notFound().build();
+
+        } catch (Exception e) {
+            // 2. Bắt lỗi nếu Token bị rỗng hoặc sai định dạng để không bị 500
+            return ResponseEntity.status(401).body("Token không hợp lệ!");
+        }
     }
 
     // API lấy danh sách cho trang chủ (Ai cũng xem được -> Chỉ hiện khóa đã duyệt)
