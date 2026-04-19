@@ -43,7 +43,7 @@ const menuItems = {
   ],
   parent: [
     { title: "Tổng quan", icon: Home, url: "/" },
-    { title: "Hồ sơ học tập AI", icon: Activity, url: "/ai/dashboard/parent/placeholder" }, // Will be replaced dynamic
+    { title: "Hồ sơ học tập AI", icon: Activity, url: "/ai/dashboard/parent" },
   ],
 };
 
@@ -119,14 +119,14 @@ const MainLayout = ({ children }) => {
     if (studentId) {
       items = items.map(item => {
         // Replace /placeholder with actual student ID
-        if (item.url.includes('/placeholder')) {
+        if (item.url === '/ai/dashboard/parent') {
           return { ...item, url: `/ai/dashboard/parent/${studentId}` };
         }
         return item;
       });
     } else {
       // If no student linked, hide the AI dashboard link or redirect to main parent dashboard
-      items = items.filter(item => !item.url.includes('/placeholder'));
+      items = items.filter(item => item.url !== '/ai/dashboard/parent');
     }
   }
 

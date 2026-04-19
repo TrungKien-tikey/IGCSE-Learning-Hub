@@ -169,7 +169,7 @@ $corsConfig = @{
         methods            = @("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD")
         headers            = @(
             "Accept", "Accept-Version", "Content-Length", "Content-Type",
-            "Date", "Authorization", "X-Requested-With", "ngrok-skip-browser-warning",
+            "Date", "Authorization", "X-Requested-With",
             "Cache-Control", "X-CSRF-Token"
         )
         exposed_headers    = @("X-Auth-Token", "Authorization", "Content-Type")

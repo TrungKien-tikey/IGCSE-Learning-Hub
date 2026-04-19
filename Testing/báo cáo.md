@@ -151,7 +151,6 @@ Nguon tong hop:
 ### Rui ro da biet truoc khi chay
 - `TC_SFC_03` va `TC_DFI_05` dung `logout` lam protected endpoint nen token se bi blacklist neu tai su dung
 - Runner phai login lai de lay fresh token truoc moi valid-token case co side effect
-- Test harness `auth-test-common.ps1` truoc do hardcode pattern `Active Queue` trong precheck canonicalization; da duoc sua de khong chan rerun tren tai lieu da cap nhat trang thai
 
 ### Tieu chi release V3
 - `TC_SFC_*` va `TC_DFI_*` dung endpoint that
@@ -179,12 +178,5 @@ Nguon tong hop:
 - Doi log `[MAIL MOCKED]` thanh log trung tinh theo config trong `auth-service`
 
 ## Ghi chu van hanh
-- Runner chinh: `Postman/Newman`
-- Wrapper scripts:
-  - `Testing/scripts/v1-f1-f3.ps1`
-  - `Testing/scripts/v2-f4-f5.ps1`
-  - `Testing/scripts/v3-f6-f7.ps1`
-- Common automation logic:
-  - `Testing/scripts/auth-test-common.ps1`
-- Script tao branch version:
-  - `Testing/scripts/new-version-branches.ps1`
+- Runner chinh: `Postman`
+- Bo import cuoi cung: `Testing/postman/`

@@ -21,8 +21,7 @@ This file is the system of record for versioned auth-service test execution, bug
 - Version 2 active label: `local-dev-auth-v2-fix-2026-04-19`
 - Version 3 active label: `local-dev-auth-v3-fix-2026-04-19`
 - Base URL: `http://localhost:8088`
-- Request source for automation: `Testing/scripts/auth-test-common.ps1`
-- Runner target: `Postman/Newman`
+- Runner target: `Postman`
 
 ## Pre-check
 - [x] MySQL reachable on `localhost:3310`
@@ -139,7 +138,6 @@ This file is the system of record for versioned auth-service test execution, bug
 ### Version 2 Notes
 - Function 4 must always use `POST /api/auth/forgot-password?email=...`
 - Function 5 must always include `Authorization: Bearer <valid_token>`
-- Postman harness issue that previously produced `Bearer ` headers was fixed in `Testing/scripts/auth-test-common.ps1`; results below are from the corrected rerun.
 
 ### Execution Result - Version 2
 - Discovery run on `2026-04-18`: `7/10` assertions passed, `3/10` failed
@@ -190,8 +188,6 @@ This file is the system of record for versioned auth-service test execution, bug
 - Remove any placeholder `/api/protected` usage; protected endpoint is `POST /api/auth/logout`
 - Public endpoint is `GET /api/auth/health`
 - Version 3 must finish with cross-version regression `F1-F7`
-- Test harness note:
-  - `Testing/scripts/auth-test-common.ps1` canonicalization precheck was updated to accept closed-state doc sections so reruns do not fail on already-fixed versions
 
 ### Execution Result - Version 3
 - Postman/Newman execution on `2026-04-19`: `11/11` requests passed, `11/11` assertions passed

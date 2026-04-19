@@ -1,81 +1,43 @@
 import axios from 'axios';
 
-// 1. Tạo instance với path tương đối - sẽ đi qua Vite proxy -> Kong Gateway
-// Không dùng port cố định để tận dụng proxy configuration
-// 1. Lấy Base URL từ env. Nếu không có VITE_MAIN_API_URL, thử suy diễn từ các biến khác
-// 1. Lấy Base URL từ env
-// Ưu tiên VITE_MAIN_API_URL. Nếu không có, fallback sang Ngrok URL đang dùng.
-const HARDCODED_URL = 'https://aniya-scrumptious-lina.ngrok-free.dev';
-let baseURL = import.meta.env.VITE_MAIN_API_URL;
+const stripApiBase = (url = '') => {
+  let normalized = url.trim();
+  normalized = normalized.replace(/\/api\/v1\/?$/, '');
+  normalized = normalized.replace(/\/api\/?$/, '');
+  normalized = normalized.replace(/\/$/, '');
+  return normalized;
+};
+
+let baseURL = stripApiBase(import.meta.env.VITE_MAIN_API_URL || '');
 
 if (!baseURL) {
-  // Thử suy luận từ các biến khác nếu có
-  const otherUrl = import.meta.env.VITE_AI_SERVICE_URL || 
-                   import.meta.env.VITE_USER_SERVICE_URL || 
-                   import.meta.env.VITE_ADMIN_API_URL;
-                   
-  if (otherUrl && otherUrl.includes('/api')) {
-    baseURL = otherUrl.split('/api')[0];
-  } else {
-    // Fallback cuối cùng
-    baseURL = HARDCODED_URL;
-  }
-  
-  console.log("⚠️ AxiosClient: VITE_MAIN_API_URL missing using fallback:", baseURL);
+  const fallbackUrl = import.meta.env.VITE_AI_SERVICE_URL ||
+    import.meta.env.VITE_USER_SERVICE_URL ||
+    import.meta.env.VITE_ADMIN_API_URL ||
+    '';
+  baseURL = stripApiBase(fallbackUrl);
 }
-
-// 🛡️ BẢO VỆ CHỐNG LẶP URL: Xóa đuôi /api/v1 nếu có
-if (baseURL.endsWith('/api/v1')) {
-  baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-} else if (baseURL.endsWith('/api/v1/')) {
-    baseURL = baseURL.replace(/\/api\/v1\/?$/, '');
-}
-// Xóa luôn đuôi /api nếu lỡ có (để thống nhất logic cộng chuỗi)
-if (baseURL.endsWith('/api')) {
-   baseURL = baseURL.replace(/\/api\/?$/, '');
-}
-
-// Đảm bảo không có trailing slash
-if (baseURL.endsWith('/')) {
-  baseURL = baseURL.slice(0, -1);
-}
-
-console.log("✓ AxiosClient BaseURL:", baseURL);
 
 const axiosClient = axios.create({
-  baseURL: baseURL, 
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
-    "ngrok-skip-browser-warning": "69420",
   },
 });
 
-// 2. REQUEST INTERCEPTOR (Giữ nguyên)
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('accessToken');
-    console.log(`📤 ${config.method.toUpperCase()} ${config.url}`, {
-      hasToken: !!token,
-      tokenLength: token ? token.length : 0
-    });
     if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-      console.log("✓ Token attached to request");
-    } else {
-      console.warn("⚠️ No token in localStorage");
+      config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// 3. RESPONSE INTERCEPTOR (Cần sửa đường dẫn gọi API Refresh)
 axiosClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
@@ -86,26 +48,22 @@ axiosClient.interceptors.response.use(
         const refreshToken = localStorage.getItem('refreshToken');
 
         if (!refreshToken) {
-          throw new Error("No refresh token available");
+          throw new Error('No refresh token available');
         }
 
-        // Gọi API Refresh Token qua Kong Gateway
-        // ⚠️ Lưu ý: Dùng 'axios' gốc để gọi tránh lặp vô tận
         const result = await axios.post(`${baseURL}/api/auth/refresh-token`, {
-          refreshToken: refreshToken
+          refreshToken,
         });
 
         const { token } = result.data;
-
         localStorage.setItem('accessToken', token);
 
-        axiosClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        axiosClient.defaults.headers.common.Authorization = `Bearer ${token}`;
+        originalRequest.headers.Authorization = `Bearer ${token}`;
 
         return axiosClient(originalRequest);
-
       } catch (refreshError) {
-        console.error("Lỗi refresh token:", refreshError);
+        console.error('Lỗi refresh token:', refreshError);
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('role');
