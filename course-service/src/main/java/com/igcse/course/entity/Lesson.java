@@ -33,7 +33,7 @@ public class Lesson {
     @Column(columnDefinition = "TEXT") // Link Cloudinary thường rất dài nên dùng TEXT
     private String resourceUrl; // Lưu URL của file tài liệu (PDF, Docx...)
 
-    private String resourceName; // MỚI: Lưu tên file gốc (VD: "bai_tap_1.pdf") để hiển thị và quản lý xóa
+    private String resourceName; // Lưu tên file gốc để hiển thị và quản lý
     @Column(columnDefinition = "TEXT")
     private String meetingUrl;
 
@@ -51,17 +51,15 @@ public class Lesson {
     // --- Business Method (Cập nhật logic nghiệp vụ) ---
     public void updateLesson(String title, String content, Integer orderIndex, 
                              String videoUrl, String resourceUrl, String resourceName, 
-                             String meetingUrl, LocalDateTime startTime) { // <--- THÊM 2 THAM SỐ NÀY
+                             String meetingUrl, LocalDateTime startTime) {
         if (title != null) this.title = title;
         if (content != null) this.content = content;
         if (orderIndex != null) this.orderIndex = orderIndex;
         
-        // Cập nhật các trường link và tài liệu
         this.videoUrl = videoUrl;
         this.resourceUrl = resourceUrl;
         this.resourceName = resourceName;
         
-        // Cập nhật 2 trường mới cho lớp học trực tuyến
         this.meetingUrl = meetingUrl;
         this.startTime = startTime;
     }
@@ -131,7 +129,7 @@ public class Lesson {
         this.course = course;
     }
 
-    // --- GETTER & SETTER CHO 2 TRƯỜNG MỚI ---
+    // --- Getter & Setter cho lớp học trực tuyến ---
     public String getMeetingUrl() {
         return meetingUrl;
     }

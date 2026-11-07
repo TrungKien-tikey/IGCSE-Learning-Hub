@@ -29,19 +29,12 @@ public class CourseService {
     @Autowired
     private com.igcse.course.client.PaymentClient paymentClient;
 
-    // ==========================================
-    // PHẦN 1: COURSE MANAGEMENT (Task 1 - Đã nâng cấp Validate)
-    // ==========================================
+    // --- Course management ---
 
-    // Bỏ chữ "String keyword" trong ngoặc đi
     public List<Course> getAllCourses() {
         return courseRepository.findAll();
     }
 
-    // Thêm 2 tham số userId và role để đối soát quyền hạn
-    // Phiên bản 1: Giữ nguyên để phục vụ các hàm nội bộ như updateCourse,
-    // addLesson...
-    // Điều này sẽ fix ngay lập tức lỗi "not applicable for the arguments (Long)"
     public Course getCourseById(Long id) {
         Course course = courseRepository.findById(id).orElse(null);
         if (course != null) {
@@ -51,21 +44,15 @@ public class CourseService {
         return course;
     }
 
-    // Phiên bản 2: Dùng cho API Xem chi tiết, có kiểm tra quyền hạn (IDOR Fix)
-    // Trong CourseService.java
     public Course getCourseById(Long id, Long userId, String role) {
-        // 1. Tìm khóa học - Nếu không thấy ném lỗi 404 (Dùng ResponseStatusException
-        // cho nhanh)
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy khóa học ID: " + id));
 
-        // 2. Logic phân quyền (Giữ nguyên)
         boolean isPrivileged = role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER"));
         boolean isOwner = userId != null && userId.equals(course.getTeacherId());
         boolean isEnrolled = enrollmentRepository.existsByCourseCourseIdAndUserId(id, userId);
 
-        // 3. Nếu sai quyền - Ném lỗi 403
         if (!isPrivileged && !isOwner && !isEnrolled) {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.FORBIDDEN, "Bạn không có quyền xem chi tiết khóa học này.");
@@ -75,7 +62,6 @@ public class CourseService {
     }
 
     public Course createCourse(Course course, Long teacherId) {
-        // Validate dữ liệu đầu vào
         if (course.getTitle() == null || course.getTitle().trim().isEmpty()) {
             throw new RuntimeException("Tên khóa học không được để trống!");
         }
@@ -104,12 +90,10 @@ public class CourseService {
             throw new RuntimeException("Không tìm thấy khóa học ID: " + id);
         }
 
-        // Validate khi update
         if (req.getPrice() != null && req.getPrice() < 0) {
             throw new RuntimeException("Giá tiền không hợp lệ!");
         }
 
-        // Gọi hàm update của Entity
         existingCourse.updateCourse(req.getTitle(), req.getDescription(), req.getPrice(), req.getDuration());
         return courseRepository.save(existingCourse);
     }
@@ -125,25 +109,21 @@ public class CourseService {
     }
 
     public boolean deleteCourse(Long id) {
-        // 1. Tìm khóa học
         Course course = courseRepository.findById(id).orElse(null);
 
         if (course != null) {
-            // 2. KIỂM TRA RÀNG BUỘC (Sửa lỗi TC-COURSE-DEL-04)
-            // Nếu phát hiện đã có học sinh đăng ký trong DB
             if (enrollmentRepository.existsByCourseCourseId(id)) {
                 throw new org.springframework.web.server.ResponseStatusException(
                         org.springframework.http.HttpStatus.BAD_REQUEST,
                         "Không thể xóa khóa học do đã có học sinh đăng ký");
             }
 
-            // 3. GIỮ NGUYÊN TÍNH CHẤT CŨ: Lưu lại teacherId trước khi xóa
+            // Lưu teacherId trước khi xóa để hoàn suất học
             Long teacherId = course.getTeacherId();
 
-            // 4. THỰC HIỆN XÓA CỨNG
             courseRepository.deleteById(id);
 
-            // 5. GIỮ NGUYÊN TÍNH CHẤT CŨ: Hoàn trả 1 suất học cho giáo viên
+            // Hoàn trả suất học cho giáo viên
             if (teacherId != null) {
                 paymentClient.returnSlot(teacherId);
             }
@@ -152,11 +132,10 @@ public class CourseService {
         return false;
     }
 
-    // Trong CourseService.java
     public boolean activateCourse(Long id) {
         Course course = getCourseById(id);
         if (course != null) {
-            course.setActive(true); // Chuyển thành true (Hiện)
+            course.setActive(true);
             courseRepository.save(course);
             return true;
         }
@@ -179,17 +158,13 @@ public class CourseService {
         return enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId);
     }
 
-    // ==========================================
-    // PHẦN 2: LESSON MANAGEMENT (Task 2 - Giữ nguyên chờ làm)
-    // ==========================================
+    // --- Lesson management ---
 
     public List<Lesson> getLessonsByCourse(Long courseId) {
         return lessonRepository.findByCourseCourseIdOrderByOrderIndexAsc(courseId);
     }
 
     public Lesson addLesson(Long courseId, Lesson lesson) {
-        // Sử dụng hàm getCourseById(Long id) phiên bản nội bộ (1 tham số)
-        // để lấy dữ liệu Course gắn vào Lesson
         Course course = getCourseById(courseId);
 
         if (course == null) {
@@ -205,11 +180,9 @@ public class CourseService {
     }
 
     public Lesson updateLesson(Long lessonId, String title, String content, Integer order, String videoUrl,
-            String resourceUrl, String resourceName, String meetingUrl, LocalDateTime startTime) { // <--- Thêm 2 tham
-                                                                                                   // số
+            String resourceUrl, String resourceName, String meetingUrl, LocalDateTime startTime) {
         Lesson lesson = getLessonById(lessonId);
         if (lesson != null) {
-            // GỌI HÀM VỚI 8 THAM SỐ
             lesson.updateLesson(title, content, order, videoUrl, resourceUrl, resourceName, meetingUrl, startTime);
             return lessonRepository.save(lesson);
         }
@@ -224,11 +197,8 @@ public class CourseService {
         return false;
     }
 
-    // ==========================================
-    // PHẦN 3: ENROLLMENT (Task 3 - Giữ nguyên chờ làm)
-    // ==========================================
+    // --- Enrollment ---
 
-    // 1. Tìm kiếm khóa học
     public List<Course> searchCourses(String keyword) {
         if (keyword != null && !keyword.trim().isEmpty()) {
             return courseRepository.findByTitleContainingIgnoreCase(keyword.trim());
@@ -236,19 +206,16 @@ public class CourseService {
         return courseRepository.findAll();
     }
 
-    // 2. Ghi danh (Enroll)
     public boolean enrollCourse(Long courseId, Long userId) {
-        // Kiểm tra 1: User đã đăng ký chưa?
         if (enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId)) {
-            return false; // Đã đăng ký rồi thì thôi
+            return false;
         }
 
-        // Kiểm tra 2: Khóa học có tồn tại và đang mở không?
         Course course = getCourseById(courseId);
         if (course != null && course.isActive()) {
             Enrollment enrollment = new Enrollment();
             enrollment.setCourse(course);
-            enrollment.setUserId(userId); // Lưu ID người dùng
+            enrollment.setUserId(userId);
             enrollmentRepository.save(enrollment);
             return true;
         }
@@ -258,48 +225,42 @@ public class CourseService {
     public boolean approveCourse(Long courseId) {
         Course course = courseRepository.findById(courseId).orElse(null);
         if (course != null) {
-            course.setActive(true); // Kích hoạt khóa học
-            courseRepository.save(course); // Lưu xuống DB
+            course.setActive(true);
+            courseRepository.save(course);
             return true;
         }
         return false;
     }
 
-    // 1. Hàm cho Admin/Manager (Lấy tất cả để xét duyệt)
+    // Dành cho Admin/Manager (xét duyệt)
     public List<Course> getAllCoursesForAdmin() {
         return courseRepository.findAll();
     }
 
-    // 2. Hàm cho Học sinh/Giáo viên (Chỉ hiển thị khóa đã được duyệt)
+    // Khóa học đã được duyệt
     public List<Course> getPublishedCourses() {
-        // Gọi findByIsActive thay vì findByActive
         return courseRepository.findByIsActive(true);
     }
 
-    // 1. Đánh dấu hoàn thành bài học
     public void markLessonAsComplete(Long userId, Long courseId, Long lessonId) {
 
-        // 1. Kiểm tra bài học có tồn tại không
         Lesson lesson = lessonRepository.findById(lessonId)
                 .orElseThrow(() -> new RuntimeException("Bài học không tồn tại"));
 
-        // 2. Kiểm tra bài học có thuộc khóa học đang gửi lên không (Bảo mật)
+        // Bài học phải thuộc khóa học đang gửi lên
         if (!lesson.getCourse().getCourseId().equals(courseId)) {
             throw new RuntimeException("Bài học không thuộc khóa học này");
         }
 
-        // 3. QUAN TRỌNG: Kiểm tra xem user đã mua khóa học chưa
-        // Đổi tên hàm và đảo vị trí tham số cho khớp với Repository hiện tại
+        // Học sinh phải đăng ký khóa học trước khi đánh dấu hoàn thành
         boolean isEnrolled = enrollmentRepository.existsByCourseCourseIdAndUserId(courseId, userId);
         if (!isEnrolled) {
             throw new RuntimeException("Bạn chưa đăng ký khóa học này!");
         }
 
-        // 4. Lưu tiến độ
         LessonProgress progress = lessonProgressRepository.findByUserIdAndLessonId(userId, lessonId)
                 .orElse(new LessonProgress());
 
-        // Nếu là record mới thì set thông tin
         if (progress.getId() == null) {
             progress.setUserId(userId);
             progress.setLessonId(lessonId);
@@ -312,9 +273,8 @@ public class CourseService {
         lessonProgressRepository.save(progress);
     }
 
-    // 2. Tính % tiến độ khóa học
+    // % tiến độ khóa học
     public double getCourseProgress(Long userId, Long courseId) {
-        // totalLessons: Đếm tổng bài của khóa 18
         long totalLessons = lessonRepository.countByCourseCourseId(courseId);
         if (totalLessons == 0)
             return 0.0;
@@ -325,33 +285,26 @@ public class CourseService {
     }
 
     public List<Long> getCompletedLessonIds(Long userId, Long courseId) {
-        // Gọi xuống Repository để lấy danh sách LessonProgress đã hoàn thành
         List<LessonProgress> progressList = lessonProgressRepository
                 .findByUserIdAndCourseIdAndIsCompleted(userId, courseId, true);
 
-        // Chuyển đổi từ danh sách Object sang danh sách ID (Long)
         return progressList.stream()
                 .map(LessonProgress::getLessonId)
                 .collect(Collectors.toList());
     }
 
     public List<com.igcse.course.dto.StudentProgressDTO> getStudentProgressSummary(Long studentId) {
-        // 1. Lấy danh sách khóa học user đã đăng ký
         List<Enrollment> enrollments = enrollmentRepository.findByUserId(studentId);
 
-        // 2. Tính toán tiến độ cho từng khóa
         return enrollments.stream().map(enrollment -> {
             Course course = enrollment.getCourse();
 
-            // Tận dụng hàm getCourseProgress đã có
             double progress = getCourseProgress(studentId, course.getCourseId());
 
-            // Đếm số bài
             long totalLessons = lessonRepository.countByCourseCourseId(course.getCourseId());
             long completedLessons = lessonProgressRepository.countByUserIdAndCourseIdAndIsCompleted(studentId,
                     course.getCourseId(), true);
 
-            // Map sang DTO
             com.igcse.course.dto.StudentProgressDTO dto = new com.igcse.course.dto.StudentProgressDTO();
             dto.setCourseId(course.getCourseId());
             dto.setCourseTitle(course.getTitle());

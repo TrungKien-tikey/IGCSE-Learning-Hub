@@ -12,7 +12,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 1. Xử lý lỗi sai định dạng tham số (Ví dụ: ID phải là số nhưng nhập chữ)
+    // Sai định dạng tham số
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.status(400).body(Map.of(
@@ -20,10 +20,9 @@ public class GlobalExceptionHandler {
                 "message", "Tham số '" + ex.getName() + "' không hợp lệ. Phải là kiểu số (Long)!"));
     }
 
-    // 2. Xử lý lỗi Validation khi sử dụng @Valid ở tầng Controller
+    // Lỗi validation từ @Valid
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidationExceptions(MethodArgumentNotValidException ex) {
-        // Lấy thông báo lỗi cụ thể từ các annotation như @NotBlank, @NotNull
         String errorMessage = ex.getBindingResult().getFieldError().getDefaultMessage();
 
         return ResponseEntity.status(400).body(Map.of(
@@ -32,11 +31,9 @@ public class GlobalExceptionHandler {
                 "message", errorMessage));
     }
 
-    // 3. QUAN TRỌNG: Xử lý lỗi vi phạm ràng buộc từ Entity (Sửa lỗi 500 cho Min -1/Max +1)
-    // Lỗi này xảy ra khi dữ liệu vượt biên @Min, @Max trong file Course.java
+    // Vi phạm ràng buộc @Min/@Max
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        // Lấy thông báo lỗi đầu tiên trong danh sách vi phạm
         String errorMessage = ex.getConstraintViolations().iterator().next().getMessage();
 
         return ResponseEntity.status(400).body(Map.of(

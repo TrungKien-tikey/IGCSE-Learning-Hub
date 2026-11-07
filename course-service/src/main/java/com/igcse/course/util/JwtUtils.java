@@ -21,7 +21,7 @@ public class JwtUtils {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    // --- 1. Lấy UserID từ Token (Hàm mới thêm quan trọng nhất) ---
+    // Lấy UserID từ token
     public Long extractUserId(String token) {
         return extractClaim(token, claims -> {
             Object userId = claims.get("userId");
@@ -32,7 +32,7 @@ public class JwtUtils {
         });
     }
 
-    // --- 2. Các hàm hỗ trợ cơ bản ---
+    // Các hàm hỗ trợ
     public String extractRole(String token) {
         final Claims claims = extractAllClaims(token);
         return claims.get("role", String.class);

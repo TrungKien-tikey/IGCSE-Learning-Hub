@@ -29,7 +29,6 @@ public class LessonProgress {
 
     // --- CÁC HÀM GETTER / SETTER ---
 
-    // QUAN TRỌNG: Phải có 2 hàm này để Service không bị lỗi
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

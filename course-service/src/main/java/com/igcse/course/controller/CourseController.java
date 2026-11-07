@@ -38,15 +38,13 @@ public class CourseController {
     @Autowired
     private EnrollmentRepository enrollmentRepositor;
 
-    // --- Helper method để lấy ID từ Header ---
-    // Sửa hàm này trong CourseController.java để tìm lỗi
     private Long getUserIdFromHeader(String tokenHeader) {
-        System.out.println(">>> Header nhận được: " + tokenHeader); // Thêm dòng này
+        System.out.println(">>> Header nhận được: " + tokenHeader);
         if (tokenHeader != null && tokenHeader.startsWith("Bearer ")) {
             String token = tokenHeader.substring(7);
             if (jwtUtils.validateToken(token)) {
                 Long id = jwtUtils.extractUserId(token);
-                System.out.println(">>> UserId trích xuất được: " + id); // Thêm dòng này
+                System.out.println(">>> UserId trích xuất được: " + id);
                 return id;
             } else {
                 System.out.println(">>> Token không hợp lệ (Sai key hoặc hết hạn)");
@@ -55,9 +53,7 @@ public class CourseController {
         return null;
     }
 
-    // --- COURSE APIs (Task 1 - CRUD Cơ bản) ---
 
-    // 1. Chỉ lấy danh sách tất cả (Bỏ tham số keyword)
     @GetMapping
     public ResponseEntity<List<Course>> getAllCourses() {
         return ResponseEntity.ok(courseService.getAllCourses());
@@ -83,7 +79,7 @@ public class CourseController {
         return ResponseEntity.ok("Đã gán tất cả " + all.size() + " khóa học cho User ID: " + userId);
     }
 
-    // 1b. API lấy danh sách khóa học DO TÔI DẠY (Dành cho Giáo viên)
+    // Khóa học do giáo viên đang đăng nhập dạy
     @GetMapping("/teacher")
     public ResponseEntity<?> getTeacherCourses(@RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
@@ -98,12 +94,11 @@ public class CourseController {
         return ResponseEntity.ok(courses);
     }
 
-    // 1. API lấy danh sách khóa học CỦA TÔI (Đã đăng ký)
+    // Khóa học học sinh đang đăng nhập đã đăng ký
     @GetMapping("/mine")
     public ResponseEntity<?> getMyCourses(@RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
 
-        // Nếu token lỗi hoặc hết hạn -> Trả về 401 Unauthorized
         if (userId == null) {
             return ResponseEntity.status(401).body("Unauthorized: Vui lòng đăng nhập lại.");
         }
@@ -112,7 +107,7 @@ public class CourseController {
         return ResponseEntity.ok(courses);
     }
 
-    // 2. API lấy danh sách GỢI Ý (Chưa đăng ký + Đang Active)
+    // Khóa học gợi ý: chưa đăng ký và đang mở
     @GetMapping("/recommended")
     public ResponseEntity<?> getRecommendedCourses(@RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
@@ -127,17 +122,13 @@ public class CourseController {
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getCourseById(
-            @PathVariable @Min(value = 1, message = "ID phải lớn hơn hoặc bằng 1") @Max(value = 10000000, message = "ID quá lớn") Long id, // <---
-                                                                                                                                           // THÊM
-                                                                                                                                           // RÀNG
-                                                                                                                                           // BUỘC
+            @PathVariable @Min(value = 1, message = "ID phải lớn hơn hoặc bằng 1") @Max(value = 10000000, message = "ID quá lớn") Long id,
             @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
 
         Long userId = getUserIdFromHeader(tokenHeader);
         String token = (tokenHeader != null && tokenHeader.startsWith("Bearer ")) ? tokenHeader.substring(7) : null;
         String role = (token != null) ? jwtUtils.extractRole(token) : null;
 
-        // Không dùng try-catch ở đây nữa
         Course course = courseService.getCourseById(id, userId, role);
         return ResponseEntity.ok(course);
     }
@@ -152,17 +143,14 @@ public class CourseController {
                 return ResponseEntity.status(401).body("Bạn chưa đăng nhập!");
             }
 
-            // Check Token Logic
             String token = tokenHeader.substring(7);
             String role = jwtUtils.extractRole(token);
             String verificationStatus = jwtUtils.extractVerificationStatus(token);
 
-            // 1. Phải là Teacher
             if (!"TEACHER".equals(role)) {
                 return ResponseEntity.status(403).body("Chỉ giáo viên mới được tạo khóa học!");
             }
 
-            // 2. Phải là APPROVED
             if (!"APPROVED".equals(verificationStatus)) {
                 return ResponseEntity.status(403)
                         .body("Tài khoản giáo viên chưa được duyệt (Status: " + verificationStatus + ")");
@@ -220,7 +208,6 @@ public class CourseController {
             @PathVariable Long id,
             @RequestHeader("Authorization") String tokenHeader) {
 
-        // Giữ nguyên logic lấy ID và Role từ Header
         Long userId = getUserIdFromHeader(tokenHeader);
         if (userId == null) {
             return ResponseEntity.status(401).body("Unauthorized");
@@ -234,13 +221,11 @@ public class CourseController {
         String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
         String role = jwtUtils.extractRole(token);
 
-        // Giữ nguyên logic phân quyền cũ
         if (!userId.equals(existing.getTeacherId())
                 && !(role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER")))) {
             return ResponseEntity.status(403).body("Không có quyền xóa khóa học này");
         }
 
-        // Thực hiện gọi Service (Ngoại lệ 400 từ Service sẽ tự trôi ra ngoài)
         boolean deleted = courseService.deleteCourse(id);
 
         if (deleted) {
@@ -250,7 +235,7 @@ public class CourseController {
         }
     }
 
-    // API để Hiện khóa học lại (Chỉ MANAGER hoặc ADMIN được phép)
+    // Hiện khóa học (MANAGER/ADMIN)
     @PutMapping("/{id}/activate")
     public ResponseEntity<?> activateCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
@@ -270,23 +255,20 @@ public class CourseController {
         }
     }
 
-    // --- LESSON APIs (Task 2 - Chờ làm) ---
+    // --- LESSON APIs ---
 
-    // 1. Lấy danh sách bài học của 1 khóa
     @GetMapping("/{courseId}/lessons")
     public ResponseEntity<List<Lesson>> getLessons(@PathVariable Long courseId) {
         List<Lesson> lessons = courseService.getLessonsByCourse(courseId);
         return ResponseEntity.ok(lessons);
     }
 
-    // 2. Thêm bài học mới
     @PostMapping("/{courseId}/lessons")
     public ResponseEntity<?> addLesson(
             @PathVariable Long courseId,
-            @jakarta.validation.Valid @RequestBody Lesson lesson, // Thêm @Valid để bắt lỗi tiêu đề rỗng
+            @jakarta.validation.Valid @RequestBody Lesson lesson,
             @RequestHeader("Authorization") String tokenHeader) {
 
-        // 1. Lấy thông tin user từ Token (Sử dụng hàm helper có sẵn của bạn)
         Long userId = getUserIdFromHeader(tokenHeader);
         if (userId == null) {
             return ResponseEntity.status(401).body("Vui lòng đăng nhập để thực hiện thao tác này.");
@@ -295,7 +277,6 @@ public class CourseController {
         String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
         String role = jwtUtils.extractRole(token);
 
-        // 2. KIỂM TRA QUYỀN TRUY CẬP (Sửa lỗi TC-LESSON-ADD-04)
         Course course = courseRepository.findById(courseId).orElse(null);
         if (course == null) {
             return ResponseEntity.status(404).body("Không tìm thấy khóa học để thêm bài học.");
@@ -305,24 +286,19 @@ public class CourseController {
         boolean isOwner = userId.equals(course.getTeacherId());
 
         if (!isPrivileged && !isOwner) {
-            // Chặn Giáo viên B can thiệp vào khóa học của Giáo viên A
             return ResponseEntity.status(403).body("Bạn không có quyền quản lý nội dung của khóa học này.");
         }
 
-        // 3. Thực hiện thêm bài học qua Service
         Lesson savedLesson = courseService.addLesson(courseId, lesson);
         return ResponseEntity.ok(savedLesson);
     }
 
-    // 3. Xem chi tiết 1 bài học
     @GetMapping("/lessons/{lessonId}")
     public ResponseEntity<?> getLessonDetail(@PathVariable Long lessonId) {
         Lesson lesson = courseService.getLessonById(lessonId);
         return lesson != null ? ResponseEntity.ok(lesson) : ResponseEntity.notFound().build();
     }
 
-    // 4. Sửa bài học
-    // Ví dụ trong Controller
     @PutMapping("/lessons/{lessonId}")
     public ResponseEntity<Lesson> updateLesson(@PathVariable Long lessonId,
             @jakarta.validation.Valid @RequestBody Lesson lessonDto) {
@@ -333,13 +309,12 @@ public class CourseController {
                 lessonDto.getOrderIndex(),
                 lessonDto.getVideoUrl(),
                 lessonDto.getResourceUrl(),
-                lessonDto.getResourceName(), // Đảm bảo lấy thêm trường này
-                lessonDto.getMeetingUrl(), // <--- KHÔI PHỤC
+                lessonDto.getResourceName(),
+                lessonDto.getMeetingUrl(),
                 lessonDto.getStartTime());
         return ResponseEntity.ok(updated);
     }
 
-    // 5. Xóa bài học
     @DeleteMapping("/lessons/{lessonId}")
     public ResponseEntity<?> deleteLesson(@PathVariable Long lessonId,
                                           @RequestHeader("Authorization") String tokenHeader) {
@@ -370,10 +345,8 @@ public class CourseController {
         }
     }
 
-    // --- ENROLLMENT & SEARCH APIs (Task 3 - Chờ làm) ---
+    // --- ENROLLMENT & SEARCH APIs ---
 
-    // API Tìm kiếm riêng biệt
-    // 1. API Tìm kiếm: GET /api/courses/search?keyword=Java
     @GetMapping("/search")
     public ResponseEntity<List<Course>> searchCourses(@RequestParam String keyword) {
         return ResponseEntity.ok(courseService.searchCourses(keyword));
@@ -382,7 +355,7 @@ public class CourseController {
     @PostMapping("/{courseId}/enroll")
     public ResponseEntity<?> enrollCourse(
             @PathVariable Long courseId,
-            @RequestHeader("Authorization") String tokenHeader // Đổi @RequestParam thành @RequestHeader
+            @RequestHeader("Authorization") String tokenHeader
     ) {
         Long userId = getUserIdFromHeader(tokenHeader);
 
@@ -408,7 +381,7 @@ public class CourseController {
             @RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
 
-        // Nếu chưa đăng nhập thì coi như chưa đăng ký -> trả về false
+        // Chưa đăng nhập coi như chưa đăng ký
         if (userId == null) {
             return ResponseEntity.ok(false);
         }
@@ -419,19 +392,15 @@ public class CourseController {
 
     @GetMapping("/{id}/participants")
     public ResponseEntity<List<Long>> getCourseParticipants(@PathVariable Long id) {
-        // 1. Tìm khóa học để lấy ID giáo viên (createdBy)
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
 
-        // 2. Lấy danh sách học viên từ bảng Enrollment
         List<Enrollment> enrollments = enrollmentRepositor.findByCourseCourseId(id);
 
         List<Long> participantIds = enrollments.stream()
                 .map(Enrollment::getUserId)
                 .collect(Collectors.toList());
 
-        // 3. Thêm giáo viên vào danh sách (nếu chưa có)
-        // Lưu ý: Đảm bảo createdBy không null trong DB
         if (course.getCreatedBy() != null && !participantIds.contains(course.getCreatedBy())) {
             participantIds.add(course.getCreatedBy());
         }
@@ -458,7 +427,7 @@ public class CourseController {
         }
     }
 
-    // API Bước 4: Duyệt khóa học (Chỉ dành cho MANAGER/ADMIN)
+    // Duyệt khóa học (MANAGER/ADMIN)
     @PutMapping("/{id}/approve")
     public ResponseEntity<?> approveCourse(@PathVariable Long id, @RequestHeader("Authorization") String tokenHeader) {
         String role = jwtUtils.extractRole(tokenHeader.substring(7));
@@ -470,17 +439,16 @@ public class CourseController {
         return success ? ResponseEntity.ok("Duyệt thành công!") : ResponseEntity.notFound().build();
     }
 
-    // API lấy danh sách cho trang chủ (Ai cũng xem được -> Chỉ hiện khóa đã duyệt)
+    // Danh sách khóa học đã duyệt cho trang chủ
     @GetMapping("/published")
     public ResponseEntity<List<Course>> getPublishedCourses() {
         return ResponseEntity.ok(courseService.getPublishedCourses());
     }
 
-    // API lấy danh sách quản lý (Chỉ Admin/Manager xem được -> Hiện tất cả)
+    // Danh sách tất cả khóa học (MANAGER/ADMIN)
     @GetMapping("/admin/all")
     public ResponseEntity<?> getAllCoursesForAdmin(
             @RequestHeader(value = "Authorization", required = false) String tokenHeader) {
-        // 1. Kiểm tra nếu không có Token
         if (tokenHeader == null || !tokenHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(401).body("Thiếu Token xác thực");
         }
@@ -489,7 +457,6 @@ public class CourseController {
             String token = tokenHeader.substring(7);
             String role = jwtUtils.extractRole(token);
 
-            // 2. Kiểm tra quyền
             if (!"MANAGER".equalsIgnoreCase(role) && !"ADMIN".equalsIgnoreCase(role)) {
                 return ResponseEntity.status(403).body("Bạn không có quyền MANAGER/ADMIN");
             }
@@ -500,28 +467,23 @@ public class CourseController {
         }
     }
 
-    // Học sinh đánh dấu hoàn thành bài học
     @PostMapping("/{courseId}/lessons/{lessonId}/complete")
     public ResponseEntity<?> markLessonAsComplete(
             @PathVariable Long courseId,
             @PathVariable Long lessonId,
             @RequestHeader("Authorization") String token) {
 
-        // 1. CHẶN NGAY TỪ CỬA (Phải nằm trên cùng)
         if (courseId < 1 || courseId > 10000000 || lessonId < 1 || lessonId > 10000000) {
             return ResponseEntity.status(404).body(java.util.Map.of(
                     "error", "Không tìm thấy khóa học hoặc bài học"));
         }
 
-        // 2. NẾU ID HỢP LỆ MỚI ĐI TIẾP XUỐNG ĐÂY
         Long userId = getUserIdFromHeader(token);
 
-        // 3. GỌI SERVICE
         courseService.markLessonAsComplete(userId, courseId, lessonId);
         return ResponseEntity.ok("Đã đánh dấu hoàn thành bài học");
     }
 
-    // Lấy tiến độ của bản thân (Học sinh)
     @GetMapping("/{courseId}/progress")
     public ResponseEntity<?> getMyProgress(@PathVariable Long courseId, @RequestHeader("Authorization") String token) {
         Long userId = getUserIdFromHeader(token);
@@ -538,7 +500,6 @@ public class CourseController {
         if (requesterId == null)
             return ResponseEntity.status(401).body("Unauthorized");
 
-        // CHẶN BVA CHO CẢ COURSE VÀ STUDENT
         if (courseId < 1 || courseId > 10000000 || studentId < 1 || studentId > 10000000) {
             return ResponseEntity.status(404).body("Không tìm thấy khóa học hoặc học sinh");
         }
@@ -551,27 +512,24 @@ public class CourseController {
     public ResponseEntity<List<Long>> getCompletedLessonIds(
             @PathVariable Long courseId,
             @RequestHeader("Authorization") String token) {
-        Long userId = getUserIdFromHeader(token); // Lấy ID từ Token
+        Long userId = getUserIdFromHeader(token);
         List<Long> completedIds = courseService.getCompletedLessonIds(userId, courseId);
         return ResponseEntity.ok(completedIds);
     }
 
     @GetMapping("/student/{studentId}/summary")
     public ResponseEntity<?> getStudentProgressSummary(@PathVariable Long studentId) {
-        // Trả về danh sách DTO
         return ResponseEntity.ok(courseService.getStudentProgressSummary(studentId));
     }
 
-    // --- BỔ SUNG API NÀY ---
 
-    // API: Học sinh tự xem tổng quan tiến độ của mình (Dùng cho Student Dashboard)
+    // Tổng quan tiến độ của học sinh đang đăng nhập
     @GetMapping("/my-summary")
     public ResponseEntity<?> getMySummary(@RequestHeader("Authorization") String tokenHeader) {
         Long userId = getUserIdFromHeader(tokenHeader);
         if (userId == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
-        // Gọi hàm getStudentProgressSummary đã viết trong Service (tái sử dụng logic)
         return ResponseEntity.ok(courseService.getStudentProgressSummary(userId));
     }
 }

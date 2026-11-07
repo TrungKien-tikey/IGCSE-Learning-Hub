@@ -27,7 +27,6 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c FROM Course c WHERE c.isActive = true AND c.courseId NOT IN (SELECT e.course.courseId FROM Enrollment e WHERE e.userId = :userId)")
     List<Course> findRecommendedCourses(@Param("userId") Long userId);
 
-    // Đổi tên hàm thành findByIsActive
     List<Course> findByIsActive(boolean isActive);
 
 }
