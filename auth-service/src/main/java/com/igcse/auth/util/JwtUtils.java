@@ -2,6 +2,7 @@ package com.igcse.auth.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import java.security.Key;
 import java.util.Date;
@@ -10,7 +11,8 @@ import java.util.Date;
 public class JwtUtils {
 
     // Key bí mật
-    private static final String SECRET_KEY = "***REMOVED***";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     // Thời gian hết hạn Access Token: 1 ngày
     private static final long EXPIRATION_TIME = 86400000L;
@@ -19,7 +21,7 @@ public class JwtUtils {
     private static final long REFRESH_EXPIRATION_TIME = 604800000L;
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
     // 1. Tạo Access Token (Ngắn hạn)

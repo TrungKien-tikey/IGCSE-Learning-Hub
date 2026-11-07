@@ -341,7 +341,27 @@ public class CourseController {
 
     // 5. Xóa bài học
     @DeleteMapping("/lessons/{lessonId}")
-    public ResponseEntity<?> deleteLesson(@PathVariable Long lessonId) {
+    public ResponseEntity<?> deleteLesson(@PathVariable Long lessonId,
+                                          @RequestHeader("Authorization") String tokenHeader) {
+        Long userId = getUserIdFromHeader(tokenHeader);
+        if (userId == null) {
+            return ResponseEntity.status(401).body("B\u1ea1n ch\u01b0a \u0111\u0103ng nh\u1eadp!");
+        }
+
+        Lesson existing = courseService.getLessonById(lessonId);
+        if (existing == null) {
+            return ResponseEntity.status(404).body("Kh\u00f4ng t\u00ecm th\u1ea5y b\u00e0i h\u1ecdc \u0111\u1ec3 x\u00f3a.");
+        }
+
+        String token = tokenHeader.startsWith("Bearer ") ? tokenHeader.substring(7) : tokenHeader;
+        String role = jwtUtils.extractRole(token);
+        boolean isPrivileged = role != null && (role.equalsIgnoreCase("ADMIN") || role.equalsIgnoreCase("MANAGER"));
+        boolean isOwner = existing.getCourse() != null && userId.equals(existing.getCourse().getTeacherId());
+
+        if (!isOwner && !isPrivileged) {
+            return ResponseEntity.status(403).body("Kh\u00f4ng c\u00f3 quy\u1ec1n x\u00f3a b\u00e0i h\u1ecdc n\u00e0y");
+        }
+
         boolean deleted = courseService.removeLesson(lessonId);
         if (deleted) {
             return ResponseEntity.ok("Đã xóa bài học.");

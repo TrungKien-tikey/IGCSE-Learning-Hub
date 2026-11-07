@@ -1,0 +1,4461 @@
+{
+  "info": {
+    "_postman_id": "f9f6483d-72ef-4be2-a8b8-0fb602fb3a3b",
+    "name": "UnitTest_IGCSE_Collections",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "53214040"
+  },
+  "item": [
+    {
+      "name": "Course-service",
+      "item": [
+        {
+          "name": "Create New Course",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Approved Teacher\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"approved_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (approved_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginUnapprovedTeacher",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Unapproved Teacher\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"unapproved_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (unapproved_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"Kh@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"approved_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường approved_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Data chuẩn -> Tạo thành công (Status 200/201)\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{approved_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học IGCSE Toán Nâng Cao\",\r\n    \"description\": \"Bao đậu điểm A*\",\r\n    \"price\": 1200000,\r\n    \"level\": \"Advanced\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course_Price 0",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Giá = 0 -> Tạo thành công (Status 200/201)\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"approved_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường approved_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{approved_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học IGCSE Miễn phí\",\r\n    \"description\": \"Dành cho học sinh khó khăn\",\r\n    \"price\": 0,\r\n    \"level\": \"Beginner\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course_Empty Title",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Thiếu tiêu đề -> Lỗi 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"approved_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường approved_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{approved_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"\", \r\n    \"description\": \"Test lỗi thiếu tiêu đề\",\r\n    \"price\": 500000,\r\n    \"level\": \"Beginner\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course_not approved",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Chưa duyệt -> Bị chặn lỗi 403 Forbidden\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "\r",
+                      "    // (Tùy chọn) Kiểm tra luôn câu thông báo lỗi cho chắc chắn\r",
+                      "    var responseBody = pm.response.text();\r",
+                      "    pm.expect(responseBody).to.include(\"chưa được duyệt\"); \r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"unapproved_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường unapproved_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{unapproved_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học test quyền\",\r\n    \"description\": \"Cố tình tạo khi chưa duyệt\",\r\n    \"price\": 500000,\r\n    \"level\": \"Beginner\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Update Course",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"KK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Tạo khóa học mồi thành công\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "});",
+                      "",
+                      "const newId = res.id || res.courseId;",
+                      "if (newId) {",
+                      "    pm.environment.set(\"target_course_id\", String(newId));",
+                      "} else {",
+                      "    console.error(\"Create Course không trả về id\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học Gốc giá cao\",\r\n    \"description\": \"Sẽ bị đem ra làm chuột bạch\",\r\n    \"price\": 2000000,\r\n    \"level\": \"Advanced\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Chủ khóa học sửa thành công -> Status 200\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học Gốc (Đã đổi tên TC1)\",\r\n    \"description\": \"Nội dung update bình thường\",\r\n    \"price\": 2500000,\r\n    \"level\": \"Advanced\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/{{target_course_id}}",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "{{target_course_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "UpdateCourse_Free Price",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Sửa giá về 0 hợp lệ -> Status 200\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.price).to.eql(0); // Check xem DB có thực sự lưu số 0 không\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Khóa học IGCSE Toán học (Khuyến mãi)\",\r\n    \"description\": \"Đang trong thời gian miễn phí\",\r\n    \"price\": 0,\r\n    \"level\": \"Beginner\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/{{target_course_id}}",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "{{target_course_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: ID không tồn tại -> Lỗi 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Sửa khóa học ma\",\r\n    \"price\": 500000\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/99999",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "99999"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Course_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Sai quyền sở hữu -> Lỗi 403 Forbidden\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "\r",
+                      "    // Dọn dẹp luôn cái biến để lần sau chạy Runner không bị kẹt data cũ\r",
+                      "    pm.environment.unset(\"target_course_id\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bị Hacker đổi tên\",\r\n    \"price\": 1000\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/{{target_course_id}}",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "{{target_course_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Delete Course",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"KK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Course For Delete",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Tạo khóa học để xóa thành công\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                      "});",
+                      "",
+                      "const newId = res.id || res.courseId;",
+                      "if (newId) {",
+                      "    pm.environment.set(\"delete_course_id\", String(newId));",
+                      "    pm.collectionVariables.set(\"delete_course_id\", String(newId));",
+                      "    pm.variables.set(\"delete_course_id\", String(newId));",
+                      "} else {",
+                      "    throw new Error(\"Create Course For Delete: response không có id. Status=\" + pm.response.code + \", body=\" + pm.response.text());",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Khóa học tự động xóa - temp\",\n    \"description\": \"Khóa học tạo trong Delete Course folder để test xóa\",\n    \"price\": 10000,\n    \"level\": \"Beginner\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses"
+                  ],
+                  "query": [],
+                  "variable": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Xóa thành công -> Trả về 204 No Content\", function () {\r",
+                      "    pm.response.to.have.status(204);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}",
+                      "",
+                      "const tmpCourseId = pm.environment.get(\"delete_course_id\") || pm.collectionVariables.get(\"delete_course_id\") || pm.variables.get(\"delete_course_id\");",
+                      "if (!tmpCourseId || isNaN(Number(tmpCourseId))) {",
+                      "    throw new Error(\"delete_course_id chưa có giá trị hợp lệ: cần chạy 'Create Course For Delete' trước trong Collection Runner (không chạy request đơn lẻ)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/{{delete_course_id}}",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "{{delete_course_id}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: ID không có trong DB -> Trả về 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/9999999",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "9999999"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Xóa khóa người khác -> Trả về 403 Forbidden\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/60",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "60"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Course_Enroll",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Xóa khóa đang có học sinh -> Mong đợi báo lỗi 400 hoặc 409\", function () {\r",
+                      "    // Về mặt nghiệp vụ, không được phép xóa (hoặc phải chuyển status thành INACTIVE).\r",
+                      "    // Kỳ vọng hệ thống chặn lại và báo lỗi (400 Bad Request hoặc 409 Conflict).\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/18",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "18"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Detail Course",
+          "item": [
+            {
+              "name": "LoginStudentA",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"D@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginStudentB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"M@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Course_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Lấy chi tiết thành công -> Status 200\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/23",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "23"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Course_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Truy cập ID không tồn tại -> Trả về 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/my-courses/888",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "my-courses",
+                    "888"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Course_TypeId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Nhập ID sai định dạng chữ cái -> Mong đợi 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "localhost:8079/api/courses/23abc",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8079",
+                  "path": [
+                    "api",
+                    "courses",
+                    "23abc"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Course_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4 (Security): Kiểm tra IDOR - Học sinh A không được xem khóa của B\", function () {\r",
+                      "    // Tester kỳ vọng hệ thống phải chặn lại bằng mã 403 Forbidden\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});\r",
+                      "\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "http://localhost:8079/api/courses/19",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8079",
+                  "path": [
+                    "api",
+                    "courses",
+                    "19"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Create New Lesson",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher2 Copy",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"KK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Lesson_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Postman Test Script mới\r",
+                      "pm.test(\"TC1: Thêm bài học thành công -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    \r",
+                      "    // Chuyển phản hồi về dạng JSON\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    \r",
+                      "    // Kiểm tra xem ID có tồn tại không (chứng tỏ đã lưu thành công)\r",
+                      "    pm.expect(jsonData.id).to.not.be.null;\r",
+                      "    pm.expect(jsonData).to.have.property(\"title\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bài 1: Giới thiệu tổng quan\",\r\n    \"content\": \"Nội dung chi tiết của bài học\",\r\n    \"lessonOrder\": 8, \r\n    \"videoUrl\": \"https://youtube.com/...\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/18/lessons",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "18",
+                    "lessons"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Lesson_Not Found",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Khóa học không tồn tại -> Trả về 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Không tìm thấy khóa học\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bài 1: Giới thiệu tổng quan\",\r\n    \"content\": \"Nội dung chi tiết của bài học\",\r\n    \"orderIndex\": 1,\r\n    \"videoUrl\": \"https://youtube.com/...\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/188/lessons",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "188",
+                    "lessons"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Lesson_Empty Title",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Thiếu tiêu đề -> Mong đợi bị chặn và trả về 400 Bad Request\", function () {\r",
+                      "// Về mặt nghiệp vụ, không thể lưu bài học không có tên.\r",
+                      "pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"\",\r\n    \"content\": \"Nội dung bài học\",\r\n    \"orderIndex\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/18/lessons",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "18",
+                    "lessons"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Lesson_Security",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Sai quyền sở hữu -> Mong đợi bị chặn (403 Forbidden hoặc 401)\", function () {\r",
+                      "    // Tester kỳ vọng hệ thống phải kiểm tra token và chặn lại\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bài học Hacker chèn vào\",\r\n    \"content\": \"Phá hoại dữ liệu\",\r\n    \"orderIndex\": 99\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/18/lessons",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "18",
+                    "lessons"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Detail Lesson",
+          "item": [
+            {
+              "name": "LoginStudentA",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"TKK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginStudentB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"TK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Lesson_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Lấy chi tiết bài học thành công -> Trả về 200 OK\", function () {\r",
+                      "pm.response.to.have.status(200);\r",
+                      "var jsonData = pm.response.json();\r",
+                      "pm.expect(jsonData).to.have.property(\"videoUrl\"); // Đảm bảo trả về đúng data bài học\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Lesson_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: ID bài học không tồn tại -> Trả về 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/99",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "99"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Lesson_TypeId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: ID chứa chữ cái -> Mong đợi 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400); \r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9abc",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9abc"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Detail Lesson_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Người chưa mua khóa học cố tình xem bài học -> Mong đợi bị chặn (403 Forbidden)\", function () {\r",
+                      "    // Vì bài học chứa video/tài liệu độc quyền, không được phép public.\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Update Lesson",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"KK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Sửa bài học thành công -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    // Kiểm tra xem dữ liệu trả về có đúng tiêu đề vừa sửa không\r",
+                      "    pm.expect(jsonData.title).to.include(\"Đã update\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bài 1: Giới thiệu tổng quan (Đã update)\",\r\n    \"content\": \"Nội dung chi tiết được cập nhật mới nhất\",\r\n    \"orderIndex\": 1,\r\n    \"videoUrl\": \"https://youtube.com/watch?v=123\",\r\n    \"resourceUrl\": \"https://drive.google.com/file/...\",\r\n    \"resourceName\": \"Tai_lieu_bai_1_v2.pdf\",\r\n    \"meetingUrl\": \"https://zoom.us/j/123\",\r\n    \"startTime\": \"2026-03-22T08:00:00\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Bài học không tồn tại -> Mong đợi 404 Not Found\", function () {\r",
+                      "pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bài 1: Giới thiệu tổng quan (Đã update)\",\r\n    \"content\": \"Nội dung chi tiết được cập nhật mới nhất\",\r\n    \"orderIndex\": 1,\r\n    \"videoUrl\": \"https://youtube.com/watch?v=123\",\r\n    \"resourceUrl\": \"https://drive.google.com/file/...\",\r\n    \"resourceName\": \"Tai_lieu_bai_1_v2.pdf\",\r\n    \"meetingUrl\": \"https://zoom.us/j/123\",\r\n    \"startTime\": \"2026-03-22T08:00:00\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/99999",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "99999"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson_Empty Title",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Bỏ trống tiêu đề bài học -> Mong đợi 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"\",\r\n    \"content\": \"Nội dung đã bị xóa tiêu đề\",\r\n    \"orderIndex\": 1\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Lesson_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Sửa bài học của người khác -> Mong đợi bị chặn (403 Forbidden)\", function () {\r",
+                      "    // Vì là kẻ gian, hệ thống phải chặn lại và không cho phép ghi đè\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bị Hacker đổi tên bài\",\r\n    \"videoUrl\": \"https://link-virus.com\",\r\n    \"content\": \"Tài liệu đã bị ghi đè xóa sạch\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Delete Lesson",
+          "item": [
+            {
+              "name": "LoginApprovedTeacher1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_a_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_a_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"KK@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Lesson For Delete",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "const newLessonId = res.id || res.lessonId;",
+                      "",
+                      "pm.test(\"Tạo bài học để xóa thành công\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(newLessonId).to.not.be.undefined;",
+                      "});",
+                      "",
+                      "if (newLessonId !== undefined && newLessonId !== null) {",
+                      "    pm.environment.set(\"delete_lesson_id\", String(newLessonId));",
+                      "    pm.collectionVariables.set(\"delete_lesson_id\", String(newLessonId));",
+                      "    pm.variables.set(\"delete_lesson_id\", String(newLessonId));",
+                      "} else {",
+                      "    throw new Error(\"Create Lesson For Delete: response không có id/lessonId. Status=\" + pm.response.code + \", body=\" + pm.response.text());",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Bài học tự động xóa - temp\",\n    \"content\": \"Lesson tạo trong Delete Lesson folder để test xóa\",\n    \"orderIndex\": 1,\n    \"videoUrl\": \"https://youtube.com/...\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/18/lessons",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "18",
+                    "lessons"
+                  ],
+                  "query": [],
+                  "variable": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Lesson_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Xóa bài học của người khác -> Mong đợi bị chặn (403 Forbidden)\", function () {\r",
+                      "    // Vì là kẻ gian hoặc người qua đường, hệ thống PHẢI chặn lại!\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([401, 403]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/{{delete_lesson_id}}",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "{{delete_lesson_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Lesson_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Xóa thành công -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Đã xóa\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}",
+                      "",
+                      "const tmpLessonId = pm.environment.get(\"delete_lesson_id\") || pm.collectionVariables.get(\"delete_lesson_id\") || pm.variables.get(\"delete_lesson_id\");",
+                      "if (!tmpLessonId || isNaN(Number(tmpLessonId))) {",
+                      "    throw new Error(\"delete_lesson_id chưa có giá trị hợp lệ: cần chạy 'Create Lesson For Delete' trước trong Collection Runner (không chạy request đơn lẻ)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/{{delete_lesson_id}}",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "lessons",
+                    "{{delete_lesson_id}}"
+                  ],
+                  "query": [],
+                  "variable": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Lesson_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Bài học không tồn tại -> Trả về 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Không tìm thấy\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/9999999",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "9999999"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Lesson_TypeId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: ID bài học chứa chữ cái -> Mong đợi bị chặn (400 Bad Request)\", function () {\r",
+                      "pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_a_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_a_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_a_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{url_base}}/courses/lessons/20abc",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "lessons",
+                    "20abc"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Mark Completed Lesson",
+          "item": [
+            {
+              "name": "LoginStudentA",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Đăng nhập Học sinh thành công (200 OK)\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"hongtrungkien.gr2022@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginStudentB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"M@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Completed Lesson_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Đánh dấu hoàn thành -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Đã đánh dấu\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/18/lessons/18/complete",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "18",
+                    "lessons",
+                    "18",
+                    "complete"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Completed Lesson_Not Found",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Bài học không tồn tại -> Mong đợi 404 Not Found\", function () {\r",
+                      "    // Nếu dev không bọc lỗi NullPointerException, chỗ này sẽ văng 500\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/18/lessons/999999/complete",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "18",
+                    "lessons",
+                    "999999",
+                    "complete"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Completed Lesson_TypeId",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: ID chứa chữ cái -> Mong đợi 400 Bad Request\", function () {\r",
+                      "    // Hệ thống không ép kiểu được từ chữ sang số thì phải báo lỗi 400\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/18/lessons/mười-tám/complete",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "18",
+                    "lessons",
+                    "mười-tám",
+                    "complete"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Completed Lesson_Security",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4 (Nghiệp vụ): Chưa đăng ký khóa học -> Mong đợi bị chặn (403/400)\", function () {\r",
+                      "    // Nguyên tắc: Chưa đóng tiền/chưa enroll thì không được phép lưu tiến độ học tập.\r",
+                      "    // Kỳ vọng hệ thống check bảng Enrollment, không thấy dữ liệu -> Báo lỗi.\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 401, 403]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/18/lessons/18/complete",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "18",
+                    "lessons",
+                    "18",
+                    "complete"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "View Learning Progress",
+          "item": [
+            {
+              "name": "LoginStudentA",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Đăng nhập Học sinh thành công (200 OK)\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (student_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"M@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginStudentB",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Phụ huynh thành công\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"parent_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (parent_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"K@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View Student Progress_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Học sinh xem tiến độ của mình -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "\r",
+                      "    // Đảm bảo dữ liệu trả về không bị Null và là một con số (phần trăm hoàn thành)\r",
+                      "    var progress = pm.response.json();\r",
+                      "    pm.expect(progress).to.be.a('number');\r",
+                      "    pm.expect(progress).to.be.within(0, 100); // Tiến độ từ 0% đến 100%\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/23/progress/28",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "23",
+                    "progress",
+                    "28"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View Parent Progress_Normal",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"parent_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường parent_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Phụ huynh xem tiến độ của con -> Trả về 200 OK\", function () {\r",
+                      "    // Hệ thống trích xuất Token của Phụ huynh, kiểm tra xem có đúng là \r",
+                      "    // phụ huynh của học sinh ID 101 không. Nếu đúng thì cho phép xem.\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "\r",
+                      "    var progress = pm.response.json();\r",
+                      "    pm.expect(progress).to.be.a('number');\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{parent_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/23/progress/28",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "23",
+                    "progress",
+                    "28"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginStudentBSecurity",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Student B (security token)\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"student_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login Student B (security) không trả về token\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"email\": \"M@gmail.com\",\n    \"password\": \"{{test_password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "auth",
+                    "login"
+                  ],
+                  "query": [],
+                  "variable": []
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View Student Progress_Security",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: Học sinh A xem lén tiến độ học sinh B -> Mong đợi 403 Forbidden\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/23/progress/28",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "23",
+                    "progress",
+                    "28"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "View Student Progress_NotFound",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"student_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường student_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Khóa học không tồn tại -> Mong đợi 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{student_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "http://localhost:8000/api/courses/236/progress/28",
+                  "protocol": "http",
+                  "host": [
+                    "localhost"
+                  ],
+                  "port": "8000",
+                  "path": [
+                    "api",
+                    "courses",
+                    "236",
+                    "progress",
+                    "28"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Approved Course",
+          "item": [
+            {
+              "name": "LoginAdmin/Manage",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher A\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"admin_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (admin_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"T@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "LoginApprovedTeacher",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "let res = {};",
+                      "try { res = pm.response.json(); } catch (e) { res = {}; }",
+                      "",
+                      "pm.test(\"Login Teacher B\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(res.token).to.be.a(\"string\");",
+                      "    pm.expect(res.token.trim()).to.not.equal(\"\");",
+                      "});",
+                      "",
+                      "if (res.token) {",
+                      "    pm.environment.set(\"teacher_b_token\", res.token);",
+                      "} else {",
+                      "    console.error(\"Login không trả về token (teacher_b_token)\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"email\": \"kien@gmail.com\",\r\n    \"password\": \"{{test_password}}\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/auth/login",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Approved_Normal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC1: Admin/Manager duyệt khóa học -> Trả về 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Duyệt thành công!\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"admin_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường admin_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/41/approve",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "41",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Approved_Not Found",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC2: Khóa học không tồn tại -> Trả về 404 Not Found\", function () {\r",
+                      "    pm.response.to.have.status(404);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"admin_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường admin_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/9999999/approve",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "9999999",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Approved_TypeId",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC3: ID chứa chữ cái -> Mong đợi 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400); \r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"admin_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường admin_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/40abc/approve",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "40abc",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Approved_Security",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"TC4: Sai quyền (Giáo viên/Học sinh tự duyệt) -> Hệ thống chặn (403 Forbidden)\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "    pm.expect(pm.response.text()).to.include(\"Bạn không có quyền\");\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const token = pm.environment.get(\"teacher_b_token\");",
+                      "if (!token || String(token).trim() === \"\" || String(token).trim().toLowerCase() === \"null\") {",
+                      "    throw new Error(\"Biến môi trường teacher_b_token đang rỗng: cần chạy request login tương ứng trước request này\");",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{teacher_b_token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"Bị Hacker đổi tên bài\",\r\n    \"videoUrl\": \"https://link-virus.com\",\r\n    \"content\": \"Tài liệu đã bị ghi đè xóa sạch\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{url_base}}/courses/39/approve",
+                  "host": [
+                    "{{url_base}}"
+                  ],
+                  "path": [
+                    "courses",
+                    "39",
+                    "approve"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "delete_course_id",
+      "value": ""
+    },
+    {
+      "key": "delete_lesson_id",
+      "value": ""
+    },
+    {
+      "key": "test_password",
+      "value": "",
+      "type": "default"
+    }
+  ]
+}

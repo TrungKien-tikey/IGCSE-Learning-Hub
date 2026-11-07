@@ -8,7 +8,7 @@ services:
   mysql-db:
     image: mysql:8.0
     container_name: igcse_mysql
-    restart: always
+    restart: "no"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: auth_db
@@ -24,7 +24,7 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     container_name: igcse_phpmyadmin
-    restart: always
+    restart: "no"
     links:
       - mysql-db
     environment:
@@ -37,7 +37,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: igcse_rabbitmq
-    restart: always
+    restart: "no"
     ports:
       - "5672:5672"   # Cổng để các Service (Java/Kotlin) gửi tin nhắn
       - "15672:15672" # Cổng Web quản lý (Dashboard)
@@ -56,7 +56,7 @@ services:
   kong-database:
     image: postgres:13
     container_name: kong-database
-    restart: always
+    restart: "no"
     environment:
       POSTGRES_USER: kong
       POSTGRES_DB: kong
@@ -75,7 +75,7 @@ services:
   kong-migration:
     image: kong:latest
     container_name: kong-migration
-    command: "kong migrations bootstrap"
+    command: "sh -c 'kong migrations bootstrap || kong migrations up'"
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
@@ -92,7 +92,7 @@ services:
   kong:
     image: kong:latest
     container_name: kong-gateway
-    restart: always
+    restart: "no"
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: kong-database
@@ -119,7 +119,7 @@ services:
   konga:
     image: pantsel/konga
     container_name: konga-ui
-    restart: always
+    restart: "no"
     environment:
       NODE_ENV: development
     ports:

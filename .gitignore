@@ -66,6 +66,8 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+serviceAccountKey.json
+*.key.json
 
 # Allow example env files
 !.env.example
@@ -76,5 +78,6 @@ Thumbs.db
 mysql_data/
 ai_logs.txt
 .agent
+.run/
 
 .cursor/

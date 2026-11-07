@@ -9,6 +9,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.security.Key;
@@ -67,8 +68,8 @@ public class NotificationController {
         }
     }
 
-    // TODO: Move this to application.properties
-    private static final String SECRET_KEY = "***REMOVED***";
+    @Value("${jwt.secret}")
+    private String secretKey;
 
     @GetMapping
     public ResponseEntity<?> getMyNotifications(HttpServletRequest request) {
@@ -127,6 +128,6 @@ public class NotificationController {
     }
 
     private Key getSigningKey() {
-        return Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 }
